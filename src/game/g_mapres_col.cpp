@@ -1,11 +1,11 @@
 /* copyright (c) 2007 magnus auvinen, see licence.txt for more info */
-#include <engine/system.h>
-#include <game/vmath.h>
-#include <game/math.h>
+#include <engine/e_system.h>
+#include <game/g_vmath.h>
+#include <game/g_math.h>
 #include <math.h>
-#include "../engine/interface.h"
-#include "mapres_col.h"
-#include "mapres.h"
+#include "../engine/e_interface.h"
+#include "g_mapres_col.h"
+#include "g_mapres.h"
 
 /*
 	Simple collision rutines!

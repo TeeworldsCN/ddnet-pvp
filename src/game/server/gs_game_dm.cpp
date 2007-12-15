@@ -1,7 +1,7 @@
 /* copyright (c) 2007 magnus auvinen, see licence.txt for more info */
-#include <engine/config.h>
-#include "srv_common.h"
-#include "srv_dm.h"
+#include <engine/e_config.h>
+#include "gs_common.h"
+#include "gs_game_dm.h"
 
 void gameobject_dm::tick()
 {

@@ -1,5 +1,5 @@
 /* copyright (c) 2007 magnus auvinen, see licence.txt for more info */
-#include "game.h"
+#include "g_game.h"
 
 // TODO: OPT: rewrite this smarter!
 void move_point(vec2 *inout_pos, vec2 *inout_vel, float elasticity, int *bounces)

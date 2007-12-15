@@ -1,6 +1,6 @@
 /* copyright (c) 2007 magnus auvinen, see licence.txt for more info */
-#include <engine/config.h>
-#include "srv_common.h"
+#include <engine/e_config.h>
+#include "gs_common.h"
 #include <string.h>
 
 gameobject::gameobject()

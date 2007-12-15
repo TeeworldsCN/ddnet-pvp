@@ -2,7 +2,7 @@
 #ifndef ENGINE_SNAPSHOT_H
 #define ENGINE_SNAPSHOT_H
 
-#include "system.h"
+#include "e_system.h"
 
 /* SNAPSHOT */
 

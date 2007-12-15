@@ -1,6 +1,6 @@
 /* copyright (c) 2007 magnus auvinen, see licence.txt for more info */
-#include "srv_common.h"
-#include "srv_ctf.h"
+#include "gs_common.h"
+#include "gs_game_ctf.h"
 
 gameobject_ctf::gameobject_ctf()
 {
