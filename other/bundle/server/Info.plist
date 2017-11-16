@@ -5,9 +5,9 @@
 		<key>CFBundleDevelopmentRegion</key>
 		<string>English</string>
 		<key>CFBundleExecutable</key>
-		<string>DDNet</string>
+		<string>DDNet_server</string>
 		<key>CFBundleIconFile</key>
-		<string>DDNet</string>
+		<string>DDNet-Server</string>
 		<key>CFBundleInfoDictionaryVersion</key>
 		<string>6.0</string>
 		<key>CFBundlePackageType</key>
@@ -16,9 +16,5 @@
 		<string>????</string>
 		<key>CFBundleVersion</key>
 		<string>%s</string>
-		<key>CFBundleIdentifier</key>
-		<string>org.DDNetClient.app</string>
-		<key>NSHighResolutionCapable</key>
-		<true/>
 	</dict>
 </plist>
