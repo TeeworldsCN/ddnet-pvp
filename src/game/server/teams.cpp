@@ -174,15 +174,24 @@ void CGameTeams::ChangeTeamState(int Team, int State)
 
 void CGameTeams::SendTeamsState(int ClientID)
 {
-	if(!m_pGameContext->m_apPlayers[ClientID] || m_pGameContext->m_apPlayers[ClientID]->GetClientVersion() <= VERSION_DDRACE)
+	if(!m_pGameContext->m_apPlayers[ClientID])
 		return;
 
 	CMsgPacker Msg(NETMSGTYPE_SV_TEAMSSTATE);
+	CMsgPacker MsgLegacy(NETMSGTYPE_SV_TEAMSSTATELEGACY);
 
 	for(unsigned i = 0; i < MAX_CLIENTS; i++)
+	{
 		Msg.AddInt(m_Core.Team(i));
+		MsgLegacy.AddInt(m_Core.Team(i));
+	}
 
 	GameServer()->Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
+	int ClientVersion = GameServer()->m_apPlayers[ClientID]->GetClientVersion();
+	if(!GameServer()->Server()->IsSixup(ClientID) && VERSION_DDRACE < ClientVersion && ClientVersion <= VERSION_DDNET_MSG_LEGACY)
+	{
+		GameServer()->Server()->SendMsg(&MsgLegacy, MSGFLAG_VITAL, ClientID);
+	}
 }
 
 void CGameTeams::SetTeamLock(int Team, bool Lock)

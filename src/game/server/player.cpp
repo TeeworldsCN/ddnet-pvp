@@ -560,6 +560,8 @@ void CPlayer::Snap(int SnappingClient)
 		pDDNetPlayer->m_Flags |= EXPLAYERFLAG_AFK;
 	if(m_Paused)
 		pDDNetPlayer->m_Flags |= EXPLAYERFLAG_PAUSED;
+	if(m_Aim)
+		pDDNetPlayer->m_Flags |= EXPLAYERFLAG_AIM;
 
 	bool ShowSpec = m_pCharacter && m_pCharacter->IsDisabled();
 
@@ -646,6 +648,8 @@ void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 {
 	if(Server()->IsSixup(m_ClientID))
 		NewInput->m_PlayerFlags = PlayerFlags_SevenToSix(NewInput->m_PlayerFlags);
+	else
+		m_Aim = NewInput->m_PlayerFlags & PLAYERFLAG_AIM;
 
 	if(NewInput->m_PlayerFlags)
 		Server()->SetClientFlags(m_ClientID, NewInput->m_PlayerFlags);

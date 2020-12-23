@@ -1289,7 +1289,7 @@ bool CGameContext::OnClientDDNetVersionKnown(int ClientID)
 
 void *CGameContext::PreProcessMsg(int *MsgID, CUnpacker *pUnpacker, int ClientID)
 {
-	if(Server()->IsSixup(ClientID))
+	if(Server()->IsSixup(ClientID) && *MsgID < OFFSET_UUID)
 	{
 		void *pRawMsg = m_NetObjHandler7.SecureUnpackMsg(*MsgID, pUnpacker);
 		if(!pRawMsg)
