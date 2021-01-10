@@ -153,6 +153,8 @@ static int PlayerFlags_SevenToSix(int Flags)
 		Six |= PLAYERFLAG_CHATTING;
 	if(Flags & protocol7::PLAYERFLAG_SCOREBOARD)
 		Six |= PLAYERFLAG_SCOREBOARD;
+	if(Flags & protocol7::PLAYERFLAG_AIM)
+		Six |= PLAYERFLAG_AIM;
 
 	return Six;
 }
@@ -448,7 +450,7 @@ void CPlayer::Snap(int SnappingClient)
 	pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
 	pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
 
-	int ClientVersion = GetClientVersion();
+	int SnappingClientVersion = SnappingClient >= 0 ? GameServer()->GetClientVersion(SnappingClient) : CLIENT_VERSIONNR;
 	int Latency = SnappingClient == -1 ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aActLatency[m_ClientID];
 	int Score = m_Score;
 	bool IsEndRound = false;
@@ -476,7 +478,7 @@ void CPlayer::Snap(int SnappingClient)
 
 		if(m_ClientID == SnappingClient && (m_Paused || (m_DeadSpecMode && !IsEndMatch) || ((!m_pCharacter || !m_pCharacter->IsAlive()) && Controller() && Controller()->IsGamePaused())))
 		{
-			if(ClientVersion < VERSION_DDNET_OLD)
+			if(SnappingClientVersion < VERSION_DDNET_OLD)
 				pPlayerInfo->m_Local = false;
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 		}
@@ -501,6 +503,8 @@ void CPlayer::Snap(int SnappingClient)
 			pPlayerInfo->m_PlayerFlags |= protocol7::PLAYERFLAG_DEAD;
 		if(m_IsReadyToPlay)
 			pPlayerInfo->m_PlayerFlags |= protocol7::PLAYERFLAG_READY;
+		if(SnappingClientVersion >= VERSION_DDRACE && (m_PlayerFlags & PLAYERFLAG_AIM))
+			pPlayerInfo->m_PlayerFlags |= protocol7::PLAYERFLAG_AIM;
 		if(Server()->ClientAuthed(m_ClientID))
 			pPlayerInfo->m_PlayerFlags |= protocol7::PLAYERFLAG_ADMIN;
 
@@ -560,8 +564,6 @@ void CPlayer::Snap(int SnappingClient)
 		pDDNetPlayer->m_Flags |= EXPLAYERFLAG_AFK;
 	if(m_Paused)
 		pDDNetPlayer->m_Flags |= EXPLAYERFLAG_PAUSED;
-	if(m_Aim)
-		pDDNetPlayer->m_Flags |= EXPLAYERFLAG_AIM;
 
 	bool ShowSpec = m_pCharacter && m_pCharacter->IsDisabled();
 
@@ -648,8 +650,6 @@ void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 {
 	if(Server()->IsSixup(m_ClientID))
 		NewInput->m_PlayerFlags = PlayerFlags_SevenToSix(NewInput->m_PlayerFlags);
-	else
-		m_Aim = NewInput->m_PlayerFlags & PLAYERFLAG_AIM;
 
 	if(NewInput->m_PlayerFlags)
 		Server()->SetClientFlags(m_ClientID, NewInput->m_PlayerFlags);
