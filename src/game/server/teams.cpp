@@ -434,68 +434,68 @@ void CGameTeams::SendTeamsState(int ClientID)
 	Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
 }
 
-int CGameTeams::GetDDRaceState(CPlayer *Player)
-{
-	if(!Player)
-		return DDRACE_NONE;
+// int CGameTeams::GetDDRaceState(CPlayer *Player)
+// {
+// 	if(!Player)
+// 		return DDRACE_NONE;
 
-	CCharacter *pChar = Player->GetCharacter();
-	if(pChar)
-		return pChar->m_DDRaceState;
-	return DDRACE_NONE;
-}
+// 	CCharacter *pChar = Player->GetCharacter();
+// 	if(pChar)
+// 		return pChar->m_DDRaceState;
+// 	return DDRACE_NONE;
+// }
 
-void CGameTeams::SetDDRaceState(CPlayer *Player, int DDRaceState)
-{
-	if(!Player)
-		return;
+// void CGameTeams::SetDDRaceState(CPlayer *Player, int DDRaceState)
+// {
+// 	if(!Player)
+// 		return;
 
-	CCharacter *pChar = Player->GetCharacter();
-	if(pChar)
-		pChar->m_DDRaceState = DDRaceState;
-}
+// 	CCharacter *pChar = Player->GetCharacter();
+// 	if(pChar)
+// 		pChar->m_DDRaceState = DDRaceState;
+// }
 
-int CGameTeams::GetStartTime(CPlayer *Player)
-{
-	if(!Player)
-		return 0;
+// int CGameTeams::GetStartTime(CPlayer *Player)
+// {
+// 	if(!Player)
+// 		return 0;
 
-	CCharacter *pChar = Player->GetCharacter();
-	if(pChar)
-		return pChar->m_StartTime;
-	return 0;
-}
+// 	CCharacter *pChar = Player->GetCharacter();
+// 	if(pChar)
+// 		return pChar->m_StartTime;
+// 	return 0;
+// }
 
-void CGameTeams::SetStartTime(CPlayer *Player, int StartTime)
-{
-	if(!Player)
-		return;
+// void CGameTeams::SetStartTime(CPlayer *Player, int StartTime)
+// {
+// 	if(!Player)
+// 		return;
 
-	CCharacter *pChar = Player->GetCharacter();
-	if(pChar)
-		pChar->m_StartTime = StartTime;
-}
+// 	CCharacter *pChar = Player->GetCharacter();
+// 	if(pChar)
+// 		pChar->m_StartTime = StartTime;
+// }
 
-void CGameTeams::SetCpActive(CPlayer *Player, int CpActive)
-{
-	if(!Player)
-		return;
+// void CGameTeams::SetCpActive(CPlayer *Player, int CpActive)
+// {
+// 	if(!Player)
+// 		return;
 
-	CCharacter *pChar = Player->GetCharacter();
-	if(pChar)
-		pChar->m_CpActive = CpActive;
-}
+// 	CCharacter *pChar = Player->GetCharacter();
+// 	if(pChar)
+// 		pChar->m_CpActive = CpActive;
+// }
 
-float *CGameTeams::GetCpCurrent(CPlayer *Player)
-{
-	if(!Player)
-		return NULL;
+// float *CGameTeams::GetCpCurrent(CPlayer *Player)
+// {
+// 	if(!Player)
+// 		return NULL;
 
-	CCharacter *pChar = Player->GetCharacter();
-	if(pChar)
-		return pChar->m_CpCurrent;
-	return NULL;
-}
+// 	CCharacter *pChar = Player->GetCharacter();
+// 	if(pChar)
+// 		return pChar->m_CpCurrent;
+// 	return NULL;
+// }
 
 // void CGameTeams::OnTeamFinish(CPlayer **Players, unsigned int Size, float Time, const char *pTimestamp)
 // {

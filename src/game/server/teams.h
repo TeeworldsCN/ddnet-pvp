@@ -86,12 +86,12 @@ public:
 
 	int m_LastChat[MAX_CLIENTS];
 
-	int GetDDRaceState(CPlayer *Player);
-	int GetStartTime(CPlayer *Player);
-	float *GetCpCurrent(CPlayer *Player);
-	void SetDDRaceState(CPlayer *Player, int DDRaceState);
-	void SetStartTime(CPlayer *Player, int StartTime);
-	void SetCpActive(CPlayer *Player, int CpActive);
+	// int GetDDRaceState(CPlayer *Player);
+	// int GetStartTime(CPlayer *Player);
+	// float *GetCpCurrent(CPlayer *Player);
+	// void SetDDRaceState(CPlayer *Player, int DDRaceState);
+	// void SetStartTime(CPlayer *Player, int StartTime);
+	// void SetCpActive(CPlayer *Player, int CpActive);
 	// void KillSavedTeam(int ClientID, int Team);
 	// void ResetSavedTeam(int ClientID, int Team);
 	// void ProcessSaveTeam();

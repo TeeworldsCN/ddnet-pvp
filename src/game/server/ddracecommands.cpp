@@ -670,31 +670,31 @@ void CGameContext::ConModerate(IConsole::IResult *pResult, void *pUserData)
 		pSelf->SendChatTarget(pResult->m_ClientID, "Active moderator mode disabled for you.");
 }
 
-void CGameContext::ConSetDDRTeam(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	CGameControllerDDRace *pController = (CGameControllerDDRace *)pSelf->m_pController;
+// void CGameContext::ConSetDDRTeam(IConsole::IResult *pResult, void *pUserData)
+// {
+// 	CGameContext *pSelf = (CGameContext *)pUserData;
+// 	CGameControllerDDRace *pController = (CGameControllerDDRace *)pSelf->m_pController;
 
-	if(g_Config.m_SvTeam == 0 || g_Config.m_SvTeam == 3)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
-			"Teams are disabled");
-		return;
-	}
+// 	if(g_Config.m_SvTeam == 0 || g_Config.m_SvTeam == 3)
+// 	{
+// 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
+// 			"Teams are disabled");
+// 		return;
+// 	}
 
-	int Target = pResult->GetVictim();
-	int Team = pResult->GetInteger(1);
+// 	int Target = pResult->GetVictim();
+// 	int Team = pResult->GetInteger(1);
 
-	if(Team < TEAM_FLOCK || Team >= TEAM_SUPER)
-		return;
+// 	if(Team < TEAM_FLOCK || Team >= TEAM_SUPER)
+// 		return;
 
-	CCharacter *pChr = pSelf->GetPlayerChar(Target);
+// 	CCharacter *pChr = pSelf->GetPlayerChar(Target);
 
-	if((pController->m_Teams.m_Core.Team(Target) && pController->m_Teams.GetDDRaceState(pSelf->m_apPlayers[Target]) == DDRACE_STARTED))
-		pSelf->m_apPlayers[Target]->KillCharacter(WEAPON_GAME);
+// 	// if((pController->m_Teams.m_Core.Team(Target) && pController->m_Teams.GetDDRaceState(pSelf->m_apPlayers[Target]) == DDRACE_STARTED))
+// 	pSelf->m_apPlayers[Target]->KillCharacter(WEAPON_GAME);
 
-	pController->m_Teams.SetForceCharacterTeam(Target, Team);
-}
+// 	pController->m_Teams.SetForceCharacterTeam(Target, Team);
+// }
 
 void CGameContext::ConUninvite(IConsole::IResult *pResult, void *pUserData)
 {
