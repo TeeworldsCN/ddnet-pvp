@@ -6,7 +6,8 @@
 #include "alloc.h"
 
 // this include should perhaps be removed
-#include "score.h"
+// #include "score.h"
+#include <game/server/gamecontext.h>
 #include "teeinfo.h"
 
 enum
@@ -203,13 +204,13 @@ public:
 	bool CanOverrideDefaultEmote() const;
 
 	bool m_FirstPacket;
-	int64 m_LastSQLQuery;
-	void ProcessScoreResult(CScorePlayerResult &Result);
-	std::shared_ptr<CScorePlayerResult> m_ScoreQueryResult;
-	std::shared_ptr<CScorePlayerResult> m_ScoreFinishResult;
+	// int64 m_LastSQLQuery;
+	// void ProcessScoreResult(CScorePlayerResult &Result);
+	// std::shared_ptr<CScorePlayerResult> m_ScoreQueryResult;
+	// std::shared_ptr<CScorePlayerResult> m_ScoreFinishResult;
 	bool m_NotEligibleForFinish;
 	int64 m_EligibleForFinishCheck;
-	bool m_VotedForPractice;
+	// bool m_VotedForPractice;
 };
 
 #endif

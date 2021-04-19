@@ -101,7 +101,7 @@ void CPlayer::Reset()
 	}
 	m_OverrideEmoteReset = -1;
 
-	GameServer()->Score()->PlayerData(m_ClientID)->Reset();
+	// GameServer()->Score()->PlayerData(m_ClientID)->Reset();
 
 	m_ShowOthers = g_Config.m_SvShowOthersDefault;
 	m_ShowAll = g_Config.m_SvShowAllDefault;
@@ -118,9 +118,9 @@ void CPlayer::Reset()
 
 	// Variable initialized:
 	m_Last_Team = 0;
-	m_LastSQLQuery = 0;
-	m_ScoreQueryResult = nullptr;
-	m_ScoreFinishResult = nullptr;
+	// m_LastSQLQuery = 0;
+	// m_ScoreQueryResult = nullptr;
+	// m_ScoreFinishResult = nullptr;
 
 	int64 Now = Server()->Tick();
 	int64 TickSpeed = Server()->TickSpeed();
@@ -136,7 +136,7 @@ void CPlayer::Reset()
 
 	m_NotEligibleForFinish = false;
 	m_EligibleForFinishCheck = 0;
-	m_VotedForPractice = false;
+	// m_VotedForPractice = false;
 }
 
 static int PlayerFlags_SevenToSix(int Flags)
@@ -166,16 +166,16 @@ void CPlayer::Tick()
 #ifdef CONF_DEBUG
 	if(!g_Config.m_DbgDummies || m_ClientID < MAX_CLIENTS - g_Config.m_DbgDummies)
 #endif
-		if(m_ScoreQueryResult != nullptr && m_ScoreQueryResult->m_Completed)
-		{
-			ProcessScoreResult(*m_ScoreQueryResult);
-			m_ScoreQueryResult = nullptr;
-		}
-	if(m_ScoreFinishResult != nullptr && m_ScoreFinishResult->m_Completed)
-	{
-		ProcessScoreResult(*m_ScoreFinishResult);
-		m_ScoreFinishResult = nullptr;
-	}
+	// 	if(m_ScoreQueryResult != nullptr && m_ScoreQueryResult->m_Completed)
+	// 	{
+	// 		ProcessScoreResult(*m_ScoreQueryResult);
+	// 		m_ScoreQueryResult = nullptr;
+	// 	}
+	// if(m_ScoreFinishResult != nullptr && m_ScoreFinishResult->m_Completed)
+	// {
+	// 	ProcessScoreResult(*m_ScoreFinishResult);
+	// 	m_ScoreFinishResult = nullptr;
+	// }
 
 	if(!Server()->ClientIngame(m_ClientID))
 		return;
@@ -912,71 +912,71 @@ void CPlayer::SpectatePlayerName(const char *pName)
 	}
 }
 
-void CPlayer::ProcessScoreResult(CScorePlayerResult &Result)
-{
-	if(Result.m_Success) // SQL request was successful
-	{
-		switch(Result.m_MessageKind)
-		{
-		case CScorePlayerResult::DIRECT:
-			for(auto &aMessage : Result.m_Data.m_aaMessages)
-			{
-				if(aMessage[0] == 0)
-					break;
-				GameServer()->SendChatTarget(m_ClientID, aMessage);
-			}
-			break;
-		case CScorePlayerResult::ALL:
-			for(auto &aMessage : Result.m_Data.m_aaMessages)
-			{
-				if(aMessage[0] == 0)
-					break;
-				GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aMessage, m_ClientID);
-			}
-			break;
-		case CScorePlayerResult::BROADCAST:
-			if(Result.m_Data.m_Broadcast[0] != 0)
-				GameServer()->SendBroadcast(Result.m_Data.m_Broadcast, -1);
-			break;
-		case CScorePlayerResult::MAP_VOTE:
-			GameServer()->m_VoteType = CGameContext::VOTE_TYPE_OPTION;
-			GameServer()->m_LastMapVote = time_get();
+// void CPlayer::ProcessScoreResult(CScorePlayerResult &Result)
+// {
+// 	if(Result.m_Success) // SQL request was successful
+// 	{
+// 		switch(Result.m_MessageKind)
+// 		{
+// 		case CScorePlayerResult::DIRECT:
+// 			for(auto &aMessage : Result.m_Data.m_aaMessages)
+// 			{
+// 				if(aMessage[0] == 0)
+// 					break;
+// 				GameServer()->SendChatTarget(m_ClientID, aMessage);
+// 			}
+// 			break;
+// 		case CScorePlayerResult::ALL:
+// 			for(auto &aMessage : Result.m_Data.m_aaMessages)
+// 			{
+// 				if(aMessage[0] == 0)
+// 					break;
+// 				GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aMessage, m_ClientID);
+// 			}
+// 			break;
+// 		case CScorePlayerResult::BROADCAST:
+// 			if(Result.m_Data.m_Broadcast[0] != 0)
+// 				GameServer()->SendBroadcast(Result.m_Data.m_Broadcast, -1);
+// 			break;
+// 		case CScorePlayerResult::MAP_VOTE:
+// 			GameServer()->m_VoteType = CGameContext::VOTE_TYPE_OPTION;
+// 			GameServer()->m_LastMapVote = time_get();
 
-			char aCmd[256];
-			str_format(aCmd, sizeof(aCmd),
-				"sv_reset_file types/%s/flexreset.cfg; change_map \"%s\"",
-				Result.m_Data.m_MapVote.m_Server, Result.m_Data.m_MapVote.m_Map);
+// 			char aCmd[256];
+// 			str_format(aCmd, sizeof(aCmd),
+// 				"sv_reset_file types/%s/flexreset.cfg; change_map \"%s\"",
+// 				Result.m_Data.m_MapVote.m_Server, Result.m_Data.m_MapVote.m_Map);
 
-			char aChatmsg[512];
-			str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)",
-				Server()->ClientName(m_ClientID), Result.m_Data.m_MapVote.m_Map, "/map");
+// 			char aChatmsg[512];
+// 			str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)",
+// 				Server()->ClientName(m_ClientID), Result.m_Data.m_MapVote.m_Map, "/map");
 
-			GameServer()->CallVote(m_ClientID, Result.m_Data.m_MapVote.m_Map, aCmd, "/map", aChatmsg);
-			break;
-		case CScorePlayerResult::PLAYER_INFO:
-			GameServer()->Score()->PlayerData(m_ClientID)->Set(Result.m_Data.m_Info.m_Time, Result.m_Data.m_Info.m_CpTime);
-			m_Score = Result.m_Data.m_Info.m_Score;
-			m_HasFinishScore = Result.m_Data.m_Info.m_HasFinishScore;
-			// -9999 stands for no time and isn't displayed in scoreboard, so
-			// shift the time by a second if the player actually took 9999
-			// seconds to finish the map.
-			if(m_HasFinishScore && m_Score == -9999)
-				m_Score = -10000;
-			Server()->ExpireServerInfo();
-			int Birthday = Result.m_Data.m_Info.m_Birthday;
-			if(Birthday != 0)
-			{
-				char aBuf[512];
-				str_format(aBuf, sizeof(aBuf),
-					"Happy DDNet birthday to %s for finishing their first map %d year%s ago!",
-					Server()->ClientName(m_ClientID), Birthday, Birthday > 1 ? "s" : "");
-				GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, m_ClientID);
-				str_format(aBuf, sizeof(aBuf),
-					"Happy DDNet birthday, %s!\nYou have finished your first map exactly %d year%s ago!",
-					Server()->ClientName(m_ClientID), Birthday, Birthday > 1 ? "s" : "");
-				GameServer()->SendBroadcast(aBuf, m_ClientID);
-			}
-			break;
-		}
-	}
-}
+// 			GameServer()->CallVote(m_ClientID, Result.m_Data.m_MapVote.m_Map, aCmd, "/map", aChatmsg);
+// 			break;
+// 		case CScorePlayerResult::PLAYER_INFO:
+// 			GameServer()->Score()->PlayerData(m_ClientID)->Set(Result.m_Data.m_Info.m_Time, Result.m_Data.m_Info.m_CpTime);
+// 			m_Score = Result.m_Data.m_Info.m_Score;
+// 			m_HasFinishScore = Result.m_Data.m_Info.m_HasFinishScore;
+// 			// -9999 stands for no time and isn't displayed in scoreboard, so
+// 			// shift the time by a second if the player actually took 9999
+// 			// seconds to finish the map.
+// 			if(m_HasFinishScore && m_Score == -9999)
+// 				m_Score = -10000;
+// 			Server()->ExpireServerInfo();
+// 			int Birthday = Result.m_Data.m_Info.m_Birthday;
+// 			if(Birthday != 0)
+// 			{
+// 				char aBuf[512];
+// 				str_format(aBuf, sizeof(aBuf),
+// 					"Happy DDNet birthday to %s for finishing their first map %d year%s ago!",
+// 					Server()->ClientName(m_ClientID), Birthday, Birthday > 1 ? "s" : "");
+// 				GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, m_ClientID);
+// 				str_format(aBuf, sizeof(aBuf),
+// 					"Happy DDNet birthday, %s!\nYou have finished your first map exactly %d year%s ago!",
+// 					Server()->ClientName(m_ClientID), Birthday, Birthday > 1 ? "s" : "");
+// 				GameServer()->SendBroadcast(aBuf, m_ClientID);
+// 			}
+// 			break;
+// 		}
+// 	}
+// }

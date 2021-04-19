@@ -981,8 +981,8 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 				pSelf->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 				pPlayer->m_Last_Team = pSelf->Server()->Tick();
 
-				if(pController->m_Teams.IsPractice(Team))
-					pSelf->SendChatTarget(pPlayer->GetCID(), "Practice mode enabled for your team, happy practicing!");
+				// if(pController->m_Teams.IsPractice(Team))
+				// 	pSelf->SendChatTarget(pPlayer->GetCID(), "Practice mode enabled for your team, happy practicing!");
 			}
 		}
 	}

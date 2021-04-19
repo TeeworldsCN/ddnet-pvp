@@ -15,7 +15,7 @@
 #include <base/tl/string.h>
 
 #include "eventhandler.h"
-//#include "gamecontroller.h"
+#include "gamecontroller.h"
 #include "gameworld.h"
 #include "teehistorian.h"
 
@@ -59,13 +59,13 @@ enum
 class CConfig;
 class CHeap;
 class CPlayer;
-class CScore;
+// class CScore;
 class IConsole;
 class IGameController;
 class IEngine;
 class IStorage;
 struct CAntibotData;
-struct CScoreRandomMapResult;
+// struct CScoreRandomMapResult;
 
 class CGameContext : public IGameServer
 {
@@ -106,8 +106,8 @@ class CGameContext : public IGameServer
 	static void ConSwitchOpen(IConsole::IResult *pResult, void *pUserData);
 	static void ConPause(IConsole::IResult *pResult, void *pUserData);
 	static void ConChangeMap(IConsole::IResult *pResult, void *pUserData);
-	static void ConRandomMap(IConsole::IResult *pResult, void *pUserData);
-	static void ConRandomUnfinishedMap(IConsole::IResult *pResult, void *pUserData);
+	// static void ConRandomMap(IConsole::IResult *pResult, void *pUserData);
+	// static void ConRandomUnfinishedMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConRestart(IConsole::IResult *pResult, void *pUserData);
 	static void ConBroadcast(IConsole::IResult *pResult, void *pUserData);
 	static void ConSay(IConsole::IResult *pResult, void *pUserData);
@@ -290,11 +290,11 @@ public:
 	bool RateLimitPlayerVote(int ClientID);
 	bool RateLimitPlayerMapVote(int ClientID);
 
-	std::shared_ptr<CScoreRandomMapResult> m_SqlRandomMapResult;
+	// std::shared_ptr<CScoreRandomMapResult> m_SqlRandomMapResult;
 
 private:
 	bool m_VoteWillPass;
-	class CScore *m_pScore;
+	// class CScore *m_pScore;
 
 	//DDRace Console Commands
 
@@ -429,7 +429,7 @@ private:
 
 public:
 	CLayers *Layers() { return &m_Layers; }
-	class CScore *Score() { return m_pScore; }
+	// class CScore *Score() { return m_pScore; }
 
 	enum
 	{
@@ -448,7 +448,7 @@ public:
 	inline bool IsKickVote() const { return m_VoteType == VOTE_TYPE_KICK; };
 	inline bool IsSpecVote() const { return m_VoteType == VOTE_TYPE_SPECTATE; };
 
-	void SendRecord(int ClientID);
+	// void SendRecord(int ClientID);
 	static void SendChatResponse(const char *pLine, void *pUser, bool Highlighted = false);
 	static void SendChatResponseAll(const char *pLine, void *pUser);
 	virtual void OnSetAuthed(int ClientID, int Level);

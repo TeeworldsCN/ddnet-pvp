@@ -26,7 +26,7 @@
 #include "entities/character.h"
 #include "gamemodes/DDRace.h"
 #include "player.h"
-#include "score.h"
+// #include "score.h"
 
 enum
 {
@@ -51,12 +51,12 @@ void CGameContext::Construct(int Resetting)
 	m_LastMapVote = 0;
 	//m_LockTeams = 0;
 
-	m_SqlRandomMapResult = nullptr;
+	// m_SqlRandomMapResult = nullptr;
 
 	if(Resetting == NO_RESET)
 	{
 		m_pVoteOptionHeap = new CHeap();
-		m_pScore = 0;
+		// m_pScore = 0;
 		m_NumMutes = 0;
 		m_NumVoteMutes = 0;
 	}
@@ -82,8 +82,8 @@ CGameContext::~CGameContext()
 	if(!m_Resetting)
 		delete m_pVoteOptionHeap;
 
-	if(m_pScore)
-		delete m_pScore;
+	// if(m_pScore)
+	// 	delete m_pScore;
 }
 
 void CGameContext::Clear()
@@ -1033,19 +1033,19 @@ void CGameContext::OnTick()
 		}
 	}
 
-	if(m_SqlRandomMapResult != nullptr && m_SqlRandomMapResult->m_Completed)
-	{
-		if(m_SqlRandomMapResult->m_Success)
-		{
-			if(PlayerExists(m_SqlRandomMapResult->m_ClientID) && m_SqlRandomMapResult->m_aMessage[0] != '\0')
-				SendChatTarget(m_SqlRandomMapResult->m_ClientID, m_SqlRandomMapResult->m_aMessage);
-			if(m_SqlRandomMapResult->m_Map[0] != '\0')
-				str_copy(g_Config.m_SvMap, m_SqlRandomMapResult->m_Map, sizeof(g_Config.m_SvMap));
-			else
-				m_LastMapVote = 0;
-		}
-		m_SqlRandomMapResult = nullptr;
-	}
+	// if(m_SqlRandomMapResult != nullptr && m_SqlRandomMapResult->m_Completed)
+	// {
+	// 	if(m_SqlRandomMapResult->m_Success)
+	// 	{
+	// 		if(PlayerExists(m_SqlRandomMapResult->m_ClientID) && m_SqlRandomMapResult->m_aMessage[0] != '\0')
+	// 			SendChatTarget(m_SqlRandomMapResult->m_ClientID, m_SqlRandomMapResult->m_aMessage);
+	// 		if(m_SqlRandomMapResult->m_Map[0] != '\0')
+	// 			str_copy(g_Config.m_SvMap, m_SqlRandomMapResult->m_Map, sizeof(g_Config.m_SvMap));
+	// 		else
+	// 			m_LastMapVote = 0;
+	// 	}
+	// 	m_SqlRandomMapResult = nullptr;
+	// }
 
 #ifdef CONF_DEBUG
 	if(g_Config.m_DbgDummies)
@@ -1182,12 +1182,12 @@ void CGameContext::OnClientEnter(int ClientID)
 	//world.insert_entity(&players[client_id]);
 	m_apPlayers[ClientID]->Respawn();
 	// init the player
-	Score()->PlayerData(ClientID)->Reset();
-	m_apPlayers[ClientID]->m_Score = Score()->PlayerData(ClientID)->m_BestTime ? Score()->PlayerData(ClientID)->m_BestTime : -9999;
+	// Score()->PlayerData(ClientID)->Reset();
+	m_apPlayers[ClientID]->m_Score = 0;
 
 	// Can't set score here as LoadScore() is threaded, run it in
 	// LoadScoreThreaded() instead
-	Score()->LoadPlayerData(ClientID);
+	// Score()->LoadPlayerData(ClientID);
 
 	if(Server()->IsSixup(ClientID))
 	{
@@ -1240,7 +1240,7 @@ void CGameContext::OnClientEnter(int ClientID)
 		Msg.m_Team = 0;
 		Msg.m_ClientID = Empty;
 		Msg.m_pMessage = "Do you know someone who uses a bot? Please report them to the moderators.";
-		m_apPlayers[ClientID]->m_EligibleForFinishCheck = time_get();
+		// m_apPlayers[ClientID]->m_EligibleForFinishCheck = time_get();
 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
 	}
 
@@ -1467,7 +1467,7 @@ void CGameContext::OnClientDDNetVersionKnown(int ClientID)
 	((CGameControllerDDRace *)m_pController)->m_Teams.SendTeamsState(ClientID);
 
 	// Then send records.
-	SendRecord(ClientID);
+	// SendRecord(ClientID);
 
 	// And report correct tunings.
 	if(ClientVersion >= VERSION_DDNET_EXTRATUNES)
@@ -2207,10 +2207,10 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				str_format(aChatText, sizeof(aChatText), "'%s' changed name to '%s'", aOldName, Server()->ClientName(ClientID));
 				SendChat(-1, CGameContext::CHAT_ALL, aChatText);
 
-				// reload scores
-				Score()->PlayerData(ClientID)->Reset();
-				m_apPlayers[ClientID]->m_Score = -9999;
-				Score()->LoadPlayerData(ClientID);
+				// // reload scores
+				// Score()->PlayerData(ClientID)->Reset();
+				// m_apPlayers[ClientID]->m_Score = 0;
+				// Score()->LoadPlayerData(ClientID);
 
 				SixupNeedsUpdate = true;
 			}
@@ -2622,23 +2622,23 @@ void CGameContext::ConChangeMap(IConsole::IResult *pResult, void *pUserData)
 	pSelf->m_pController->ChangeMap(pResult->NumArguments() ? pResult->GetString(0) : "");
 }
 
-void CGameContext::ConRandomMap(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
+// void CGameContext::ConRandomMap(IConsole::IResult *pResult, void *pUserData)
+// {
+// 	CGameContext *pSelf = (CGameContext *)pUserData;
 
-	int Stars = pResult->NumArguments() ? pResult->GetInteger(0) : -1;
+// 	int Stars = pResult->NumArguments() ? pResult->GetInteger(0) : -1;
 
-	pSelf->m_pScore->RandomMap(pSelf->m_VoteCreator, Stars);
-}
+// 	pSelf->m_pScore->RandomMap(pSelf->m_VoteCreator, Stars);
+// }
 
-void CGameContext::ConRandomUnfinishedMap(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
+// void CGameContext::ConRandomUnfinishedMap(IConsole::IResult *pResult, void *pUserData)
+// {
+// 	CGameContext *pSelf = (CGameContext *)pUserData;
 
-	int Stars = pResult->NumArguments() ? pResult->GetInteger(0) : -1;
+// 	int Stars = pResult->NumArguments() ? pResult->GetInteger(0) : -1;
 
-	pSelf->m_pScore->RandomUnfinishedMap(pSelf->m_VoteCreator, Stars);
-}
+// 	pSelf->m_pScore->RandomUnfinishedMap(pSelf->m_VoteCreator, Stars);
+// }
 
 void CGameContext::ConRestart(IConsole::IResult *pResult, void *pUserData)
 {
@@ -3026,8 +3026,8 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("switch_open", "i[switch]", CFGFLAG_SERVER | CFGFLAG_GAME, ConSwitchOpen, this, "Whether a switch is deactivated by default (otherwise activated)");
 	Console()->Register("pause_game", "", CFGFLAG_SERVER, ConPause, this, "Pause/unpause game");
 	Console()->Register("change_map", "?r[map]", CFGFLAG_SERVER | CFGFLAG_STORE, ConChangeMap, this, "Change map");
-	Console()->Register("random_map", "?i[stars]", CFGFLAG_SERVER, ConRandomMap, this, "Random map");
-	Console()->Register("random_unfinished_map", "?i[stars]", CFGFLAG_SERVER, ConRandomUnfinishedMap, this, "Random unfinished map");
+	// Console()->Register("random_map", "?i[stars]", CFGFLAG_SERVER, ConRandomMap, this, "Random map");
+	// Console()->Register("random_unfinished_map", "?i[stars]", CFGFLAG_SERVER, ConRandomUnfinishedMap, this, "Random unfinished map");
 	Console()->Register("restart", "?i[seconds]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRestart, this, "Restart in x seconds (0 = abort)");
 	Console()->Register("broadcast", "r[message]", CFGFLAG_SERVER, ConBroadcast, this, "Broadcast message");
 	Console()->Register("say", "r[message]", CFGFLAG_SERVER, ConSay, this, "Say in chat");
@@ -3243,10 +3243,10 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		}
 	}
 
-	if(!m_pScore)
-	{
-		m_pScore = new CScore(this, ((CServer *)Server())->DbPool());
-	}
+	// if(!m_pScore)
+	// {
+	// 	m_pScore = new CScore(this, ((CServer *)Server())->DbPool());
+	// }
 
 	// setup core world
 	//for(int i = 0; i < MAX_CLIENTS; i++)
@@ -3709,13 +3709,13 @@ void CGameContext::OnSetAuthed(int ClientID, int Level)
 	}
 }
 
-void CGameContext::SendRecord(int ClientID)
-{
-	CNetMsg_Sv_Record RecordsMsg;
-	RecordsMsg.m_PlayerTimeBest = Score()->PlayerData(ClientID)->m_BestTime * 100.0f;
-	RecordsMsg.m_ServerTimeBest = m_pController->m_CurrentRecord * 100.0f; //TODO: finish this
-	Server()->SendPackMsg(&RecordsMsg, MSGFLAG_VITAL, ClientID);
-}
+// void CGameContext::SendRecord(int ClientID)
+// {
+// 	CNetMsg_Sv_Record RecordsMsg;
+// 	RecordsMsg.m_PlayerTimeBest = Score()->PlayerData(ClientID)->m_BestTime * 100.0f;
+// 	RecordsMsg.m_ServerTimeBest = m_pController->m_CurrentRecord * 100.0f; //TODO: finish this
+// 	Server()->SendPackMsg(&RecordsMsg, MSGFLAG_VITAL, ClientID);
+// }
 
 int CGameContext::ProcessSpamProtection(int ClientID)
 {

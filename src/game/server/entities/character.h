@@ -5,7 +5,7 @@
 
 #include <engine/antibot.h>
 #include <game/server/entity.h>
-#include <game/server/save.h>
+// #include <game/server/save.h>
 
 class CAntibot;
 class CGameTeams;
@@ -172,7 +172,7 @@ private:
 	IAntibot *Antibot();
 
 	bool m_SetSavePos;
-	CSaveTee m_RescueTee;
+	// CSaveTee m_RescueTee;
 	bool m_Solo;
 
 public:

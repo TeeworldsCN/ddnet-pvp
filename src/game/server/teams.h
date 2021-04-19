@@ -4,7 +4,7 @@
 
 #include <engine/shared/config.h>
 #include <game/server/gamecontext.h>
-#include <game/server/score.h>
+// #include <game/server/score.h>
 #include <game/teamscore.h>
 
 #include <utility>
@@ -12,17 +12,17 @@
 class CGameTeams
 {
 	int m_TeamState[MAX_CLIENTS];
-	bool m_TeeFinished[MAX_CLIENTS];
+	// bool m_TeeFinished[MAX_CLIENTS];
 	bool m_TeamLocked[MAX_CLIENTS];
 	uint64 m_Invited[MAX_CLIENTS];
-	bool m_Practice[MAX_CLIENTS];
-	std::shared_ptr<CScoreSaveResult> m_pSaveTeamResult[MAX_CLIENTS];
+	// bool m_Practice[MAX_CLIENTS];
+	// std::shared_ptr<CScoreSaveResult> m_pSaveTeamResult[MAX_CLIENTS];
 
 	class CGameContext *m_pGameContext;
 
-	bool TeamFinished(int Team);
-	void OnTeamFinish(CPlayer **Players, unsigned int Size, float Time, const char *pTimestamp);
-	void OnFinish(CPlayer *Player, float Time, const char *pTimestamp);
+	// bool TeamFinished(int Team);
+	// void OnTeamFinish(CPlayer **Players, unsigned int Size, float Time, const char *pTimestamp);
+	// void OnFinish(CPlayer *Player, float Time, const char *pTimestamp);
 
 public:
 	enum
@@ -56,14 +56,14 @@ public:
 		return m_pGameContext->Server();
 	}
 
-	void OnCharacterStart(int ClientID);
-	void OnCharacterFinish(int ClientID);
+	// void OnCharacterStart(int ClientID);
+	// void OnCharacterFinish(int ClientID);
 	void OnCharacterSpawn(int ClientID);
 	void OnCharacterDeath(int ClientID, int Weapon);
 
 	// returns nullptr if successful, error string if failed
 	const char *SetCharacterTeam(int ClientID, int Team);
-	void CheckTeamFinished(int ClientID);
+	// void CheckTeamFinished(int ClientID);
 
 	void ChangeTeamState(int Team, int State);
 
@@ -92,14 +92,14 @@ public:
 	void SetDDRaceState(CPlayer *Player, int DDRaceState);
 	void SetStartTime(CPlayer *Player, int StartTime);
 	void SetCpActive(CPlayer *Player, int CpActive);
-	void KillSavedTeam(int ClientID, int Team);
-	void ResetSavedTeam(int ClientID, int Team);
-	void ProcessSaveTeam();
+	// void KillSavedTeam(int ClientID, int Team);
+	// void ResetSavedTeam(int ClientID, int Team);
+	// void ProcessSaveTeam();
 
-	bool TeeFinished(int ClientID)
-	{
-		return m_TeeFinished[ClientID];
-	}
+	// bool TeeFinished(int ClientID)
+	// {
+	// 	return m_TeeFinished[ClientID];
+	// }
 
 	int GetTeamState(int Team)
 	{
@@ -119,45 +119,45 @@ public:
 		return m_Invited[Team] & 1LL << ClientID;
 	}
 
-	void SetFinished(int ClientID, bool finished)
-	{
-		m_TeeFinished[ClientID] = finished;
-	}
+	// void SetFinished(int ClientID, bool finished)
+	// {
+	// 	m_TeeFinished[ClientID] = finished;
+	// }
 
-	void SetSaving(int TeamID, std::shared_ptr<CScoreSaveResult> &SaveResult)
-	{
-		m_pSaveTeamResult[TeamID] = SaveResult;
-	}
+	// void SetSaving(int TeamID, std::shared_ptr<CScoreSaveResult> &SaveResult)
+	// {
+	// 	m_pSaveTeamResult[TeamID] = SaveResult;
+	// }
 
-	bool GetSaving(int TeamID)
-	{
-		if(TeamID < TEAM_FLOCK || TeamID >= TEAM_SUPER)
-			return false;
-		if(g_Config.m_SvTeam != 3 && TeamID == TEAM_FLOCK)
-			return false;
+	// bool GetSaving(int TeamID)
+	// {
+	// 	if(TeamID < TEAM_FLOCK || TeamID >= TEAM_SUPER)
+	// 		return false;
+	// 	if(g_Config.m_SvTeam != 3 && TeamID == TEAM_FLOCK)
+	// 		return false;
 
-		return m_pSaveTeamResult[TeamID] != nullptr;
-	}
+	// 	return m_pSaveTeamResult[TeamID] != nullptr;
+	// }
 
-	void EnablePractice(int Team)
-	{
-		if(Team < TEAM_FLOCK || Team >= TEAM_SUPER)
-			return;
-		if(g_Config.m_SvTeam != 3 && Team == TEAM_FLOCK)
-			return;
+	// void EnablePractice(int Team)
+	// {
+	// 	if(Team < TEAM_FLOCK || Team >= TEAM_SUPER)
+	// 		return;
+	// 	if(g_Config.m_SvTeam != 3 && Team == TEAM_FLOCK)
+	// 		return;
 
-		m_Practice[Team] = true;
-	}
+	// 	m_Practice[Team] = true;
+	// }
 
-	bool IsPractice(int Team)
-	{
-		if(Team < TEAM_FLOCK || Team >= TEAM_SUPER)
-			return false;
-		if(g_Config.m_SvTeam != 3 && Team == TEAM_FLOCK)
-			return false;
+	// bool IsPractice(int Team)
+	// {
+	// 	if(Team < TEAM_FLOCK || Team >= TEAM_SUPER)
+	// 		return false;
+	// 	if(g_Config.m_SvTeam != 3 && Team == TEAM_FLOCK)
+	// 		return false;
 
-		return m_Practice[Team];
-	}
+	// 	return m_Practice[Team];
+	// }
 };
 
 #endif

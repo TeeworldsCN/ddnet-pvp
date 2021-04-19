@@ -1328,28 +1328,28 @@ void CCharacter::FillAntibot(CAntibotCharacterData *pData)
 
 void CCharacter::HandleBroadcast()
 {
-	CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
+	// CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
 
-	if(m_DDRaceState == DDRACE_STARTED && m_CpLastBroadcast != m_CpActive &&
-		m_CpActive > -1 && m_CpTick > Server()->Tick() && m_pPlayer->GetClientVersion() == VERSION_VANILLA &&
-		pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
-	{
-		char aBroadcast[128];
-		float Diff = m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive];
-		str_format(aBroadcast, sizeof(aBroadcast), "Checkpoint | Diff : %+5.2f", Diff);
-		GameServer()->SendBroadcast(aBroadcast, m_pPlayer->GetCID());
-		m_CpLastBroadcast = m_CpActive;
-		m_LastBroadcast = Server()->Tick();
-	}
-	else if((m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_BROADCAST || m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER_AND_BROADCAST) && m_DDRaceState == DDRACE_STARTED && m_LastBroadcast + Server()->TickSpeed() * g_Config.m_SvTimeInBroadcastInterval <= Server()->Tick())
-	{
-		char aBuf[32];
-		int Time = (int64)100 * ((float)(Server()->Tick() - m_StartTime) / ((float)Server()->TickSpeed()));
-		str_time(Time, TIME_HOURS, aBuf, sizeof(aBuf));
-		GameServer()->SendBroadcast(aBuf, m_pPlayer->GetCID(), false);
-		m_CpLastBroadcast = m_CpActive;
-		m_LastBroadcast = Server()->Tick();
-	}
+	// if(m_DDRaceState == DDRACE_STARTED && m_CpLastBroadcast != m_CpActive &&
+	// 	m_CpActive > -1 && m_CpTick > Server()->Tick() && m_pPlayer->GetClientVersion() == VERSION_VANILLA &&
+	// 	pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
+	// {
+	// 	char aBroadcast[128];
+	// 	float Diff = m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive];
+	// 	str_format(aBroadcast, sizeof(aBroadcast), "Checkpoint | Diff : %+5.2f", Diff);
+	// 	GameServer()->SendBroadcast(aBroadcast, m_pPlayer->GetCID());
+	// 	m_CpLastBroadcast = m_CpActive;
+	// 	m_LastBroadcast = Server()->Tick();
+	// }
+	// else if((m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_BROADCAST || m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER_AND_BROADCAST) && m_DDRaceState == DDRACE_STARTED && m_LastBroadcast + Server()->TickSpeed() * g_Config.m_SvTimeInBroadcastInterval <= Server()->Tick())
+	// {
+	// 	char aBuf[32];
+	// 	int Time = (int64)100 * ((float)(Server()->Tick() - m_StartTime) / ((float)Server()->TickSpeed()));
+	// 	str_time(Time, TIME_HOURS, aBuf, sizeof(aBuf));
+	// 	GameServer()->SendBroadcast(aBuf, m_pPlayer->GetCID(), false);
+	// 	m_CpLastBroadcast = m_CpActive;
+	// 	m_LastBroadcast = Server()->Tick();
+	// }
 }
 
 void CCharacter::HandleSkippableTiles(int Index)
@@ -1362,7 +1362,7 @@ void CCharacter::HandleSkippableTiles(int Index)
 		   GameServer()->Collision()->GetFCollisionAt(m_Pos.x + GetProximityRadius() / 3.f, m_Pos.y + GetProximityRadius() / 3.f) == TILE_DEATH ||
 		   GameServer()->Collision()->GetFCollisionAt(m_Pos.x - GetProximityRadius() / 3.f, m_Pos.y - GetProximityRadius() / 3.f) == TILE_DEATH ||
 		   GameServer()->Collision()->GetCollisionAt(m_Pos.x - GetProximityRadius() / 3.f, m_Pos.y + GetProximityRadius() / 3.f) == TILE_DEATH) &&
-		!m_Super && !(Team() && Teams()->TeeFinished(m_pPlayer->GetCID())))
+		!m_Super) // && !(Team() && Teams()->TeeFinished(m_pPlayer->GetCID())))
 	{
 		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
 		return;
@@ -1458,61 +1458,61 @@ void CCharacter::HandleTiles(int Index)
 		m_LastBonus = false;
 		return;
 	}
-	int cp = GameServer()->Collision()->IsCheckpoint(MapIndex);
-	if(cp != -1 && m_DDRaceState == DDRACE_STARTED && cp > m_CpActive)
-	{
-		m_CpActive = cp;
-		m_CpCurrent[cp] = m_Time;
-		m_CpTick = Server()->Tick() + Server()->TickSpeed() * 2;
-		if(m_pPlayer->GetClientVersion() >= VERSION_DDRACE)
-		{
-			CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
-			CNetMsg_Sv_DDRaceTime Msg;
-			Msg.m_Time = (int)m_Time;
-			Msg.m_Check = 0;
-			Msg.m_Finish = 0;
+	// int cp = GameServer()->Collision()->IsCheckpoint(MapIndex);
+	// if(cp != -1 && m_DDRaceState == DDRACE_STARTED && cp > m_CpActive)
+	// {
+	// 	m_CpActive = cp;
+	// 	m_CpCurrent[cp] = m_Time;
+	// 	m_CpTick = Server()->Tick() + Server()->TickSpeed() * 2;
+	// 	if(m_pPlayer->GetClientVersion() >= VERSION_DDRACE)
+	// 	{
+	// 		CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
+	// 		CNetMsg_Sv_DDRaceTime Msg;
+	// 		Msg.m_Time = (int)m_Time;
+	// 		Msg.m_Check = 0;
+	// 		Msg.m_Finish = 0;
 
-			if(m_CpActive != -1 && m_CpTick > Server()->Tick())
-			{
-				if(pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
-				{
-					float Diff = (m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive]) * 100;
-					Msg.m_Check = (int)Diff;
-				}
-			}
+	// 		if(m_CpActive != -1 && m_CpTick > Server()->Tick())
+	// 		{
+	// 			if(pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
+	// 			{
+	// 				float Diff = (m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive]) * 100;
+	// 				Msg.m_Check = (int)Diff;
+	// 			}
+	// 		}
 
-			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
-		}
-	}
-	int cpf = GameServer()->Collision()->IsFCheckpoint(MapIndex);
-	if(cpf != -1 && m_DDRaceState == DDRACE_STARTED && cpf > m_CpActive)
-	{
-		m_CpActive = cpf;
-		m_CpCurrent[cpf] = m_Time;
-		m_CpTick = Server()->Tick() + Server()->TickSpeed() * 2;
-		if(m_pPlayer->GetClientVersion() >= VERSION_DDRACE)
-		{
-			CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
-			CNetMsg_Sv_DDRaceTime Msg;
-			Msg.m_Time = (int)m_Time;
-			Msg.m_Check = 0;
-			Msg.m_Finish = 0;
+	// 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
+	// 	}
+	// }
+	// int cpf = GameServer()->Collision()->IsFCheckpoint(MapIndex);
+	// if(cpf != -1 && m_DDRaceState == DDRACE_STARTED && cpf > m_CpActive)
+	// {
+	// 	m_CpActive = cpf;
+	// 	m_CpCurrent[cpf] = m_Time;
+	// 	m_CpTick = Server()->Tick() + Server()->TickSpeed() * 2;
+	// 	if(m_pPlayer->GetClientVersion() >= VERSION_DDRACE)
+	// 	{
+	// 		CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
+	// 		CNetMsg_Sv_DDRaceTime Msg;
+	// 		Msg.m_Time = (int)m_Time;
+	// 		Msg.m_Check = 0;
+	// 		Msg.m_Finish = 0;
 
-			if(m_CpActive != -1 && m_CpTick > Server()->Tick())
-			{
-				if(pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
-				{
-					float Diff = (m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive]) * 100;
-					Msg.m_Check = (int)Diff;
-				}
-			}
+	// 		if(m_CpActive != -1 && m_CpTick > Server()->Tick())
+	// 		{
+	// 			if(pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
+	// 			{
+	// 				float Diff = (m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive]) * 100;
+	// 				Msg.m_Check = (int)Diff;
+	// 			}
+	// 		}
 
-			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
-		}
-	}
-	int tcp = GameServer()->Collision()->IsTCheckpoint(MapIndex);
-	if(tcp)
-		m_TeleCheckpoint = tcp;
+	// 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
+	// 	}
+	// }
+	// int tcp = GameServer()->Collision()->IsTCheckpoint(MapIndex);
+	// if(tcp)
+	// 	m_TeleCheckpoint = tcp;
 
 	GameServer()->m_pController->HandleCharacterTiles(this, Index);
 
@@ -2073,11 +2073,11 @@ void CCharacter::SetTeams(CGameTeams *pTeams)
 	m_Core.SetTeamsCore(&m_pTeams->m_Core);
 }
 
-void CCharacter::SetRescue()
-{
-	m_RescueTee.save(this);
-	m_SetSavePos = true;
-}
+// void CCharacter::SetRescue()
+// {
+// 	m_RescueTee.save(this);
+// 	m_SetSavePos = true;
+// }
 
 void CCharacter::DDRaceTick()
 {
@@ -2106,16 +2106,16 @@ void CCharacter::DDRaceTick()
 	HandleTuneLayer(); // need this before coretick
 
 	// look for save position for rescue feature
-	if(g_Config.m_SvRescue || ((g_Config.m_SvTeam == 3 || Team() > TEAM_FLOCK) && Team() >= TEAM_FLOCK && Team() < TEAM_SUPER))
-	{
-		int index = GameServer()->Collision()->GetPureMapIndex(m_Pos);
-		int tile = GameServer()->Collision()->GetTileIndex(index);
-		int ftile = GameServer()->Collision()->GetFTileIndex(index);
-		if(IsGrounded() && tile != TILE_FREEZE && tile != TILE_DFREEZE && ftile != TILE_FREEZE && ftile != TILE_DFREEZE && !m_DeepFreeze)
-		{
-			SetRescue();
-		}
-	}
+	// if(g_Config.m_SvRescue || ((g_Config.m_SvTeam == 3 || Team() > TEAM_FLOCK) && Team() >= TEAM_FLOCK && Team() < TEAM_SUPER))
+	// {
+	// 	int index = GameServer()->Collision()->GetPureMapIndex(m_Pos);
+	// 	int tile = GameServer()->Collision()->GetTileIndex(index);
+	// 	int ftile = GameServer()->Collision()->GetFTileIndex(index);
+	// 	if(IsGrounded() && tile != TILE_FREEZE && tile != TILE_DFREEZE && ftile != TILE_FREEZE && ftile != TILE_DFREEZE && !m_DeepFreeze)
+	// 	{
+	// 		SetRescue();
+	// 	}
+	// }
 
 	m_Core.m_Id = GetPlayer()->GetCID();
 }
