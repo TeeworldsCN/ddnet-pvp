@@ -28,12 +28,6 @@ private:
 	int m_ID;
 	int m_ObjType;
 
-	/*
-		Variable: m_ProximityRadius
-			Contains the physical size of the entity.
-	*/
-	float m_ProximityRadius;
-
 	/* State */
 	bool m_MarkedForDestroy;
 
@@ -45,6 +39,12 @@ public: // TODO: Maybe make protected
 			Contains the current posititon of the entity.
 	*/
 	vec2 m_Pos;
+	
+	/*
+		Variable: m_ProximityRadius
+			Contains the physical size of the entity.
+	*/
+	float m_ProximityRadius;
 
 	/* Getters */
 	int GetID() const { return m_ID; }

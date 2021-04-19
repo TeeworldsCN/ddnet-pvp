@@ -13,7 +13,7 @@
 #include "projectile.h"
 
 #include "light.h"
-#include <game/server/score.h>
+// #include <game/server/score.h>
 #include <game/server/teams.h>
 
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
@@ -814,6 +814,12 @@ void CCharacter::TickDefered()
 		m_ReckoningCore.Quantize();
 	}
 
+	// apply drag velocity when the player is not firing ninja
+	// and set it back to 0 for the next tick
+	if(m_Core.m_ActiveWeapon != WEAPON_NINJA || m_Ninja.m_CurrentMoveTime < 0)
+		m_Core.AddDragVelocity();
+	m_Core.ResetDragVelocity();
+
 	//lastsentcore
 	vec2 StartPos = m_Core.m_Pos;
 	vec2 StartVel = m_Core.m_Vel;
@@ -971,10 +977,7 @@ void CCharacter::Die(int Killer, int Weapon)
 
 bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 {
-	/*m_Core.m_Vel += Force;
-
-	if(GameServer()->m_pController->IsFriendlyFire(m_pPlayer->GetCID(), From) && !g_Config.m_SvTeamdamage)
-		return false;
+	// m_Core.m_Vel += Force;
 
 	// m_pPlayer only inflicts half damage on self
 	if(From == m_pPlayer->GetCID())
@@ -1055,7 +1058,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 	if (Dmg > 2)
 		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG);
 	else
-		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT);*/
+		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT);
 
 	if(Dmg)
 	{
@@ -2078,7 +2081,7 @@ void CCharacter::SetRescue()
 void CCharacter::DDRaceTick()
 {
 	mem_copy(&m_Input, &m_SavedInput, sizeof(m_Input));
-	m_Armor = (m_FreezeTime >= 0) ? 10 - (m_FreezeTime / 15) : 0;
+	// m_Armor = (m_FreezeTime >= 0) ? 10 - (m_FreezeTime / 15) : 0;
 	if(m_Input.m_Direction != 0 || m_Input.m_Jump != 0)
 		m_LastMove = Server()->Tick();
 
@@ -2200,7 +2203,7 @@ bool CCharacter::UnFreeze()
 {
 	if(m_FreezeTime > 0)
 	{
-		m_Armor = 10;
+		// m_Armor = 10;
 		if(!m_aWeapons[m_Core.m_ActiveWeapon].m_Got)
 			m_Core.m_ActiveWeapon = WEAPON_GUN;
 		m_FreezeTime = 0;
@@ -2330,7 +2333,7 @@ void CCharacter::DDRaceInit()
 		m_LastStartWarning = Server()->Tick();
 	}
 }
-
+/*
 void CCharacter::Rescue()
 {
 	if(m_SetSavePos && !m_Super)
@@ -2359,3 +2362,4 @@ void CCharacter::Rescue()
 		m_pPlayer->Pause(CPlayer::PAUSE_NONE, true);
 	}
 }
+*/

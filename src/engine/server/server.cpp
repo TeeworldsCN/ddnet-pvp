@@ -1143,10 +1143,10 @@ void CServer::GetMapInfo(char *pMapName, int MapNameSize, int *pMapSize, SHA256_
 
 void CServer::SendCapabilities(int ClientID)
 {
-	CMsgPacker Msg(NETMSG_CAPABILITIES, true);
-	Msg.AddInt(SERVERCAP_CURVERSION); // version
-	Msg.AddInt(SERVERCAPFLAG_DDNET | SERVERCAPFLAG_CHATTIMEOUTCODE); // flags
-	SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
+	// CMsgPacker Msg(NETMSG_CAPABILITIES, true);
+	// Msg.AddInt(SERVERCAP_CURVERSION); // version
+	// Msg.AddInt(SERVERCAPFLAG_DDNET); // flags
+	// SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
 }
 
 void CServer::SendMap(int ClientID)

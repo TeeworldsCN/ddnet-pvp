@@ -73,7 +73,7 @@ public:
 
 	void SetEmote(int Emote, int Tick);
 
-	void Rescue();
+	// void Rescue();
 
 	int NeededFaketuning() { return m_NeededFaketuning; }
 	bool IsAlive() const { return m_Alive; }

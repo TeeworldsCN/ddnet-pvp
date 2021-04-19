@@ -206,6 +206,8 @@ public:
 	bool m_Hook;
 	bool m_Collision;
 
+	vec2 m_HookDragVel;
+
 	vec2 m_HookPos;
 	vec2 m_HookDir;
 	vec2 m_HookTeleBase;
@@ -230,6 +232,9 @@ public:
 	void Reset();
 	void Tick(bool UseInput);
 	void Move();
+
+	void AddDragVelocity();
+	void ResetDragVelocity();
 
 	void Read(const CNetObj_CharacterCore *pObjCore);
 	void Write(CNetObj_CharacterCore *pObjCore);
