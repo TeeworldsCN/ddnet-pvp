@@ -967,6 +967,7 @@ void CCharacter::Die(int Killer, int Weapon)
 	m_pPlayer->m_DieTick = Server()->Tick();
 
 	m_Alive = false;
+	m_pPlayer->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()/2;
 	m_Solo = false;
 
 	GameServer()->m_World.RemoveEntity(this);

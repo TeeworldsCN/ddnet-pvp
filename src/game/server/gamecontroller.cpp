@@ -453,11 +453,29 @@ void IGameController::OnReset()
 {
 	for(auto &pPlayer : GameServer()->m_apPlayers)
 		if(pPlayer)
+		{
 			pPlayer->Respawn();
+			pPlayer->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()/2;
+			if(m_RoundCount == 0)
+			{
+				pPlayer->m_Score = 0;
+			}
+		}
 }
 
 int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)
 {
+	if(!pKiller || Weapon == WEAPON_GAME)
+		return 0;
+	if(pKiller == pVictim->GetPlayer())
+		pVictim->GetPlayer()->m_Score--;
+	else
+	{
+		pKiller->m_Score++;
+	}
+	if(Weapon == WEAPON_SELF)
+		pVictim->GetPlayer()->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()*3.0f;
+
 	return 0;
 }
 

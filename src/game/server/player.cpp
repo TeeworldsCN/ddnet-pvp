@@ -42,7 +42,6 @@ void CPlayer::Reset()
 	m_LastActionTick = Server()->Tick();
 	m_TeamChangeTick = Server()->Tick();
 	m_LastInvited = 0;
-	m_WeakHookSpawn = false;
 
 	int *pIdMap = Server()->GetIdMap(m_ClientID);
 	for(int i = 1; i < VANILLA_MAX_CLIENTS; i++)
@@ -247,11 +246,12 @@ void CPlayer::Tick()
 				m_pCharacter = 0;
 			}
 		}
-		else if(m_Spawning && !m_WeakHookSpawn)
+		else if(m_Spawning && m_RespawnTick <= Server()->Tick())
 			TryRespawn();
 	}
 	else
 	{
+		++m_RespawnTick;
 		++m_DieTick;
 		++m_PreviousDieTick;
 		++m_JoinTick;
@@ -307,8 +307,8 @@ void CPlayer::PostPostTick()
 		if(!Server()->ClientIngame(m_ClientID))
 			return;
 
-	if(!GameServer()->m_World.m_Paused && !m_pCharacter && m_Spawning && m_WeakHookSpawn)
-		TryRespawn();
+	// if(!GameServer()->m_World.m_Paused && !m_pCharacter && m_Spawning)
+	// 	TryRespawn();
 }
 
 void CPlayer::Snap(int SnappingClient)
@@ -588,11 +588,10 @@ void CPlayer::KillCharacter(int Weapon)
 	}
 }
 
-void CPlayer::Respawn(bool WeakHook)
+void CPlayer::Respawn()
 {
 	if(m_Team != TEAM_SPECTATORS)
 	{
-		m_WeakHookSpawn = WeakHook;
 		m_Spawning = true;
 	}
 }
@@ -686,7 +685,6 @@ void CPlayer::TryRespawn()
 	if(!GameServer()->m_pController->CanSpawn(m_Team, &SpawnPos))
 		return;
 
-	m_WeakHookSpawn = false;
 	m_Spawning = false;
 	m_pCharacter = new(m_ClientID) CCharacter(&GameServer()->m_World);
 	m_pCharacter->Spawn(this, SpawnPos);

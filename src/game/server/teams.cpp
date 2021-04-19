@@ -775,30 +775,30 @@ void CGameTeams::OnCharacterDeath(int ClientID, int Weapon)
 	{
 		SetForceCharacterTeam(ClientID, Team);
 
-		if(GetTeamState(Team) != TEAMSTATE_OPEN)
-		{
-			ChangeTeamState(Team, CGameTeams::TEAMSTATE_OPEN);
+		// if(GetTeamState(Team) != TEAMSTATE_OPEN)
+		// {
+		// 	ChangeTeamState(Team, CGameTeams::TEAMSTATE_OPEN);
 
-			char aBuf[512];
-			str_format(aBuf, sizeof(aBuf), "Everyone in your locked team was killed because '%s' %s.", Server()->ClientName(ClientID), Weapon == WEAPON_SELF ? "killed" : "died");
+		// 	char aBuf[512];
+		// 	str_format(aBuf, sizeof(aBuf), "Everyone in your locked team was killed because '%s' %s.", Server()->ClientName(ClientID), Weapon == WEAPON_SELF ? "killed" : "died");
 
-			m_Practice[Team] = false;
+		// 	m_Practice[Team] = false;
 
-			for(int i = 0; i < MAX_CLIENTS; i++)
-				if(m_Core.Team(i) == Team && GameServer()->m_apPlayers[i])
-				{
-					GameServer()->m_apPlayers[i]->m_VotedForPractice = false;
+		// 	for(int i = 0; i < MAX_CLIENTS; i++)
+		// 		if(m_Core.Team(i) == Team && GameServer()->m_apPlayers[i])
+		// 		{
+		// 			GameServer()->m_apPlayers[i]->m_VotedForPractice = false;
 
-					if(i != ClientID)
-					{
-						GameServer()->m_apPlayers[i]->KillCharacter(WEAPON_SELF);
-						if(Weapon == WEAPON_SELF)
-							GameServer()->m_apPlayers[i]->Respawn(true); // spawn the rest of team with weak hook on the killer
-					}
-					if(Count(Team) > 1)
-						GameServer()->SendChatTarget(i, aBuf);
-				}
-		}
+		// 			if(i != ClientID)
+		// 			{
+		// 				GameServer()->m_apPlayers[i]->KillCharacter(WEAPON_SELF);
+		// 				if(Weapon == WEAPON_SELF)
+		// 					GameServer()->m_apPlayers[i]->Respawn();
+		// 			}
+		// 			if(Count(Team) > 1)
+		// 				GameServer()->SendChatTarget(i, aBuf);
+		// 		}
+		// }
 	}
 	else
 	{

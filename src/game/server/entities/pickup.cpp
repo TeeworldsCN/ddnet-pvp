@@ -34,7 +34,8 @@ void CPickup::Reset()
 void CPickup::Tick()
 {
 	Move();
-	int64 TeamMask = ((CGameControllerDDRace *)GameServer()->m_pController)->m_Teams.TeamMask(m_ResponsibleTeam);
+	CGameTeams &Team = ((CGameControllerDDRace *)GameServer()->m_pController)->m_Teams;
+	int64 TeamMask = Team.TeamMask(m_ResponsibleTeam);
 	
 	// wait for respawn
 	if(m_SpawnTick > 0)
@@ -147,6 +148,7 @@ void CPickup::Snap(int SnappingClient)
 
 	CCharacter *SnapChar = GameServer()->GetPlayerChar(SnappingClient);
 	CPlayer *SnapPlayer = SnappingClient > -1 ? GameServer()->m_apPlayers[SnappingClient] : 0;
+	CGameTeams &Team = ((CGameControllerDDRace *)GameServer()->m_pController)->m_Teams;
 
 	// spectator no entity
 	if(SnapPlayer && (SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->IsPaused()) && SnapPlayer->m_SpectatorID == -1)
@@ -155,7 +157,7 @@ void CPickup::Snap(int SnappingClient)
 	if(SnapPlayer && (SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->IsPaused()) && SnapPlayer->m_SpectatorID != -1 && GameServer()->GetPlayerChar(SnapPlayer->m_SpectatorID) && GameServer()->GetPlayerChar(SnapPlayer->m_SpectatorID)->Team() != m_ResponsibleTeam)
 		return;
 
-	if(SnapPlayer && SnapPlayer->GetTeam() != TEAM_SPECTATORS && !SnapPlayer->IsPaused() && SnapChar && SnapChar && SnapChar->Team() != m_ResponsibleTeam)
+	if(SnapPlayer && SnapPlayer->GetTeam() != TEAM_SPECTATORS && !SnapPlayer->IsPaused() && Team.m_Core.Team(SnapPlayer->GetCID()) != m_ResponsibleTeam)
 		return;
 
 	if(SnapPlayer && (SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->IsPaused()) && SnapPlayer->m_SpectatorID == -1 && SnapChar && SnapChar->Team() != m_ResponsibleTeam)
