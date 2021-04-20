@@ -71,7 +71,7 @@ void CCharacterCore::Reset()
 {
 	m_Pos = vec2(0, 0);
 	m_Vel = vec2(0, 0);
-	m_HookDragVel = vec2(0,0);
+	m_HookDragVel = vec2(0, 0);
 	m_NewHook = false;
 	m_HookPos = vec2(0, 0);
 	m_HookDir = vec2(0, 0);
@@ -412,13 +412,12 @@ void CCharacterCore::Tick(bool UseInput)
 					if(Distance > PhysSize * 1.50f) // TODO: fix tweakable variable
 					{
 						float Accel = m_pWorld->m_Tuning[g_Config.m_ClDummy].m_HookDragAccel * (Distance / m_pWorld->m_Tuning[g_Config.m_ClDummy].m_HookLength);
-						float DragSpeed = m_pWorld->m_Tuning[g_Config.m_ClDummy].m_HookDragSpeed;
 
 						// add force to the hooked player
-						pCharCore->m_HookDragVel += Dir*Accel*1.5f;
-						
+						pCharCore->m_HookDragVel += Dir * Accel * 1.5f;
+
 						// add a little bit force to the guy who has the grip
-						m_HookDragVel -= Dir*Accel*0.25f;
+						m_HookDragVel -= Dir * Accel * 0.25f;
 					}
 				}
 			}
@@ -448,7 +447,7 @@ void CCharacterCore::AddDragVelocity()
 
 void CCharacterCore::ResetDragVelocity()
 {
-	m_HookDragVel = vec2(0,0);
+	m_HookDragVel = vec2(0, 0);
 }
 
 void CCharacterCore::Move()

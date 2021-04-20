@@ -101,8 +101,6 @@ void CPlayer::Reset()
 	}
 	m_OverrideEmoteReset = -1;
 
-	// GameServer()->Score()->PlayerData(m_ClientID)->Reset();
-
 	m_ShowOthers = g_Config.m_SvShowOthersDefault;
 	m_ShowAll = g_Config.m_SvShowAllDefault;
 	m_ShowDistance = vec2(1200, 800);
@@ -118,9 +116,6 @@ void CPlayer::Reset()
 
 	// Variable initialized:
 	m_Last_Team = 0;
-	// m_LastSQLQuery = 0;
-	// m_ScoreQueryResult = nullptr;
-	// m_ScoreFinishResult = nullptr;
 
 	int64 Now = Server()->Tick();
 	int64 TickSpeed = Server()->TickSpeed();
@@ -136,7 +131,6 @@ void CPlayer::Reset()
 
 	m_NotEligibleForFinish = false;
 	m_EligibleForFinishCheck = 0;
-	// m_VotedForPractice = false;
 }
 
 static int PlayerFlags_SevenToSix(int Flags)
@@ -166,19 +160,9 @@ void CPlayer::Tick()
 #ifdef CONF_DEBUG
 	if(!g_Config.m_DbgDummies || m_ClientID < MAX_CLIENTS - g_Config.m_DbgDummies)
 #endif
-	// 	if(m_ScoreQueryResult != nullptr && m_ScoreQueryResult->m_Completed)
-	// 	{
-	// 		ProcessScoreResult(*m_ScoreQueryResult);
-	// 		m_ScoreQueryResult = nullptr;
-	// 	}
-	// if(m_ScoreFinishResult != nullptr && m_ScoreFinishResult->m_Completed)
-	// {
-	// 	ProcessScoreResult(*m_ScoreFinishResult);
-	// 	m_ScoreFinishResult = nullptr;
-	// }
 
-	if(!Server()->ClientIngame(m_ClientID))
-		return;
+		if(!Server()->ClientIngame(m_ClientID))
+			return;
 
 	if(m_ChatScore > 0)
 		m_ChatScore--;
@@ -297,18 +281,6 @@ void CPlayer::PostTick()
 	// update view pos for spectators
 	if((m_Team == TEAM_SPECTATORS || m_Paused) && m_SpectatorID != SPEC_FREEVIEW && GameServer()->m_apPlayers[m_SpectatorID] && GameServer()->m_apPlayers[m_SpectatorID]->GetCharacter())
 		m_ViewPos = GameServer()->m_apPlayers[m_SpectatorID]->GetCharacter()->m_Pos;
-}
-
-void CPlayer::PostPostTick()
-{
-#ifdef CONF_DEBUG
-	if(!g_Config.m_DbgDummies || m_ClientID < MAX_CLIENTS - g_Config.m_DbgDummies)
-#endif
-		if(!Server()->ClientIngame(m_ClientID))
-			return;
-
-	// if(!GameServer()->m_World.m_Paused && !m_pCharacter && m_Spawning)
-	// 	TryRespawn();
 }
 
 void CPlayer::Snap(int SnappingClient)

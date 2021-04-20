@@ -373,11 +373,11 @@ bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 	{
 		new CGun(&GameServer()->m_World, Pos, false, false, Layer, Number);
 	}
-	
+
 	if(Type != -1)
 	{
-		for (int i = 0; i < MAX_CLIENTS; ++i) {
-
+		for(int i = 0; i < MAX_CLIENTS; ++i)
+		{
 			CPickup *pPickup = new CPickup(&GameServer()->m_World, Type, SubType, i);
 			pPickup->m_Pos = Pos;
 		}
@@ -455,7 +455,7 @@ void IGameController::OnReset()
 		if(pPlayer)
 		{
 			pPlayer->Respawn();
-			pPlayer->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()/2;
+			pPlayer->m_RespawnTick = Server()->Tick() + Server()->TickSpeed() / 2;
 			if(m_RoundCount == 0)
 			{
 				pPlayer->m_Score = 0;
@@ -474,7 +474,7 @@ int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *
 		pKiller->m_Score++;
 	}
 	if(Weapon == WEAPON_SELF)
-		pVictim->GetPlayer()->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()*3.0f;
+		pVictim->GetPlayer()->m_RespawnTick = Server()->Tick() + Server()->TickSpeed() * 3.0f;
 
 	return 0;
 }
@@ -581,23 +581,11 @@ void IGameController::Snap(int SnappingClient)
 		return;
 
 	pGameInfoEx->m_Flags =
-		// GAMEINFOFLAG_TIMESCORE |
-		// GAMEINFOFLAG_GAMETYPE_RACE |
-		// GAMEINFOFLAG_GAMETYPE_DDRACE |
-		// GAMEINFOFLAG_GAMETYPE_DDNET |
-		// GAMEINFOFLAG_UNLIMITED_AMMO |
-		// GAMEINFOFLAG_RACE_RECORD_MESSAGE |
 		GAMEINFOFLAG_ALLOW_EYE_WHEEL |
 		GAMEINFOFLAG_ALLOW_HOOK_COLL |
-		// GAMEINFOFLAG_ALLOW_ZOOM |
-		// GAMEINFOFLAG_BUG_DDRACE_GHOST |
-		// GAMEINFOFLAG_BUG_DDRACE_INPUT |
-		// GAMEINFOFLAG_PREDICT_DDRACE |
-		// GAMEINFOFLAG_PREDICT_DDRACE_TILES |
 		GAMEINFOFLAG_ENTITIES_DDNET |
 		GAMEINFOFLAG_ENTITIES_DDRACE |
 		GAMEINFOFLAG_ENTITIES_RACE;
-		// GAMEINFOFLAG_RACE;
 	pGameInfoEx->m_Flags2 = 0;
 	pGameInfoEx->m_Version = GAMEINFO_CURVERSION;
 

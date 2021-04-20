@@ -335,33 +335,15 @@ private:
 	static void ConToCheckTeleporter(IConsole::IResult *pResult, void *pUserData);
 	static void ConTeleport(IConsole::IResult *pResult, void *pUserData);
 
-	// static void ConCredits(IConsole::IResult *pResult, void *pUserData);
-	// static void ConInfo(IConsole::IResult *pResult, void *pUserData);
-	// static void ConHelp(IConsole::IResult *pResult, void *pUserData);
-	// static void ConSettings(IConsole::IResult *pResult, void *pUserData);
+	static void ConCredits(IConsole::IResult *pResult, void *pUserData);
+	static void ConInfo(IConsole::IResult *pResult, void *pUserData);
+	static void ConHelp(IConsole::IResult *pResult, void *pUserData);
 	static void ConRules(IConsole::IResult *pResult, void *pUserData);
 	static void ConKill(IConsole::IResult *pResult, void *pUserData);
-	// static void ConTogglePause(IConsole::IResult *pResult, void *pUserData);
-	// static void ConTogglePauseVoted(IConsole::IResult *pResult, void *pUserData);
-	// static void ConToggleSpec(IConsole::IResult *pResult, void *pUserData);
-	// static void ConToggleSpecVoted(IConsole::IResult *pResult, void *pUserData);
 	static void ConForcePause(IConsole::IResult *pResult, void *pUserData);
-	// static void ConTeamTop5(IConsole::IResult *pResult, void *pUserData);
-	// static void ConTop5(IConsole::IResult *pResult, void *pUserData);
-	// static void ConTimes(IConsole::IResult *pResult, void *pUserData);
-	// static void ConPoints(IConsole::IResult *pResult, void *pUserData);
-	// static void ConTopPoints(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConUTF8(IConsole::IResult *pResult, void *pUserData);
-	// static void ConDND(IConsole::IResult *pResult, void *pUserData);
-	// static void ConMapInfo(IConsole::IResult *pResult, void *pUserData);
-	// static void ConTimeout(IConsole::IResult *pResult, void *pUserData);
-	// static void ConPractice(IConsole::IResult *pResult, void *pUserData);
-	// static void ConSave(IConsole::IResult *pResult, void *pUserData);
-	// static void ConLoad(IConsole::IResult *pResult, void *pUserData);
-	// static void ConMap(IConsole::IResult *pResult, void *pUserData);
-	// static void ConTeamRank(IConsole::IResult *pResult, void *pUserData);
-	// static void ConRank(IConsole::IResult *pResult, void *pUserData);
+	static void ConDND(IConsole::IResult *pResult, void *pUserData);
 	static void ConBroadTime(IConsole::IResult *pResult, void *pUserData);
 	static void ConJoinTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConLockTeam(IConsole::IResult *pResult, void *pUserData);
@@ -373,16 +355,8 @@ private:
 	static void ConSetEyeEmote(IConsole::IResult *pResult, void *pUserData);
 	static void ConToggleBroadcast(IConsole::IResult *pResult, void *pUserData);
 	static void ConEyeEmote(IConsole::IResult *pResult, void *pUserData);
-	// static void ConShowOthers(IConsole::IResult *pResult, void *pUserData);
-	// static void ConShowAll(IConsole::IResult *pResult, void *pUserData);
-	// static void ConSpecTeam(IConsole::IResult *pResult, void *pUserData);
-	// static void ConNinjaJetpack(IConsole::IResult *pResult, void *pUserData);
-	// static void ConSayTime(IConsole::IResult *pResult, void *pUserData);
-	// static void ConSayTimeAll(IConsole::IResult *pResult, void *pUserData);
-	// static void ConTime(IConsole::IResult *pResult, void *pUserData);
-	// static void ConSetTimerType(IConsole::IResult *pResult, void *pUserData);
-	// static void ConRescue(IConsole::IResult *pResult, void *pUserData);
-	// static void ConProtectedKill(IConsole::IResult *pResult, void *pUserData);
+	static void ConShowOthers(IConsole::IResult *pResult, void *pUserData);
+	static void ConSpecTeam(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConVoteMute(IConsole::IResult *pResult, void *pUserData);
 	static void ConVoteUnmute(IConsole::IResult *pResult, void *pUserData);
@@ -395,10 +369,7 @@ private:
 	static void ConModerate(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConList(IConsole::IResult *pResult, void *pUserData);
-	// static void ConSetDDRTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConUninvite(IConsole::IResult *pResult, void *pUserData);
-	static void ConFreezeHammer(IConsole::IResult *pResult, void *pUserData);
-	static void ConUnFreezeHammer(IConsole::IResult *pResult, void *pUserData);
 
 	enum
 	{

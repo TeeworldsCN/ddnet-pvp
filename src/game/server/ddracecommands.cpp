@@ -4,7 +4,6 @@
 #include <game/server/entities/character.h>
 #include <game/server/gamemodes/DDRace.h>
 #include <game/server/player.h>
-// #include <game/server/save.h>
 #include <game/server/teams.h>
 #include <game/version.h>
 
@@ -670,32 +669,6 @@ void CGameContext::ConModerate(IConsole::IResult *pResult, void *pUserData)
 		pSelf->SendChatTarget(pResult->m_ClientID, "Active moderator mode disabled for you.");
 }
 
-// void CGameContext::ConSetDDRTeam(IConsole::IResult *pResult, void *pUserData)
-// {
-// 	CGameContext *pSelf = (CGameContext *)pUserData;
-// 	CGameControllerDDRace *pController = (CGameControllerDDRace *)pSelf->m_pController;
-
-// 	if(g_Config.m_SvTeam == 0 || g_Config.m_SvTeam == 3)
-// 	{
-// 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
-// 			"Teams are disabled");
-// 		return;
-// 	}
-
-// 	int Target = pResult->GetVictim();
-// 	int Team = pResult->GetInteger(1);
-
-// 	if(Team < TEAM_FLOCK || Team >= TEAM_SUPER)
-// 		return;
-
-// 	CCharacter *pChr = pSelf->GetPlayerChar(Target);
-
-// 	// if((pController->m_Teams.m_Core.Team(Target) && pController->m_Teams.GetDDRaceState(pSelf->m_apPlayers[Target]) == DDRACE_STARTED))
-// 	pSelf->m_apPlayers[Target]->KillCharacter(WEAPON_GAME);
-
-// 	pController->m_Teams.SetForceCharacterTeam(Target, Team);
-// }
-
 void CGameContext::ConUninvite(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -704,75 +677,12 @@ void CGameContext::ConUninvite(IConsole::IResult *pResult, void *pUserData)
 	pController->m_Teams.SetClientInvited(pResult->GetInteger(1), pResult->GetVictim(), false);
 }
 
-void CGameContext::ConFreezeHammer(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->GetVictim();
-
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
-
-	if(!pChr)
-		return;
-
-	char aBuf[128];
-	str_format(aBuf, sizeof aBuf, "'%s' got freeze hammer!",
-		pSelf->Server()->ClientName(Victim));
-	pSelf->SendChat(-1, CHAT_ALL, aBuf);
-
-	pChr->m_FreezeHammer = true;
-}
-
-void CGameContext::ConUnFreezeHammer(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->GetVictim();
-
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
-
-	if(!pChr)
-		return;
-
-	char aBuf[128];
-	str_format(aBuf, sizeof aBuf, "'%s' lost freeze hammer!",
-		pSelf->Server()->ClientName(Victim));
-	pSelf->SendChat(-1, CHAT_ALL, aBuf);
-
-	pChr->m_FreezeHammer = false;
-}
 void CGameContext::ConVoteNo(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
 	pSelf->ForceVote(pResult->m_ClientID, false);
 }
-/*
-void CGameContext::ConDrySave(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-
-	if(!pPlayer || pSelf->Server()->GetAuthedState(pResult->m_ClientID) != AUTHED_ADMIN)
-		return;
-
-	CSaveTeam SavedTeam(pSelf->m_pController);
-	int Result = SavedTeam.save(pPlayer->GetTeam());
-	if(CSaveTeam::HandleSaveError(Result, pResult->m_ClientID, pSelf))
-		return;
-
-	char aTimestamp[32];
-	str_timestamp(aTimestamp, sizeof(aTimestamp));
-	char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), "%s_%s_%s.save", pSelf->Server()->GetMapName(), aTimestamp, pSelf->Server()->GetAuthName(pResult->m_ClientID));
-	IOHANDLE File = pSelf->Storage()->OpenFile(aBuf, IOFLAG_WRITE, IStorage::TYPE_ALL);
-	if(!File)
-		return;
-
-	int Len = str_length(SavedTeam.GetString());
-	io_write(File, SavedTeam.GetString(), Len);
-	io_close(File);
-}
-*/
 
 void CGameContext::ConDumpAntibot(IConsole::IResult *pResult, void *pUserData)
 {

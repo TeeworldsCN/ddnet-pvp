@@ -2017,10 +2017,6 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   gameworld.h
   player.cpp
   player.h
-  save.cpp
-  save.h
-  score.cpp
-  score.h
   teams.cpp
   teams.h
   teehistorian.cpp

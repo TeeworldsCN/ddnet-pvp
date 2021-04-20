@@ -40,8 +40,6 @@ public:
 	void Tick();
 	void PostTick();
 
-	// will be called after all Tick and PostTick calls from other players
-	void PostPostTick();
 	void Snap(int SnappingClient);
 	void FakeSnap();
 

@@ -49,14 +49,10 @@ void CGameContext::Construct(int Resetting)
 	m_pVoteOptionLast = 0;
 	m_NumVoteOptions = 0;
 	m_LastMapVote = 0;
-	//m_LockTeams = 0;
-
-	// m_SqlRandomMapResult = nullptr;
 
 	if(Resetting == NO_RESET)
 	{
 		m_pVoteOptionHeap = new CHeap();
-		// m_pScore = 0;
 		m_NumMutes = 0;
 		m_NumVoteMutes = 0;
 	}
@@ -808,12 +804,6 @@ void CGameContext::OnTick()
 		}
 	}
 
-	for(auto &pPlayer : m_apPlayers)
-	{
-		if(pPlayer)
-			pPlayer->PostPostTick();
-	}
-
 	// update voting
 	if(m_VoteCloseTime)
 	{
@@ -1240,7 +1230,7 @@ void CGameContext::OnClientEnter(int ClientID)
 		Msg.m_Team = 0;
 		Msg.m_ClientID = Empty;
 		Msg.m_pMessage = "Do you know someone who uses a bot? Please report them to the moderators.";
-		// m_apPlayers[ClientID]->m_EligibleForFinishCheck = time_get();
+		m_apPlayers[ClientID]->m_EligibleForFinishCheck = time_get();
 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
 	}
 
@@ -1603,7 +1593,8 @@ void *CGameContext::PreProcessMsg(int *MsgID, CUnpacker *pUnpacker, int ClientID
 			if(pMsg7->m_Force)
 			{
 				str_format(s_aRawMsg, sizeof(s_aRawMsg), "force_vote \"%s\" \"%s\" \"%s\"", pMsg7->m_Type, pMsg7->m_Value, pMsg7->m_Reason);
-				Console()->SetAccessLevel(Authed == AUTHED_ADMIN ? IConsole::ACCESS_LEVEL_ADMIN : Authed == AUTHED_MOD ? IConsole::ACCESS_LEVEL_MOD : IConsole::ACCESS_LEVEL_HELPER);
+				Console()->SetAccessLevel(Authed == AUTHED_ADMIN ? IConsole::ACCESS_LEVEL_ADMIN : Authed == AUTHED_MOD ? IConsole::ACCESS_LEVEL_MOD :
+                                                                                                                                         IConsole::ACCESS_LEVEL_HELPER);
 				Console()->ExecuteLine(s_aRawMsg, ClientID, false);
 				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
 				return 0;
@@ -1774,7 +1765,8 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 					int Authed = Server()->GetAuthedState(ClientID);
 					if(Authed)
-						Console()->SetAccessLevel(Authed == AUTHED_ADMIN ? IConsole::ACCESS_LEVEL_ADMIN : Authed == AUTHED_MOD ? IConsole::ACCESS_LEVEL_MOD : IConsole::ACCESS_LEVEL_HELPER);
+						Console()->SetAccessLevel(Authed == AUTHED_ADMIN ? IConsole::ACCESS_LEVEL_ADMIN : Authed == AUTHED_MOD ? IConsole::ACCESS_LEVEL_MOD :
+                                                                                                                                                         IConsole::ACCESS_LEVEL_HELPER);
 					else
 						Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
 					Console()->SetPrintOutputLevel(m_ChatPrintCBIndex, 0);

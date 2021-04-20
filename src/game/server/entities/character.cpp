@@ -378,23 +378,12 @@ void CCharacter::FireWeapon()
 	if(!WillFire)
 		return;
 
-	if(m_FreezeTime)
-	{
-		// Timer stuff to avoid shrieking orchestra caused by unfreeze-plasma
-		if(m_PainSoundTimer <= 0 && !(m_LatestPrevInput.m_Fire & 1))
-		{
-			m_PainSoundTimer = 1 * Server()->TickSpeed();
-			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
-		}
-		return;
-	}
-
 	// check for ammo
 	if(!m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo)
 	{
-		/*// 125ms is a magical limit of how fast a human can click
+		// 125ms is a magical limit of how fast a human can click
 		m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
-		GameServer()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO);*/
+		GameServer()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO);
 		return;
 	}
 
@@ -437,8 +426,6 @@ void CCharacter::FireWeapon()
 				Dir = normalize(pTarget->m_Pos - m_Pos);
 			else
 				Dir = vec2(0.f, -1.f);
-			/*pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
-					m_pPlayer->GetCID(), m_Core.m_ActiveWeapon);*/
 
 			float Strength;
 			if(!m_TuneZone)
@@ -449,12 +436,9 @@ void CCharacter::FireWeapon()
 			vec2 Temp = pTarget->m_Core.m_Vel + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f;
 			Temp = ClampVel(pTarget->m_MoveRestrictions, Temp);
 			Temp -= pTarget->m_Core.m_Vel;
+
 			pTarget->TakeDamage((vec2(0.f, -1.0f) + Temp) * Strength, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
 				m_pPlayer->GetCID(), m_Core.m_ActiveWeapon);
-			pTarget->UnFreeze();
-
-			if(m_FreezeHammer)
-				pTarget->Freeze();
 
 			Antibot()->OnHammerHit(m_pPlayer->GetCID());
 
@@ -967,7 +951,7 @@ void CCharacter::Die(int Killer, int Weapon)
 	m_pPlayer->m_DieTick = Server()->Tick();
 
 	m_Alive = false;
-	m_pPlayer->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()/2;
+	m_pPlayer->m_RespawnTick = Server()->Tick() + Server()->TickSpeed() / 2;
 	m_Solo = false;
 
 	GameServer()->m_World.RemoveEntity(this);
@@ -982,15 +966,15 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 
 	// m_pPlayer only inflicts half damage on self
 	if(From == m_pPlayer->GetCID())
-		Dmg = maximum(1, Dmg/2);
+		Dmg = maximum(1, Dmg / 2);
 
 	m_DamageTaken++;
 
 	// create healthmod indicator
-	if(Server()->Tick() < m_DamageTakenTick+25)
+	if(Server()->Tick() < m_DamageTakenTick + 25)
 	{
 		// make sure that the damage indicators doesn't group together
-		GameServer()->CreateDamageInd(m_Pos, m_DamageTaken*0.25f, Dmg);
+		GameServer()->CreateDamageInd(m_Pos, m_DamageTaken * 0.25f, Dmg);
 	}
 	else
 	{
@@ -1043,10 +1027,10 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 		Die(From, Weapon);
 
 		// set attacker's face to happy (taunt!)
-		if (From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
+		if(From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
 		{
 			CCharacter *pChr = GameServer()->m_apPlayers[From]->GetCharacter();
-			if (pChr)
+			if(pChr)
 			{
 				pChr->m_EmoteType = EMOTE_HAPPY;
 				pChr->m_EmoteStop = Server()->Tick() + Server()->TickSpeed();
@@ -1056,7 +1040,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 		return false;
 	}
 
-	if (Dmg > 2)
+	if(Dmg > 2)
 		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG);
 	else
 		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT);
@@ -1281,7 +1265,8 @@ void CCharacter::Snap(int SnappingClient)
 	if(m_Core.m_ActiveWeapon == WEAPON_NINJA)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
 
-	pDDNetCharacter->m_FreezeEnd = m_DeepFreeze ? -1 : m_FreezeTime == 0 ? 0 : Server()->Tick() + m_FreezeTime;
+	pDDNetCharacter->m_FreezeEnd = m_DeepFreeze ? -1 : m_FreezeTime == 0 ? 0 :
+                                                                               Server()->Tick() + m_FreezeTime;
 	pDDNetCharacter->m_Jumps = m_Core.m_Jumps;
 	pDDNetCharacter->m_TeleCheckpoint = m_TeleCheckpoint;
 	pDDNetCharacter->m_StrongWeakID = m_StrongWeakID;
@@ -1458,75 +1443,8 @@ void CCharacter::HandleTiles(int Index)
 		m_LastBonus = false;
 		return;
 	}
-	// int cp = GameServer()->Collision()->IsCheckpoint(MapIndex);
-	// if(cp != -1 && m_DDRaceState == DDRACE_STARTED && cp > m_CpActive)
-	// {
-	// 	m_CpActive = cp;
-	// 	m_CpCurrent[cp] = m_Time;
-	// 	m_CpTick = Server()->Tick() + Server()->TickSpeed() * 2;
-	// 	if(m_pPlayer->GetClientVersion() >= VERSION_DDRACE)
-	// 	{
-	// 		CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
-	// 		CNetMsg_Sv_DDRaceTime Msg;
-	// 		Msg.m_Time = (int)m_Time;
-	// 		Msg.m_Check = 0;
-	// 		Msg.m_Finish = 0;
-
-	// 		if(m_CpActive != -1 && m_CpTick > Server()->Tick())
-	// 		{
-	// 			if(pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
-	// 			{
-	// 				float Diff = (m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive]) * 100;
-	// 				Msg.m_Check = (int)Diff;
-	// 			}
-	// 		}
-
-	// 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
-	// 	}
-	// }
-	// int cpf = GameServer()->Collision()->IsFCheckpoint(MapIndex);
-	// if(cpf != -1 && m_DDRaceState == DDRACE_STARTED && cpf > m_CpActive)
-	// {
-	// 	m_CpActive = cpf;
-	// 	m_CpCurrent[cpf] = m_Time;
-	// 	m_CpTick = Server()->Tick() + Server()->TickSpeed() * 2;
-	// 	if(m_pPlayer->GetClientVersion() >= VERSION_DDRACE)
-	// 	{
-	// 		CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
-	// 		CNetMsg_Sv_DDRaceTime Msg;
-	// 		Msg.m_Time = (int)m_Time;
-	// 		Msg.m_Check = 0;
-	// 		Msg.m_Finish = 0;
-
-	// 		if(m_CpActive != -1 && m_CpTick > Server()->Tick())
-	// 		{
-	// 			if(pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
-	// 			{
-	// 				float Diff = (m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive]) * 100;
-	// 				Msg.m_Check = (int)Diff;
-	// 			}
-	// 		}
-
-	// 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
-	// 	}
-	// }
-	// int tcp = GameServer()->Collision()->IsTCheckpoint(MapIndex);
-	// if(tcp)
-	// 	m_TeleCheckpoint = tcp;
 
 	GameServer()->m_pController->HandleCharacterTiles(this, Index);
-
-	// freeze
-	if(((m_TileIndex == TILE_FREEZE) || (m_TileFIndex == TILE_FREEZE)) && !m_Super && !m_DeepFreeze)
-		Freeze();
-	else if(((m_TileIndex == TILE_UNFREEZE) || (m_TileFIndex == TILE_UNFREEZE)) && !m_DeepFreeze)
-		UnFreeze();
-
-	// deep freeze
-	if(((m_TileIndex == TILE_DFREEZE) || (m_TileFIndex == TILE_DFREEZE)) && !m_Super && !m_DeepFreeze)
-		m_DeepFreeze = true;
-	else if(((m_TileIndex == TILE_DUNFREEZE) || (m_TileFIndex == TILE_DUNFREEZE)) && !m_Super && m_DeepFreeze)
-		m_DeepFreeze = false;
 
 	// endless hook
 	if(((m_TileIndex == TILE_EHOOK_ENABLE) || (m_TileFIndex == TILE_EHOOK_ENABLE)))
@@ -2073,12 +1991,6 @@ void CCharacter::SetTeams(CGameTeams *pTeams)
 	m_Core.SetTeamsCore(&m_pTeams->m_Core);
 }
 
-// void CCharacter::SetRescue()
-// {
-// 	m_RescueTee.save(this);
-// 	m_SetSavePos = true;
-// }
-
 void CCharacter::DDRaceTick()
 {
 	mem_copy(&m_Input, &m_SavedInput, sizeof(m_Input));
@@ -2297,7 +2209,6 @@ void CCharacter::DDRaceInit()
 	m_Paused = false;
 	m_DDRaceState = DDRACE_NONE;
 	m_PrevPos = m_Pos;
-	m_SetSavePos = false;
 	m_LastBroadcast = 0;
 	m_TeamBeforeSuper = 0;
 	m_Core.m_Id = GetPlayer()->GetCID();
@@ -2307,7 +2218,6 @@ void CCharacter::DDRaceInit()
 	m_SuperJump = false;
 	m_Jetpack = false;
 	m_Core.m_Jumps = 2;
-	m_FreezeHammer = false;
 
 	int Team = Teams()->m_Core.Team(m_Core.m_Id);
 
@@ -2334,33 +2244,3 @@ void CCharacter::DDRaceInit()
 		m_LastStartWarning = Server()->Tick();
 	}
 }
-/*
-void CCharacter::Rescue()
-{
-	if(m_SetSavePos && !m_Super)
-	{
-		if(m_LastRescue + (int64_t)g_Config.m_SvRescueDelay * Server()->TickSpeed() > Server()->Tick())
-		{
-			char aBuf[256];
-			str_format(aBuf, sizeof(aBuf), "You have to wait %d seconds until you can rescue yourself", (int)((m_LastRescue + (int64_t)g_Config.m_SvRescueDelay * Server()->TickSpeed() - Server()->Tick()) / Server()->TickSpeed()));
-			GameServer()->SendChatTarget(GetPlayer()->GetCID(), aBuf);
-			return;
-		}
-
-		float StartTime = m_StartTime;
-		m_RescueTee.load(this, Team());
-		// Don't load these from saved tee:
-		m_Core.m_Vel = vec2(0, 0);
-		m_Core.m_HookState = HOOK_IDLE;
-		m_StartTime = StartTime;
-		m_SavedInput.m_Direction = 0;
-		m_SavedInput.m_Jump = 0;
-		// simulate releasing the fire button
-		if((m_SavedInput.m_Fire & 1) != 0)
-			m_SavedInput.m_Fire++;
-		m_SavedInput.m_Fire &= INPUT_STATE_MASK;
-		m_SavedInput.m_Hook = 0;
-		m_pPlayer->Pause(CPlayer::PAUSE_NONE, true);
-	}
-}
-*/
