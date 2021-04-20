@@ -240,7 +240,6 @@ void CGameTeams::OnCharacterDeath(int ClientID, int Weapon)
 	m_Core.SetSolo(ClientID, false);
 
 	int Team = m_Core.Team(ClientID);
-	bool Locked = TeamLocked(Team) && Weapon != WEAPON_GAME;
 
 	if(g_Config.m_SvTeam == 3)
 	{

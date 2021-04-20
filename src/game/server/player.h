@@ -135,7 +135,6 @@ private:
 	bool m_Spawning;
 	int m_ClientID;
 	int m_Team;
-	int m_TimeoutTeam; // player's team when timing out
 
 	int m_Paused;
 	int64 m_ForcePauseTime;

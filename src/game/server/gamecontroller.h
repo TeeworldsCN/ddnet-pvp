@@ -6,16 +6,6 @@
 #include <base/vmath.h>
 #include <engine/map.h>
 
-class CDoor;
-#if !defined(_MSC_VER) || _MSC_VER >= 1600
-#include <stdint.h>
-#else
-typedef __int32 int32_t;
-typedef unsigned __int32 uint32_t;
-typedef __int64 int64;
-typedef unsigned __int64 uint64;
-#endif
-
 /*
 	Class: Game Controller
 		Controls the main game logic. Keeping track of team and player score,
@@ -23,8 +13,6 @@ typedef unsigned __int64 uint64;
 */
 class IGameController
 {
-	// friend class CSaveTeam; // need access to GameServer() and Server()
-
 	vec2 m_aaSpawnPoints[3][64];
 	int m_aNumSpawnPoints[3];
 
