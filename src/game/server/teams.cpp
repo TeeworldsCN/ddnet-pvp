@@ -42,17 +42,26 @@ const char *CGameTeams::SetCharacterTeam(int ClientID, int Team)
 	if(ClientID < 0 || ClientID >= MAX_CLIENTS)
 		return "Invalid client ID";
 	if(Team < 0 || Team >= MAX_CLIENTS + 1)
-		return "Invalid team number";
+		return "Invalid room number";
 	if(Team != TEAM_SUPER && m_TeamState[Team] > TEAMSTATE_OPEN)
-		return "This team started already";
+		return "This room started already";
 	if(m_Core.Team(ClientID) == Team)
-		return "You are in this team already";
-	if(!Character(ClientID))
-		return "Your character is not valid";
-	if(Team == TEAM_SUPER && !Character(ClientID)->m_Super)
-		return "You can't join super team if you don't have super rights";
-	if(Team != TEAM_SUPER && Character(ClientID)->m_DDRaceState != DDRACE_NONE)
-		return "You have started the game already";
+		return "You are in this room already";
+
+	CCharacter *pChar = Character(ClientID);
+	if(pChar)
+	{
+		if(Team == TEAM_SUPER && !pChar->m_Super)
+			return "You can't join super room if you don't have super rights";
+		if(Team != TEAM_SUPER && pChar->m_DDRaceState != DDRACE_NONE)
+			return "You have started the game already";
+
+		pChar->Die(ClientID, WEAPON_GAME);
+	}
+
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	// clear score when joining a new room
+	pPlayer->m_Score = 0;
 
 	SetForceCharacterTeam(ClientID, Team);
 	return nullptr;
@@ -221,7 +230,7 @@ void CGameTeams::OnCharacterSpawn(int ClientID)
 	if(m_Core.Team(ClientID) >= TEAM_SUPER || !m_TeamLocked[Team])
 	{
 		if(g_Config.m_SvTeam != 3)
-			SetForceCharacterTeam(ClientID, TEAM_FLOCK);
+			SetForceCharacterTeam(ClientID, Team);
 		else
 			SetForceCharacterTeam(ClientID, ClientID); // initialize team
 	}
@@ -239,10 +248,8 @@ void CGameTeams::OnCharacterDeath(int ClientID, int Weapon)
 		ChangeTeamState(Team, CGameTeams::TEAMSTATE_OPEN);
 		ResetSwitchers(Team);
 	}
-	else if(Locked)
-		SetForceCharacterTeam(ClientID, Team);
-	else
-		SetForceCharacterTeam(ClientID, TEAM_FLOCK);
+
+	SetForceCharacterTeam(ClientID, Team);
 }
 
 void CGameTeams::SetTeamLock(int Team, bool Lock)

@@ -15,10 +15,11 @@ public:
 		vec2 Pos,
 		vec2 Dir,
 		int Span,
-		bool Freeeze,
+		int Damage,
 		bool Explosive,
 		float Force,
 		int SoundImpact,
+		bool Freeze,
 		int Layer = 0,
 		int Number = 0);
 
@@ -35,7 +36,7 @@ private:
 	int m_LifeSpan;
 	int m_Owner;
 	int m_Type;
-	//int m_Damage;
+	int m_Damage;
 	int m_SoundImpact;
 	float m_Force;
 	int m_StartTick;

@@ -99,12 +99,15 @@ void IGameController::DoActivityCheck()
 	}
 }
 
-float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos)
+float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int DDRTeam)
 {
 	float Score = 0.0f;
 	CCharacter *pC = static_cast<CCharacter *>(GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER));
 	for(; pC; pC = (CCharacter *)pC->TypeNext())
 	{
+		if(pC->Team() != DDRTeam)
+			continue;
+
 		// team mates are not as dangerous as enemies
 		float Scoremod = 1.0f;
 		if(pEval->m_FriendlyTeam != -1 && pC->GetPlayer()->GetTeam() == pEval->m_FriendlyTeam)
@@ -117,7 +120,7 @@ float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos)
 	return Score;
 }
 
-void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type)
+void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int DDRTeam)
 {
 	// get spawn point
 	for(int i = 0; i < m_aNumSpawnPoints[Type]; i++)
@@ -133,18 +136,22 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type)
 			if(!GameServer()->m_World.m_Core.m_Tuning[0].m_PlayerCollision)
 				break;
 			for(int c = 0; c < Num; ++c)
+			{
+				if(aEnts[c]->Team() != DDRTeam)
+					continue;
 				if(GameServer()->Collision()->CheckPoint(m_aaSpawnPoints[Type][i] + Positions[Index]) ||
 					distance(aEnts[c]->m_Pos, m_aaSpawnPoints[Type][i] + Positions[Index]) <= aEnts[c]->GetProximityRadius())
 				{
 					Result = -1;
 					break;
 				}
+			}
 		}
 		if(Result == -1)
 			continue; // try next spawn point
 
 		vec2 P = m_aaSpawnPoints[Type][i] + Positions[Result];
-		float S = EvaluateSpawnPos(pEval, P);
+		float S = EvaluateSpawnPos(pEval, P, DDRTeam);
 		if(!pEval->m_Got || pEval->m_Score > S)
 		{
 			pEval->m_Got = true;
@@ -154,7 +161,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type)
 	}
 }
 
-bool IGameController::CanSpawn(int Team, vec2 *pOutPos)
+bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int DDRTeam)
 {
 	CSpawnEval Eval;
 
@@ -162,9 +169,9 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos)
 	if(Team == TEAM_SPECTATORS)
 		return false;
 
-	EvaluateSpawnType(&Eval, 0);
-	EvaluateSpawnType(&Eval, 1);
-	EvaluateSpawnType(&Eval, 2);
+	EvaluateSpawnType(&Eval, 0, DDRTeam);
+	EvaluateSpawnType(&Eval, 1, DDRTeam);
+	EvaluateSpawnType(&Eval, 2, DDRTeam);
 
 	*pOutPos = Eval.m_Pos;
 	return Eval.m_Got;
@@ -233,10 +240,11 @@ bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 			Pos, //Pos
 			vec2(sin(Deg), cos(Deg)), //Dir
 			-2, //Span
-			true, //Freeze
+			0, //Damage
 			true, //Explosive
 			0, //Force
 			(g_Config.m_SvShotgunBulletSound) ? SOUND_GRENADE_EXPLODE : -1, //SoundImpact
+			true, //Freeze
 			Layer,
 			Number);
 		bullet->SetBouncing(2 - (Dir % 2));
@@ -260,10 +268,11 @@ bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 			Pos, //Pos
 			vec2(sin(Deg), cos(Deg)), //Dir
 			-2, //Span
-			true, //Freeze
+			0, //Damage
 			false, //Explosive
 			0,
 			SOUND_GRENADE_EXPLODE,
+			true, //Freeze
 			Layer,
 			Number);
 		bullet->SetBouncing(2 - (Dir % 2));
@@ -376,11 +385,8 @@ bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 
 	if(Type != -1)
 	{
-		for(int i = 0; i < MAX_CLIENTS; ++i)
-		{
-			CPickup *pPickup = new CPickup(&GameServer()->m_World, Type, SubType, i);
-			pPickup->m_Pos = Pos;
-		}
+		CPickup *pPickup = new CPickup(&GameServer()->m_World, Type, SubType);
+		pPickup->m_Pos = Pos;
 		return true;
 	}
 
@@ -470,9 +476,8 @@ int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *
 	if(pKiller == pVictim->GetPlayer())
 		pVictim->GetPlayer()->m_Score--;
 	else
-	{
 		pKiller->m_Score++;
-	}
+
 	if(Weapon == WEAPON_SELF)
 		pVictim->GetPlayer()->m_RespawnTick = Server()->Tick() + Server()->TickSpeed() * 3.0f;
 
@@ -485,8 +490,8 @@ void IGameController::OnCharacterSpawn(class CCharacter *pChr)
 	pChr->IncreaseHealth(10);
 
 	// give default weapons
-	pChr->GiveWeapon(WEAPON_HAMMER);
-	pChr->GiveWeapon(WEAPON_GUN);
+	pChr->GiveWeapon(WEAPON_HAMMER, -1);
+	pChr->GiveWeapon(WEAPON_GUN, 10);
 }
 
 void IGameController::HandleCharacterTiles(CCharacter *pChr, int MapIndex)

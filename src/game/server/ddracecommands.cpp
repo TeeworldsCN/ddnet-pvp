@@ -264,13 +264,13 @@ void CGameContext::ModifyWeapons(IConsole::IResult *pResult, void *pUserData,
 
 	if(Weapon == -1)
 	{
-		pChr->GiveWeapon(WEAPON_SHOTGUN, Remove);
-		pChr->GiveWeapon(WEAPON_GRENADE, Remove);
-		pChr->GiveWeapon(WEAPON_LASER, Remove);
+		pChr->GiveWeapon(WEAPON_SHOTGUN, Remove ? AMMO_REMOVE : AMMO_UNLIMITED);
+		pChr->GiveWeapon(WEAPON_GRENADE, Remove ? AMMO_REMOVE : AMMO_UNLIMITED);
+		pChr->GiveWeapon(WEAPON_LASER, Remove ? AMMO_REMOVE : AMMO_UNLIMITED);
 	}
 	else
 	{
-		pChr->GiveWeapon(Weapon, Remove);
+		pChr->GiveWeapon(Weapon, Remove ? AMMO_REMOVE : AMMO_UNLIMITED);
 	}
 
 	pChr->m_DDRaceState = DDRACE_CHEAT;

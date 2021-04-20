@@ -7,14 +7,20 @@
 
 // this include should perhaps be removed
 // #include "score.h"
-#include <game/server/gamecontext.h>
 #include "teeinfo.h"
+#include <game/server/gamecontext.h>
 
 enum
 {
 	WEAPON_GAME = -3, // team switching etc
 	WEAPON_SELF = -2, // console kill command
 	WEAPON_WORLD = -1, // death tiles etc
+};
+
+enum
+{
+	SHOW_DISTANCE_DEFAULT_X = 1200,
+	SHOW_DISTANCE_DEFAULT_Y = 800,
 };
 
 // player object
@@ -129,6 +135,7 @@ private:
 	bool m_Spawning;
 	int m_ClientID;
 	int m_Team;
+	int m_TimeoutTeam; // player's team when timing out
 
 	int m_Paused;
 	int64 m_ForcePauseTime;
@@ -175,7 +182,6 @@ public:
 	bool m_SpecTeam;
 	bool m_NinjaJetpack;
 	bool m_Afk;
-	bool m_HasFinishScore;
 
 	int m_ChatScore;
 
@@ -202,13 +208,8 @@ public:
 	bool CanOverrideDefaultEmote() const;
 
 	bool m_FirstPacket;
-	// int64 m_LastSQLQuery;
-	// void ProcessScoreResult(CScorePlayerResult &Result);
-	// std::shared_ptr<CScorePlayerResult> m_ScoreQueryResult;
-	// std::shared_ptr<CScorePlayerResult> m_ScoreFinishResult;
 	bool m_NotEligibleForFinish;
 	int64 m_EligibleForFinishCheck;
-	// bool m_VotedForPractice;
 };
 
 #endif

@@ -18,10 +18,11 @@ CProjectile::CProjectile(
 	vec2 Pos,
 	vec2 Dir,
 	int Span,
-	bool Freeze,
+	int Damage,
 	bool Explosive,
 	float Force,
 	int SoundImpact,
+	bool Freeze,
 	int Layer,
 	int Number) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PROJECTILE)
@@ -32,8 +33,9 @@ CProjectile::CProjectile(
 	m_LifeSpan = Span;
 	m_Owner = Owner;
 	m_Force = Force;
-	//m_Damage = Damage;
+	m_Damage = Damage;
 	m_SoundImpact = SoundImpact;
+	m_Freeze = Freeze;
 	m_StartTick = Server()->Tick();
 	m_Explosive = Explosive;
 
@@ -158,7 +160,7 @@ void CProjectile::Tick()
 			}
 			for(int i = 0; i < Number; i++)
 			{
-				GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, (!pTargetChr ? -1 : pTargetChr->Team()),
+				GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1, (!pTargetChr ? -1 : pTargetChr->Team()),
 					(m_Owner != -1) ? TeamMask : -1LL);
 				GameServer()->CreateSound(ColPos, m_SoundImpact,
 					(m_Owner != -1) ? TeamMask : -1LL);
@@ -230,7 +232,8 @@ void CProjectile::Tick()
 		}
 		else if(m_Type == WEAPON_GUN)
 		{
-			GameServer()->CreateDamageInd(CurPos, -atan2(m_Direction.x, m_Direction.y), 10, (m_Owner != -1) ? TeamMask : -1LL);
+			if(pTargetChr)
+				pTargetChr->TakeDamage(m_Direction * maximum(0.001f, m_Force), m_Damage, m_Owner, m_Type);
 			GameServer()->m_World.DestroyEntity(this);
 			return;
 		}
@@ -256,7 +259,7 @@ void CProjectile::Tick()
 				TeamMask = pOwnerChar->Teams()->TeamMask(pOwnerChar->Team(), -1, m_Owner);
 			}
 
-			GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, (!pOwnerChar ? -1 : pOwnerChar->Team()),
+			GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1, (!pOwnerChar ? -1 : pOwnerChar->Team()),
 				(m_Owner != -1) ? TeamMask : -1LL);
 			GameServer()->CreateSound(ColPos, m_SoundImpact,
 				(m_Owner != -1) ? TeamMask : -1LL);

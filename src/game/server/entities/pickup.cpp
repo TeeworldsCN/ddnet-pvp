@@ -1,22 +1,21 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "pickup.h"
-#include <game/generated/server_data.h>
 #include <game/generated/protocol.h>
+#include <game/generated/server_data.h>
 #include <game/server/gamecontext.h>
-#include <game/server/player.h>
 #include <game/server/gamemodes/DDRace.h>
+#include <game/server/player.h>
 
 #include <game/server/teams.h>
 
 #include "character.h"
 
-CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType, int ResponsibleTeam) :
+CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, vec2(0, 0), PickupPhysSize)
 {
 	m_Type = Type;
 	m_Subtype = SubType;
-	m_ResponsibleTeam = ResponsibleTeam;
 
 	Reset();
 
@@ -25,31 +24,51 @@ CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType, int ResponsibleT
 
 void CPickup::Reset()
 {
-	if (g_pData->m_aPickups[m_Type].m_Spawndelay > 0)
-		m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * g_pData->m_aPickups[m_Type].m_Spawndelay;
-	else
-		m_SpawnTick = -1;
+	int SpawnTick = -1;
+	if(g_pData->m_aPickups[m_Type].m_Spawndelay > 0)
+		SpawnTick = Server()->Tick() + Server()->TickSpeed() * g_pData->m_aPickups[m_Type].m_Spawndelay;
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		m_SpawnTick[i] = SpawnTick;
+		m_SoloSpawnTick[i] = SpawnTick;
+	}
 }
 
 void CPickup::Tick()
 {
 	Move();
-	CGameTeams &Team = ((CGameControllerDDRace *)GameServer()->m_pController)->m_Teams;
-	int64 TeamMask = Team.TeamMask(m_ResponsibleTeam);
-	
-	// wait for respawn
-	if(m_SpawnTick > 0)
-	{
-		if(Server()->Tick() > m_SpawnTick)
-		{
-			// respawn
-			m_SpawnTick = -1;
 
-			if(m_Type == POWERUP_WEAPON)
-				GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, TeamMask);
+	CGameTeams &Team = ((CGameControllerDDRace *)GameServer()->m_pController)->m_Teams;
+
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		int64 TeamMask = Team.TeamMask(i);
+		int64 SoloMask = CmaskOne(i);
+
+		// wait for respawn
+		if(m_SpawnTick[i] > 0)
+		{
+			if(Server()->Tick() > m_SpawnTick[i])
+			{
+				// respawn
+				m_SpawnTick[i] = -1;
+
+				if(m_Type == POWERUP_WEAPON)
+					GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, TeamMask);
+			}
 		}
-		else
-			return;
+
+		if(m_SoloSpawnTick[i] > 0)
+		{
+			if(Server()->Tick() > m_SoloSpawnTick[i])
+			{
+				// respawn
+				m_SoloSpawnTick[i] = -1;
+
+				if(m_Type == POWERUP_WEAPON)
+					GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, SoloMask);
+			}
+		}
 	}
 
 	// Check if a player intersected us
@@ -58,18 +77,26 @@ void CPickup::Tick()
 	for(int i = 0; i < Num; ++i)
 	{
 		CCharacter *pChr = apEnts[i];
-		if(pChr && pChr->IsAlive() && pChr->Team() == m_ResponsibleTeam)
+		bool isSoloInteract = (m_SoloSpawnTick[i] < 0) && Team.m_Core.GetSolo(i);
+		bool isTeamInteract = m_SpawnTick[pChr->Team()] < 0 && !Team.m_Core.GetSolo(i);
+
+		if(pChr && pChr->IsAlive() && (isSoloInteract || isTeamInteract))
 		{
+			int64 Mask = 0;
+			if(isSoloInteract)
+				Mask = CmaskOne(i);
+			else if(isTeamInteract)
+				Mask = Team.TeamMask(pChr->Team());
+
 			// player picked us up, is someone was hooking us, let them go
 			int RespawnTime = -1;
 
-			// player picked us up, is someone was hooking us, let them go
 			switch(m_Type)
 			{
 			case POWERUP_HEALTH:
 				if(pChr->IncreaseHealth(1))
 				{
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, TeamMask);
+					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, Mask);
 					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 				}
 				break;
@@ -77,7 +104,7 @@ void CPickup::Tick()
 			case POWERUP_ARMOR:
 				if(pChr->IncreaseArmor(1))
 				{
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, TeamMask);
+					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, Mask);
 					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 				}
 				break;
@@ -86,19 +113,20 @@ void CPickup::Tick()
 
 				if(m_Subtype >= 0 && m_Subtype < NUM_WEAPONS && pChr->GetWeaponAmmo(m_Subtype) != -1)
 				{
-					pChr->GiveWeapon(m_Subtype);
+					if(pChr->GiveWeapon(m_Subtype, g_pData->m_Weapons.m_aId[m_Subtype].m_Maxammo))
+					{
+						RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 
-					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
+						if(m_Subtype == WEAPON_GRENADE)
+							GameServer()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE, Mask);
+						else if(m_Subtype == WEAPON_SHOTGUN)
+							GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
+						else if(m_Subtype == WEAPON_LASER)
+							GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
 
-					if(m_Subtype == WEAPON_GRENADE)
-						GameServer()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE, TeamMask);
-					else if(m_Subtype == WEAPON_SHOTGUN)
-						GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, TeamMask);
-					else if(m_Subtype == WEAPON_LASER)
-						GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, TeamMask);
-
-					if(pChr->GetPlayer())
-						GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);
+						if(pChr->GetPlayer())
+							GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);
+					}
 				}
 				break;
 
@@ -112,7 +140,7 @@ void CPickup::Tick()
 				CCharacter *pC = static_cast<CCharacter *>(GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER));
 				for(; pC; pC = (CCharacter *)pC->TypeNext())
 				{
-					if (pC != pChr)
+					if(pC != pChr)
 						pC->SetEmote(EMOTE_SURPRISE, Server()->Tick() + Server()->TickSpeed());
 				}
 
@@ -129,7 +157,13 @@ void CPickup::Tick()
 				str_format(aBuf, sizeof(aBuf), "pickup player='%d:%s' item=%d/%d",
 					pChr->GetPlayer()->GetCID(), Server()->ClientName(pChr->GetPlayer()->GetCID()), m_Type, m_Subtype);
 				GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
-				m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * RespawnTime;
+
+				int RespawnTick = Server()->Tick() + Server()->TickSpeed() * RespawnTime;
+
+				if(isSoloInteract)
+					m_SoloSpawnTick[i] = RespawnTick;
+				else if(isTeamInteract)
+					m_SpawnTick[pChr->Team()] = RespawnTick;
 			}
 		}
 	}
@@ -137,34 +171,42 @@ void CPickup::Tick()
 
 void CPickup::TickPaused()
 {
-	if(m_SpawnTick != -1)
-		++m_SpawnTick;
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if(m_SpawnTick[i] != -1)
+			++m_SpawnTick[i];
+		if(m_SoloSpawnTick[i] != -1)
+			++m_SoloSpawnTick[i];
+	}
 }
 
 void CPickup::Snap(int SnappingClient)
 {
-	if(m_SpawnTick != -1 || NetworkClipped(SnappingClient))
+	if(NetworkClipped(SnappingClient))
 		return;
 
-	CCharacter *SnapChar = GameServer()->GetPlayerChar(SnappingClient);
-	CPlayer *SnapPlayer = SnappingClient > -1 ? GameServer()->m_apPlayers[SnappingClient] : 0;
+	CPlayer *SnappingPlayer = SnappingClient > -1 ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
+	CPlayer *SnapPlayer = SnappingPlayer;
 	CGameTeams &Team = ((CGameControllerDDRace *)GameServer()->m_pController)->m_Teams;
 
-	// spectator no entity
-	if(SnapPlayer && (SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->IsPaused()) && SnapPlayer->m_SpectatorID == -1)
-		return;
+	if(SnappingClient > -1)
+	{
+		bool isSpectating = (GameServer()->m_apPlayers[SnappingClient]->GetTeam() == -1 || GameServer()->m_apPlayers[SnappingClient]->IsPaused());
+		bool isFreeViewing = isSpectating && GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID == SPEC_FREEVIEW;
+		if(isSpectating && !isFreeViewing)
+		{
+			SnapPlayer = GameServer()->m_apPlayers[GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID];
+		}
 
-	if(SnapPlayer && (SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->IsPaused()) && SnapPlayer->m_SpectatorID != -1 && GameServer()->GetPlayerChar(SnapPlayer->m_SpectatorID) && GameServer()->GetPlayerChar(SnapPlayer->m_SpectatorID)->Team() != m_ResponsibleTeam)
-		return;
-
-	if(SnapPlayer && SnapPlayer->GetTeam() != TEAM_SPECTATORS && !SnapPlayer->IsPaused() && Team.m_Core.Team(SnapPlayer->GetCID()) != m_ResponsibleTeam)
-		return;
-
-	if(SnapPlayer && (SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->IsPaused()) && SnapPlayer->m_SpectatorID == -1 && SnapChar && SnapChar->Team() != m_ResponsibleTeam)
-		return;
-
-	if(SnappingClient > -1 && (GameServer()->m_apPlayers[SnappingClient]->GetTeam() == -1 || GameServer()->m_apPlayers[SnappingClient]->IsPaused()) && GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID != SPEC_FREEVIEW)
-		SnapChar = GameServer()->GetPlayerChar(GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID);
+		if(!isFreeViewing || (SnappingPlayer && SnappingPlayer->m_SpecTeam))
+		{
+			int SnapCID = SnapPlayer->GetCID();
+			bool isSoloActive = Team.m_Core.GetSolo(SnapCID) && (m_SoloSpawnTick[SnapCID] < 0);
+			bool isTeamActive = !Team.m_Core.GetSolo(SnapCID) && m_SpawnTick[Team.m_Core.Team(SnapCID)] < 0;
+			if(!isSoloActive && !isTeamActive)
+				return;
+		}
+	}
 
 	int Size = Server()->IsSixup(SnappingClient) ? 3 * 4 : sizeof(CNetObj_Pickup);
 	CNetObj_Pickup *pP = static_cast<CNetObj_Pickup *>(Server()->SnapNewItem(NETOBJTYPE_PICKUP, GetID(), Size));
@@ -177,7 +219,8 @@ void CPickup::Snap(int SnappingClient)
 	if(Server()->IsSixup(SnappingClient))
 	{
 		if(m_Type == POWERUP_WEAPON)
-			pP->m_Type = m_Subtype == WEAPON_SHOTGUN ? 3 : m_Subtype == WEAPON_GRENADE ? 2 : 4;
+			pP->m_Type = m_Subtype == WEAPON_SHOTGUN ? 3 : m_Subtype == WEAPON_GRENADE ? 2 :
+                                                                                                     4;
 		else if(m_Type == POWERUP_NINJA)
 			pP->m_Type = 5;
 	}

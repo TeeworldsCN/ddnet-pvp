@@ -21,6 +21,12 @@ enum
 	FAKETUNE_NOHAMMER = 64,
 };
 
+enum
+{
+	AMMO_UNLIMITED = -1,
+	AMMO_REMOVE = -2
+};
+
 class CCharacter : public CEntity
 {
 	MACRO_ALLOC_POOL_ID()
@@ -65,7 +71,7 @@ public:
 	bool IncreaseHealth(int Amount);
 	bool IncreaseArmor(int Amount);
 
-	void GiveWeapon(int Weapon, bool Remove = false);
+	bool GiveWeapon(int Weapon, int Ammo);
 	void GiveNinja();
 	void RemoveNinja();
 	void SetEndlessHook(bool Enable);

@@ -201,7 +201,7 @@ void CGameContext::CreateHammerHit(vec2 Pos, int64 Mask)
 	}
 }
 
-void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, int64 Mask)
+void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage, bool NoKnockback, int ActivatedTeam, int64 Mask)
 {
 	// create the event
 	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), Mask);
@@ -231,11 +231,13 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 		else
 			Strength = TuningList()[m_apPlayers[Owner]->m_TuneZone].m_ExplosionStrength;
 
-		float Dmg = Strength * l;
-		if(!(int)Dmg)
+		float Knockback = Strength * l;
+		float Dmg = MaxDamage * l;
+
+		if(int(Knockback) == 0 && int(Dmg) == 0)
 			continue;
 
-		if((GetPlayerChar(Owner) ? !(GetPlayerChar(Owner)->m_Hit & CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit || NoDamage) || Owner == apEnts[i]->GetPlayer()->GetCID())
+		if((GetPlayerChar(Owner) ? !(GetPlayerChar(Owner)->m_Hit & CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit) || Owner == apEnts[i]->GetPlayer()->GetCID())
 		{
 			if(Owner != -1 && apEnts[i]->IsAlive() && !apEnts[i]->CanCollide(Owner))
 				continue;
@@ -244,14 +246,14 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 
 			// Explode at most once per team
 			int PlayerTeam = ((CGameControllerDDRace *)m_pController)->m_Teams.m_Core.Team(apEnts[i]->GetPlayer()->GetCID());
-			if(GetPlayerChar(Owner) ? GetPlayerChar(Owner)->m_Hit & CCharacter::DISABLE_HIT_GRENADE : !g_Config.m_SvHit || NoDamage)
+			if(GetPlayerChar(Owner) ? GetPlayerChar(Owner)->m_Hit & CCharacter::DISABLE_HIT_GRENADE : !g_Config.m_SvHit)
 			{
 				if(!CmaskIsSet(TeamMask, PlayerTeam))
 					continue;
 				TeamMask = CmaskUnset(TeamMask, PlayerTeam);
 			}
 
-			apEnts[i]->TakeDamage(ForceDir * Dmg * 2, (int)Dmg, Owner, Weapon);
+			apEnts[i]->TakeDamage(ForceDir * Knockback * 2, (int)Dmg, Owner, Weapon);
 		}
 	}
 }
@@ -2076,11 +2078,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if(pChr)
 			{
 				int CurrTime = (Server()->Tick() - pChr->m_StartTime) / Server()->TickSpeed();
-				if(g_Config.m_SvKillProtection != 0 && CurrTime >= (60 * g_Config.m_SvKillProtection) && pChr->m_DDRaceState == DDRACE_STARTED)
-				{
-					SendChatTarget(ClientID, "Kill Protection enabled. If you really want to join the spectators, first type /kill");
-					return;
-				}
 			}
 
 			if(pPlayer->m_TeamChangeTick > Server()->Tick())
@@ -2131,22 +2128,26 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			Server()->SetClientDDNetVersion(ClientID, DDNetVersion);
 			OnClientDDNetVersionKnown(ClientID);
 		}
-		else if(MsgID == NETMSGTYPE_CL_SHOWOTHERSLEGACY)
-		{
-			if(g_Config.m_SvShowOthers && !g_Config.m_SvShowOthersDefault)
-			{
-				CNetMsg_Cl_ShowOthersLegacy *pMsg = (CNetMsg_Cl_ShowOthersLegacy *)pRawMsg;
-				pPlayer->m_ShowOthers = pMsg->m_Show;
-			}
-		}
-		else if(MsgID == NETMSGTYPE_CL_SHOWOTHERS)
-		{
-			if(g_Config.m_SvShowOthers && !g_Config.m_SvShowOthersDefault)
-			{
-				CNetMsg_Cl_ShowOthers *pMsg = (CNetMsg_Cl_ShowOthers *)pRawMsg;
-				pPlayer->m_ShowOthers = pMsg->m_Show;
-			}
-		}
+		// PvP: disable clients showother settings
+
+		// else if(MsgID == NETMSGTYPE_CL_SHOWOTHERSLEGACY)
+		// {
+		// 	if(g_Config.m_SvShowOthers && !g_Config.m_SvShowOthersDefault)
+		// 	{
+		// 		CNetMsg_Cl_ShowOthersLegacy *pMsg = (CNetMsg_Cl_ShowOthersLegacy *)pRawMsg;
+		// 		pPlayer->m_ShowOthers = pMsg->m_Show;
+		// 	}
+		// }
+		// else if(MsgID == NETMSGTYPE_CL_SHOWOTHERS)
+		// {
+		// 	if(g_Config.m_SvShowOthers && !g_Config.m_SvShowOthersDefault)
+		// 	{
+		// 		CNetMsg_Cl_ShowOthers *pMsg = (CNetMsg_Cl_ShowOthers *)pRawMsg;
+		// 		pPlayer->m_ShowOthers = pMsg->m_Show;
+		// 	}
+		// }
+
+		// PvP: allow spec zoom
 		else if(MsgID == NETMSGTYPE_CL_SHOWDISTANCE)
 		{
 			CNetMsg_Cl_ShowDistance *pMsg = (CNetMsg_Cl_ShowDistance *)pRawMsg;
@@ -2198,11 +2199,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				char aChatText[256];
 				str_format(aChatText, sizeof(aChatText), "'%s' changed name to '%s'", aOldName, Server()->ClientName(ClientID));
 				SendChat(-1, CGameContext::CHAT_ALL, aChatText);
-
-				// // reload scores
-				// Score()->PlayerData(ClientID)->Reset();
-				// m_apPlayers[ClientID]->m_Score = 0;
-				// Score()->LoadPlayerData(ClientID);
 
 				SixupNeedsUpdate = true;
 			}
@@ -2334,14 +2330,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			CCharacter *pChr = pPlayer->GetCharacter();
 			if(!pChr)
 				return;
-
-			// //Kill Protection
-			// int CurrTime = (Server()->Tick() - pChr->m_StartTime) / Server()->TickSpeed();
-			// if(g_Config.m_SvKillProtection != 0 && CurrTime >= (60 * g_Config.m_SvKillProtection) && pChr->m_DDRaceState == DDRACE_STARTED)
-			// {
-			// 	SendChatTarget(ClientID, "Kill Protection enabled. If you really want to kill, type /kill");
-			// 	return;
-			// }
 
 			pPlayer->m_LastKill = Server()->Tick();
 			pPlayer->KillCharacter(WEAPON_SELF);
@@ -3120,7 +3108,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	{
 		g_Config.m_SvHit = 1;
 		g_Config.m_SvEndlessDrag = 0;
-		g_Config.m_SvOldLaser = 0;
+		g_Config.m_SvOldLaser = 1;
 		g_Config.m_SvOldTeleportHook = 0;
 		g_Config.m_SvOldTeleportWeapons = 0;
 		g_Config.m_SvTeleportHoldHook = 0;
@@ -3299,7 +3287,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				Index = pFront[y * pTileMap->m_Width + x].m_Index;
 				if(Index == TILE_OLDLASER)
 				{
-					g_Config.m_SvOldLaser = 1;
+					g_Config.m_SvOldLaser = 0;
 					dbg_msg("front_layer", "found old laser tile");
 				}
 				else if(Index == TILE_NPC)

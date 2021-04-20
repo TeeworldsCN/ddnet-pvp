@@ -468,10 +468,11 @@ void CCharacter::FireWeapon()
 				ProjStartPos, //Pos
 				Direction, //Dir
 				Lifetime, //Span
-				0, //Freeze
+				g_pData->m_Weapons.m_Gun.m_pBase->m_Damage, //Damage
 				0, //Explosive
 				0, //Force
-				-1 //SoundImpact
+				-1, //SoundImpact
+				false //Freeze
 			);
 
 			// pack the Projectile and send it to the client Directly
@@ -547,10 +548,11 @@ void CCharacter::FireWeapon()
 			ProjStartPos, //Pos
 			Direction, //Dir
 			Lifetime, //Span
-			0, //Freeze
+			g_pData->m_Weapons.m_Grenade.m_pBase->m_Damage, //Damage
 			true, //Explosive
 			0, //Force
-			SOUND_GRENADE_EXPLODE //SoundImpact
+			SOUND_GRENADE_EXPLODE, //SoundImpact
+			false //Freeze
 		); //SoundImpact
 
 		// pack the Projectile and send it to the client Directly
@@ -596,8 +598,8 @@ void CCharacter::FireWeapon()
 
 	m_AttackTick = Server()->Tick();
 
-	/*if(m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo > 0) // -1 == unlimited
-		m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo--;*/
+	if(m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo > 0) // -1 == unlimited
+		m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo--;
 
 	if(!m_ReloadTimer)
 	{
@@ -628,18 +630,18 @@ void CCharacter::HandleWeapons()
 
 	// fire Weapon, if wanted
 	FireWeapon();
-	/*
+
 	// ammo regen
 	int AmmoRegenTime = g_pData->m_Weapons.m_aId[m_Core.m_ActiveWeapon].m_Ammoregentime;
 	if(AmmoRegenTime)
 	{
 		// If equipped and not active, regen ammo?
-		if (m_ReloadTimer <= 0)
+		if(m_ReloadTimer <= 0)
 		{
-			if (m_aWeapons[m_Core.m_ActiveWeapon].m_AmmoRegenStart < 0)
+			if(m_aWeapons[m_Core.m_ActiveWeapon].m_AmmoRegenStart < 0)
 				m_aWeapons[m_Core.m_ActiveWeapon].m_AmmoRegenStart = Server()->Tick();
 
-			if ((Server()->Tick() - m_aWeapons[m_Core.m_ActiveWeapon].m_AmmoRegenStart) >= AmmoRegenTime * Server()->TickSpeed() / 1000)
+			if((Server()->Tick() - m_aWeapons[m_Core.m_ActiveWeapon].m_AmmoRegenStart) >= AmmoRegenTime * Server()->TickSpeed() / 1000)
 			{
 				// Add some ammo
 				m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo = minimum(m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo + 1, 10);
@@ -650,7 +652,7 @@ void CCharacter::HandleWeapons()
 		{
 			m_aWeapons[m_Core.m_ActiveWeapon].m_AmmoRegenStart = -1;
 		}
-	}*/
+	}
 
 	return;
 }
@@ -1870,7 +1872,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		// if no checkpointout have been found (or if there no recorded checkpoint), teleport to start
 		vec2 SpawnPos;
-		if(GameServer()->m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos))
+		if(GameServer()->m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos, Team()))
 		{
 			m_Core.m_Pos = SpawnPos;
 			m_Core.m_Vel = vec2(0, 0);
@@ -1911,7 +1913,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		// if no checkpointout have been found (or if there no recorded checkpoint), teleport to start
 		vec2 SpawnPos;
-		if(GameServer()->m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos))
+		if(GameServer()->m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos, Team()))
 		{
 			m_Core.m_Pos = SpawnPos;
 
@@ -2127,35 +2129,45 @@ bool CCharacter::UnFreeze()
 	return false;
 }
 
-void CCharacter::GiveWeapon(int Weapon, bool Remove)
+bool CCharacter::GiveWeapon(int Weapon, int Ammo)
 {
+	bool Remove = Ammo == AMMO_REMOVE;
+
+	if(!Remove && m_aWeapons[Weapon].m_Got && m_aWeapons[Weapon].m_Ammo >= g_pData->m_Weapons.m_aId[Weapon].m_Maxammo)
+		return false;
+
+	if(Remove && !m_aWeapons[Weapon].m_Got)
+		return false;
+
 	if(Weapon == WEAPON_NINJA)
 	{
 		if(Remove)
 			RemoveNinja();
 		else
 			GiveNinja();
-		return;
+		return true;
 	}
 
 	if(Remove)
 	{
+		m_aWeapons[Weapon].m_Ammo = 0;
 		if(GetActiveWeapon() == Weapon)
 			SetActiveWeapon(WEAPON_GUN);
 	}
 	else
 	{
-		m_aWeapons[Weapon].m_Ammo = -1;
+		m_aWeapons[Weapon].m_Ammo = minimum(g_pData->m_Weapons.m_aId[Weapon].m_Maxammo, Ammo);
 	}
 
 	m_aWeapons[Weapon].m_Got = !Remove;
+	return true;
 }
 
 void CCharacter::GiveAllWeapons()
 {
 	for(int i = WEAPON_GUN; i < NUM_WEAPONS - 1; i++)
 	{
-		GiveWeapon(i);
+		GiveWeapon(i, g_pData->m_Weapons.m_aId[i].m_Maxammo);
 	}
 }
 

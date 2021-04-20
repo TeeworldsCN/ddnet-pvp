@@ -43,8 +43,8 @@ bool CEntity::GameLayerClipped(vec2 CheckPos)
 {
 	return round_to_int(CheckPos.x) / 32 < -200 || round_to_int(CheckPos.x) / 32 > GameServer()->Collision()->GetWidth() + 200 ||
 			       round_to_int(CheckPos.y) / 32 < -200 || round_to_int(CheckPos.y) / 32 > GameServer()->Collision()->GetHeight() + 200 ?
-		       true :
-		       false;
+                       true :
+                       false;
 }
 
 bool CEntity::GetNearestAirPos(vec2 Pos, vec2 PrevPos, vec2 *pOutPos)
@@ -91,12 +91,18 @@ bool NetworkClipped(CGameContext *pGameServer, int SnappingClient, vec2 CheckPos
 	if(SnappingClient == -1 || pGameServer->m_apPlayers[SnappingClient]->m_ShowAll)
 		return false;
 
+	vec2 ShowDistance;
+	if((pGameServer->m_apPlayers[SnappingClient]->GetTeam() == -1 || pGameServer->m_apPlayers[SnappingClient]->IsPaused()))
+		ShowDistance = pGameServer->m_apPlayers[SnappingClient]->m_ShowDistance;
+	else
+		ShowDistance = vec2(SHOW_DISTANCE_DEFAULT_X, SHOW_DISTANCE_DEFAULT_Y);
+
 	float dx = pGameServer->m_apPlayers[SnappingClient]->m_ViewPos.x - CheckPos.x;
-	if(absolute(dx) > pGameServer->m_apPlayers[SnappingClient]->m_ShowDistance.x)
+	if(absolute(dx) > ShowDistance.x)
 		return true;
 
 	float dy = pGameServer->m_apPlayers[SnappingClient]->m_ViewPos.y - CheckPos.y;
-	if(absolute(dy) > pGameServer->m_apPlayers[SnappingClient]->m_ShowDistance.y)
+	if(absolute(dy) > ShowDistance.y)
 		return true;
 
 	return false;
