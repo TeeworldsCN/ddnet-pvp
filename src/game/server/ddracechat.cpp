@@ -331,9 +331,9 @@ void CGameContext::ConLockTeam(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	int Team = ((CGameControllerDDRace *)pSelf->m_pController)->m_Teams.m_Core.Team(pResult->m_ClientID);
+	int Team = pSelf->m_pTeams->m_Core.Team(pResult->m_ClientID);
 
-	bool Lock = ((CGameControllerDDRace *)pSelf->m_pController)->m_Teams.TeamLocked(Team);
+	bool Lock = pSelf->m_pTeams->TeamLocked(Team);
 
 	if(pResult->NumArguments() > 0)
 		Lock = !pResult->GetInteger(0);
@@ -357,12 +357,12 @@ void CGameContext::ConLockTeam(IConsole::IResult *pResult, void *pUserData)
 	}
 	else
 	{
-		((CGameControllerDDRace *)pSelf->m_pController)->m_Teams.SetTeamLock(Team, true);
+		pSelf->m_pTeams->SetTeamLock(Team, true);
 
 		str_format(aBuf, sizeof(aBuf), "'%s' locked your team. After the race starts, killing will kill everyone in your team.", pSelf->Server()->ClientName(pResult->m_ClientID));
 
 		for(int i = 0; i < MAX_CLIENTS; i++)
-			if(((CGameControllerDDRace *)pSelf->m_pController)->m_Teams.m_Core.Team(i) == Team)
+			if(pSelf->m_pTeams->m_Core.Team(i) == Team)
 				pSelf->SendChatTarget(i, aBuf);
 	}
 }
@@ -380,7 +380,7 @@ void CGameContext::ConUnlockTeam(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	int Team = ((CGameControllerDDRace *)pSelf->m_pController)->m_Teams.m_Core.Team(pResult->m_ClientID);
+	int Team = pSelf->m_pTeams->m_Core.Team(pResult->m_ClientID);
 
 	if(Team <= TEAM_FLOCK || Team >= TEAM_SUPER)
 		return;
@@ -393,20 +393,20 @@ void CGameContext::ConUnlockTeam(IConsole::IResult *pResult, void *pUserData)
 
 void CGameContext::UnlockTeam(int ClientID, int Team)
 {
-	((CGameControllerDDRace *)m_pController)->m_Teams.SetTeamLock(Team, false);
+	m_pTeams->SetTeamLock(Team, false);
 
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "'%s' unlocked your team.", Server()->ClientName(ClientID));
 
 	for(int i = 0; i < MAX_CLIENTS; i++)
-		if(((CGameControllerDDRace *)m_pController)->m_Teams.m_Core.Team(i) == Team)
+		if(m_pTeams->m_Core.Team(i) == Team)
 			SendChatTarget(i, aBuf);
 }
 
 void CGameContext::ConInviteTeam(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	CGameControllerDDRace *pController = (CGameControllerDDRace *)pSelf->m_pController;
+
 	const char *pName = pResult->GetString(0);
 
 	if(g_Config.m_SvTeam == 0 || g_Config.m_SvTeam == 3)
@@ -422,7 +422,7 @@ void CGameContext::ConInviteTeam(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	int Team = pController->m_Teams.m_Core.Team(pResult->m_ClientID);
+	int Team = pSelf->m_pTeams->m_Core.Team(pResult->m_ClientID);
 	if(Team > TEAM_FLOCK && Team < TEAM_SUPER)
 	{
 		int Target = -1;
@@ -441,7 +441,7 @@ void CGameContext::ConInviteTeam(IConsole::IResult *pResult, void *pUserData)
 			return;
 		}
 
-		if(pController->m_Teams.IsInvited(Team, Target))
+		if(pSelf->m_pTeams->IsInvited(Team, Target))
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "invite", "Player already invited");
 			return;
@@ -453,7 +453,7 @@ void CGameContext::ConInviteTeam(IConsole::IResult *pResult, void *pUserData)
 			return;
 		}
 
-		pController->m_Teams.SetClientInvited(Team, Target, true);
+		pSelf->m_pTeams->SetClientInvited(Team, Target, true);
 		pSelf->m_apPlayers[pResult->m_ClientID]->m_LastInvited = pSelf->Server()->Tick();
 
 		char aBuf[512];
@@ -463,7 +463,7 @@ void CGameContext::ConInviteTeam(IConsole::IResult *pResult, void *pUserData)
 		str_format(aBuf, sizeof aBuf, "'%s' invited '%s' to your team.", pSelf->Server()->ClientName(pResult->m_ClientID), pSelf->Server()->ClientName(Target));
 		;
 		for(int i = 0; i < MAX_CLIENTS; i++)
-			if(((CGameControllerDDRace *)pSelf->m_pController)->m_Teams.m_Core.Team(i) == Team)
+			if(pSelf->m_pTeams->m_Core.Team(i) == Team)
 				pSelf->SendChatTarget(i, aBuf);
 	}
 	else
@@ -473,7 +473,6 @@ void CGameContext::ConInviteTeam(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	CGameControllerDDRace *pController = (CGameControllerDDRace *)pSelf->m_pController;
 	if(!CheckClientID(pResult->m_ClientID))
 		return;
 
@@ -513,20 +512,20 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 				"You can\'t change rooms that fast!");
 		}
-		else if(Team > 0 && Team < MAX_CLIENTS && pController->m_Teams.TeamLocked(Team) && !pController->m_Teams.IsInvited(Team, pResult->m_ClientID))
+		else if(Team > 0 && Team < MAX_CLIENTS && pSelf->m_pTeams->TeamLocked(Team) && !pSelf->m_pTeams->IsInvited(Team, pResult->m_ClientID))
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 				g_Config.m_SvInvite ?
                                         "This room is locked using /lock. Only members of the team can unlock it using /lock." :
                                         "This room is locked using /lock. Only members of the team can invite you or unlock it using /lock.");
 		}
-		else if(Team > 0 && Team < MAX_CLIENTS && pController->m_Teams.Count(Team) >= g_Config.m_SvTeamMaxSize)
+		else if(Team > 0 && Team < MAX_CLIENTS && pSelf->m_pTeams->Count(Team) >= g_Config.m_SvTeamMaxSize)
 		{
 			char aBuf[512];
 			str_format(aBuf, sizeof(aBuf), "This room already has the maximum allowed size of %d players", g_Config.m_SvTeamMaxSize);
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", aBuf);
 		}
-		else if(const char *pError = pController->m_Teams.SetCharacterTeam(pPlayer->GetCID(), Team))
+		else if(const char *pError = pSelf->m_pTeams->SetCharacterTeam(pPlayer->GetCID(), Team))
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", pError);
 		}
@@ -539,7 +538,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 			pSelf->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 			pPlayer->m_Last_Team = pSelf->Server()->Tick();
 
-			// if(pController->m_Teams.IsPractice(Team))
+			// if(pSelf->m_pTeams->IsPractice(Team))
 			// 	pSelf->SendChatTarget(pPlayer->GetCID(), "Practice mode enabled for your team, happy practicing!");
 		}
 	}
@@ -550,7 +549,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 			aBuf,
 			sizeof(aBuf),
 			"You are in room %d",
-			((CGameControllerDDRace *)pSelf->m_pController)->m_Teams.m_Core.Team(pResult->m_ClientID));
+			pSelf->m_pTeams->m_Core.Team(pResult->m_ClientID));
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			aBuf);
 	}

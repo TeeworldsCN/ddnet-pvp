@@ -18,7 +18,6 @@ void CGameTeams::Reset()
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
 		m_TeamState[i] = TEAMSTATE_EMPTY;
-		m_LastChat[i] = 0;
 		m_TeamLocked[i] = false;
 		m_Invited[i] = 0;
 	}

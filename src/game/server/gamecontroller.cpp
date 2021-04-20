@@ -33,7 +33,6 @@ IGameController::IGameController(class CGameContext *pGameServer)
 	m_RoundStartTick = Server()->Tick();
 	m_RoundCount = 0;
 	m_GameFlags = 0;
-	m_aMapWish[0] = 0;
 
 	m_UnbalancedTick = -1;
 	m_ForceBalanced = false;

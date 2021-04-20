@@ -38,11 +38,9 @@ void CPickup::Tick()
 {
 	Move();
 
-	CGameTeams &Team = ((CGameControllerDDRace *)GameServer()->m_pController)->m_Teams;
-
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
-		int64 TeamMask = Team.TeamMask(i);
+		int64 TeamMask = GameServer()->m_pTeams->TeamMask(i);
 		int64 SoloMask = CmaskOne(i);
 
 		// wait for respawn
@@ -77,8 +75,8 @@ void CPickup::Tick()
 	for(int i = 0; i < Num; ++i)
 	{
 		CCharacter *pChr = apEnts[i];
-		bool isSoloInteract = (m_SoloSpawnTick[i] < 0) && Team.m_Core.GetSolo(i);
-		bool isTeamInteract = m_SpawnTick[pChr->Team()] < 0 && !Team.m_Core.GetSolo(i);
+		bool isSoloInteract = (m_SoloSpawnTick[i] < 0) && GameServer()->m_pTeams->m_Core.GetSolo(i);
+		bool isTeamInteract = m_SpawnTick[pChr->Team()] < 0 && !GameServer()->m_pTeams->m_Core.GetSolo(i);
 
 		if(pChr && pChr->IsAlive() && (isSoloInteract || isTeamInteract))
 		{
@@ -86,7 +84,7 @@ void CPickup::Tick()
 			if(isSoloInteract)
 				Mask = CmaskOne(i);
 			else if(isTeamInteract)
-				Mask = Team.TeamMask(pChr->Team());
+				Mask = GameServer()->m_pTeams->TeamMask(pChr->Team());
 
 			// player picked us up, is someone was hooking us, let them go
 			int RespawnTime = -1;
@@ -187,7 +185,6 @@ void CPickup::Snap(int SnappingClient)
 
 	CPlayer *SnappingPlayer = SnappingClient > -1 ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
 	CPlayer *SnapPlayer = SnappingPlayer;
-	CGameTeams &Team = ((CGameControllerDDRace *)GameServer()->m_pController)->m_Teams;
 
 	if(SnappingClient > -1)
 	{
@@ -201,8 +198,8 @@ void CPickup::Snap(int SnappingClient)
 		if(!isFreeViewing || (SnappingPlayer && SnappingPlayer->m_SpecTeam))
 		{
 			int SnapCID = SnapPlayer->GetCID();
-			bool isSoloActive = Team.m_Core.GetSolo(SnapCID) && (m_SoloSpawnTick[SnapCID] < 0);
-			bool isTeamActive = !Team.m_Core.GetSolo(SnapCID) && m_SpawnTick[Team.m_Core.Team(SnapCID)] < 0;
+			bool isSoloActive = GameServer()->m_pTeams->m_Core.GetSolo(SnapCID) && (m_SoloSpawnTick[SnapCID] < 0);
+			bool isTeamActive = !GameServer()->m_pTeams->m_Core.GetSolo(SnapCID) && m_SpawnTick[GameServer()->m_pTeams->m_Core.Team(SnapCID)] < 0;
 			if(!isSoloActive && !isTeamActive)
 				return;
 		}

@@ -73,8 +73,6 @@ public:
 	void ResetInvited(int Team);
 	void SetClientInvited(int Team, int ClientID, bool Invited);
 
-	int m_LastChat[MAX_CLIENTS];
-
 	int GetTeamState(int Team)
 	{
 		return m_TeamState[Team];

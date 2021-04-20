@@ -79,7 +79,7 @@ void CPlasma::Tick()
 				0,
 				true,
 				m_ResponsibleTeam,
-				((CGameControllerDDRace *)GameServer()->m_pController)->m_Teams.TeamMask(m_ResponsibleTeam));
+				GameServer()->m_pTeams->TeamMask(m_ResponsibleTeam));
 		Reset();
 	}
 }

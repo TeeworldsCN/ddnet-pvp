@@ -64,6 +64,7 @@ class IConsole;
 class IGameController;
 class IEngine;
 class IStorage;
+class CGameTeams;
 struct CAntibotData;
 // struct CScoreRandomMapResult;
 
@@ -150,6 +151,7 @@ public:
 	CPlayer *m_apPlayers[MAX_CLIENTS];
 
 	IGameController *m_pController;
+	CGameTeams *m_pTeams;
 	CGameWorld m_World;
 
 	// helper functions

@@ -26,7 +26,7 @@
 #include "entities/character.h"
 #include "gamemodes/DDRace.h"
 #include "player.h"
-// #include "score.h"
+#include "teams.h"
 
 enum
 {
@@ -245,7 +245,7 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamag
 				continue;
 
 			// Explode at most once per team
-			int PlayerTeam = ((CGameControllerDDRace *)m_pController)->m_Teams.m_Core.Team(apEnts[i]->GetPlayer()->GetCID());
+			int PlayerTeam = m_pTeams->m_Core.Team(apEnts[i]->GetPlayer()->GetCID());
 			if(GetPlayerChar(Owner) ? GetPlayerChar(Owner)->m_Hit & CCharacter::DISABLE_HIT_GRENADE : !g_Config.m_SvHit)
 			{
 				if(!CmaskIsSet(TeamMask, PlayerTeam))
@@ -371,7 +371,7 @@ void CGameContext::SendChatTarget(int To, const char *pText, int Flags)
 void CGameContext::SendChatTeam(int Team, const char *pText)
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)
-		if(((CGameControllerDDRace *)m_pController)->m_Teams.m_Core.Team(i) == Team)
+		if(m_pTeams->m_Core.Team(i) == Team)
 			SendChatTarget(i, pText);
 }
 
@@ -420,7 +420,7 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText, in
 	}
 	else
 	{
-		CTeamsCore *Teams = &((CGameControllerDDRace *)m_pController)->m_Teams.m_Core;
+		CTeamsCore *Teams = &m_pTeams->m_Core;
 		CNetMsg_Sv_Chat Msg;
 		Msg.m_Team = 1;
 		Msg.m_ClientID = ChatterClientID;
@@ -1456,7 +1456,7 @@ void CGameContext::OnClientDDNetVersionKnown(int ClientID)
 		pPlayer->m_TimerType = g_Config.m_SvDefaultTimerType;
 
 	// First update the teams state.
-	((CGameControllerDDRace *)m_pController)->m_Teams.SendTeamsState(ClientID);
+	m_pTeams->SendTeamsState(ClientID);
 
 	// Then send records.
 	// SendRecord(ClientID);
@@ -1720,7 +1720,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			pPlayer->UpdatePlaytime();
 
-			int GameTeam = ((CGameControllerDDRace *)m_pController)->m_Teams.m_Core.Team(pPlayer->GetCID());
+			int GameTeam = m_pTeams->m_Core.Team(pPlayer->GetCID());
 			if(Team)
 				Team = ((pPlayer->GetTeam() == -1) ? CHAT_SPEC : GameTeam);
 			else
@@ -3140,6 +3140,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		}
 	}
 
+	m_pTeams = new CGameTeams(this);
 	m_pController = new CGameControllerDDRace(this);
 
 	const char *pCensorFilename = "censorlist.txt";
@@ -3724,8 +3725,7 @@ int CGameContext::ProcessSpamProtection(int ClientID)
 
 int CGameContext::GetDDRaceTeam(int ClientID)
 {
-	CGameControllerDDRace *pController = (CGameControllerDDRace *)m_pController;
-	return pController->m_Teams.m_Core.Team(ClientID);
+	return m_pTeams->m_Core.Team(ClientID);
 }
 
 void CGameContext::ResetTuning()

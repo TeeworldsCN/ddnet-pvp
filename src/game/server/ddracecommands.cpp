@@ -672,9 +672,8 @@ void CGameContext::ConModerate(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConUninvite(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	CGameControllerDDRace *pController = (CGameControllerDDRace *)pSelf->m_pController;
 
-	pController->m_Teams.SetClientInvited(pResult->GetInteger(1), pResult->GetVictim(), false);
+	pSelf->m_pTeams->SetClientInvited(pResult->GetInteger(1), pResult->GetVictim(), false);
 }
 
 void CGameContext::ConVoteNo(IConsole::IResult *pResult, void *pUserData)
