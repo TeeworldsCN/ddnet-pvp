@@ -492,44 +492,57 @@ void CCharacter::FireWeapon()
 
 	case WEAPON_SHOTGUN:
 	{
-		/*int ShotSpread = 2;
+		if(!m_DDRShotgun)
+		{
+			int ShotSpread = 2;
 
 			CMsgPacker Msg(NETMSGTYPE_SV_EXTRAPROJECTILE);
-			Msg.AddInt(ShotSpread*2+1);
+			Msg.AddInt(ShotSpread * 2 + 1);
 
 			for(int i = -ShotSpread; i <= ShotSpread; ++i)
 			{
 				float Spreading[] = {-0.185f, -0.070f, 0, 0.070f, 0.185f};
 				float a = angle(Direction);
-				a += Spreading[i+2];
-				float v = 1-(absolute(i)/(float)ShotSpread);
+				a += Spreading[i + 2];
+				float v = 1 - (absolute(i) / (float)ShotSpread);
 				float Speed = mix((float)GameServer()->Tuning()->m_ShotgunSpeeddiff, 1.0f, v);
-				CProjectile *pProj = new CProjectile(GameWorld(), WEAPON_SHOTGUN,
-					m_pPlayer->GetCID(),
-					ProjStartPos,
-					vec2(cosf(a), sinf(a))*Speed,
-					(int)(Server()->TickSpeed()*GameServer()->Tuning()->m_ShotgunLifetime),
-					1, 0, 0, -1);
+				CProjectile *pProj = new CProjectile(
+					GameWorld(),
+					WEAPON_SHOTGUN, //Type
+					m_pPlayer->GetCID(), //Owner
+					ProjStartPos, //Pos
+					vec2(cosf(a), sinf(a)) * Speed, //Dir
+					(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_ShotgunLifetime), //Span
+					g_pData->m_Weapons.m_Shotgun.m_pBase->m_Damage, //Damage
+					0, //Explosive
+					0, //Force
+					-1, //SoundImpact
+					false //Freeze
+				);
 
 				// pack the Projectile and send it to the client Directly
 				CNetObj_Projectile p;
 				pProj->FillInfo(&p);
 
-				for(unsigned i = 0; i < sizeof(CNetObj_Projectile)/sizeof(int); i++)
+				for(unsigned i = 0; i < sizeof(CNetObj_Projectile) / sizeof(int); i++)
 					Msg.AddInt(((int *)&p)[i]);
 			}
 
 			Server()->SendMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
 
-			GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE);*/
-		float LaserReach;
-		if(!m_TuneZone)
-			LaserReach = GameServer()->Tuning()->m_LaserReach;
+			GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE);
+		}
 		else
-			LaserReach = GameServer()->TuningList()[m_TuneZone].m_LaserReach;
+		{
+			float LaserReach;
+			if(!m_TuneZone)
+				LaserReach = GameServer()->Tuning()->m_LaserReach;
+			else
+				LaserReach = GameServer()->TuningList()[m_TuneZone].m_LaserReach;
 
-		new CLaser(&GameServer()->m_World, m_Pos, Direction, LaserReach, m_pPlayer->GetCID(), WEAPON_SHOTGUN);
-		GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+			new CLaser(&GameServer()->m_World, m_Pos, Direction, LaserReach, m_pPlayer->GetCID(), WEAPON_SHOTGUN);
+			GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		}
 	}
 	break;
 
@@ -553,7 +566,7 @@ void CCharacter::FireWeapon()
 			0, //Force
 			SOUND_GRENADE_EXPLODE, //SoundImpact
 			false //Freeze
-		); //SoundImpact
+		);
 
 		// pack the Projectile and send it to the client Directly
 		CNetObj_Projectile p;
@@ -2229,6 +2242,8 @@ void CCharacter::DDRaceInit()
 	m_Hit = g_Config.m_SvHit ? HIT_ALL : DISABLE_HIT_GRENADE | DISABLE_HIT_HAMMER | DISABLE_HIT_LASER | DISABLE_HIT_SHOTGUN;
 	m_SuperJump = false;
 	m_Jetpack = false;
+	m_DDRLaser = false;
+	m_DDRShotgun = false;
 	m_Core.m_Jumps = 2;
 
 	int Team = Teams()->m_Core.Team(m_Core.m_Id);

@@ -23,6 +23,7 @@ public:
 		int Layer = 0,
 		int Number = 0);
 
+	void GetProjectileProperties(float *pCurvature, float *pSpeed);
 	vec2 GetPos(float Time);
 	void FillInfo(CNetObj_Projectile *pProj);
 

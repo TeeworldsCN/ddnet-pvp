@@ -257,7 +257,6 @@ MACRO_CONFIG_STR(SvAnnouncementFileName, sv_announcement_filename, 24, "announce
 MACRO_CONFIG_INT(SvAnnouncementInterval, sv_announcement_interval, 300, 1, 9999, CFGFLAG_SERVER, "time(minutes) in which the announcement will be displayed from the announcement file")
 MACRO_CONFIG_INT(SvAnnouncementRandom, sv_announcement_random, 1, 0, 1, CFGFLAG_SERVER, "Whether announcements are sequential or random")
 
-MACRO_CONFIG_INT(SvOldLaser, sv_old_laser, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether lasers can hit you if you shot them and that they pull you towards the bounce origin (0 for all new maps) or lasers can't hit you if you shot them, and they pull others towards the shooter")
 MACRO_CONFIG_INT(SvSlashMe, sv_slash_me, 1, 0, 1, CFGFLAG_SERVER, "Whether /me is active on the server or not")
 
 MACRO_CONFIG_INT(ClReconnectTimeout, cl_reconnect_timeout, 120, 0, 600, CFGFLAG_CLIENT | CFGFLAG_SAVE, "How many seconds to wait before reconnecting (after timeout, 0 for off)")

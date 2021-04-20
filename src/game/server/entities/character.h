@@ -203,6 +203,9 @@ public:
 	bool m_FrozenLastTick;
 	bool m_DeepFreeze;
 	bool m_EndlessHook;
+	bool m_DDRLaser;
+	bool m_DDRShotgun;
+
 	enum
 	{
 		HIT_ALL = 0,

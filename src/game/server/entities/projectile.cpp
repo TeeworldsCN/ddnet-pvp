@@ -54,23 +54,20 @@ void CProjectile::Reset()
 		GameServer()->m_World.DestroyEntity(this);
 }
 
-vec2 CProjectile::GetPos(float Time)
+void CProjectile::GetProjectileProperties(float *pCurvature, float *pSpeed)
 {
-	float Curvature = 0;
-	float Speed = 0;
-
 	switch(m_Type)
 	{
 	case WEAPON_GRENADE:
 		if(!m_TuneZone)
 		{
-			Curvature = GameServer()->Tuning()->m_GrenadeCurvature;
-			Speed = GameServer()->Tuning()->m_GrenadeSpeed;
+			*pCurvature = GameServer()->Tuning()->m_GrenadeCurvature;
+			*pSpeed = GameServer()->Tuning()->m_GrenadeSpeed;
 		}
 		else
 		{
-			Curvature = GameServer()->TuningList()[m_TuneZone].m_GrenadeCurvature;
-			Speed = GameServer()->TuningList()[m_TuneZone].m_GrenadeSpeed;
+			*pCurvature = GameServer()->TuningList()[m_TuneZone].m_GrenadeCurvature;
+			*pSpeed = GameServer()->TuningList()[m_TuneZone].m_GrenadeSpeed;
 		}
 
 		break;
@@ -78,13 +75,13 @@ vec2 CProjectile::GetPos(float Time)
 	case WEAPON_SHOTGUN:
 		if(!m_TuneZone)
 		{
-			Curvature = GameServer()->Tuning()->m_ShotgunCurvature;
-			Speed = GameServer()->Tuning()->m_ShotgunSpeed;
+			*pCurvature = GameServer()->Tuning()->m_ShotgunCurvature;
+			*pSpeed = GameServer()->Tuning()->m_ShotgunSpeed;
 		}
 		else
 		{
-			Curvature = GameServer()->TuningList()[m_TuneZone].m_ShotgunCurvature;
-			Speed = GameServer()->TuningList()[m_TuneZone].m_ShotgunSpeed;
+			*pCurvature = GameServer()->TuningList()[m_TuneZone].m_ShotgunCurvature;
+			*pSpeed = GameServer()->TuningList()[m_TuneZone].m_ShotgunSpeed;
 		}
 
 		break;
@@ -92,17 +89,23 @@ vec2 CProjectile::GetPos(float Time)
 	case WEAPON_GUN:
 		if(!m_TuneZone)
 		{
-			Curvature = GameServer()->Tuning()->m_GunCurvature;
-			Speed = GameServer()->Tuning()->m_GunSpeed;
+			*pCurvature = GameServer()->Tuning()->m_GunCurvature;
+			*pSpeed = GameServer()->Tuning()->m_GunSpeed;
 		}
 		else
 		{
-			Curvature = GameServer()->TuningList()[m_TuneZone].m_GunCurvature;
-			Speed = GameServer()->TuningList()[m_TuneZone].m_GunSpeed;
+			*pCurvature = GameServer()->TuningList()[m_TuneZone].m_GunCurvature;
+			*pSpeed = GameServer()->TuningList()[m_TuneZone].m_GunSpeed;
 		}
 		break;
 	}
+}
 
+vec2 CProjectile::GetPos(float Time)
+{
+	float Curvature = 0;
+	float Speed = 0;
+	GetProjectileProperties(&Curvature, &Speed);
 	return CalcPos(m_Pos, m_Direction, Curvature, Speed, Time);
 }
 
@@ -241,6 +244,8 @@ void CProjectile::Tick()
 		{
 			if(!m_Freeze)
 			{
+				if(pTargetChr)
+					pTargetChr->TakeDamage(m_Direction * maximum(0.001f, m_Force), m_Damage, m_Owner, m_Type);
 				GameServer()->m_World.DestroyEntity(this);
 				return;
 			}
@@ -322,12 +327,22 @@ void CProjectile::Snap(int SnappingClient)
 	if(m_Owner != -1 && !CmaskIsSet(TeamMask, SnappingClient))
 		return;
 
-	CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
-	if(pProj)
+	if(SnappingClient > -1 && GameServer()->m_apPlayers[SnappingClient] && GameServer()->m_apPlayers[SnappingClient]->GetClientVersion() >= VERSION_DDNET_ANTIPING_PROJECTILE)
 	{
-		if(SnappingClient > -1 && GameServer()->m_apPlayers[SnappingClient] && GameServer()->m_apPlayers[SnappingClient]->GetClientVersion() >= VERSION_DDNET_ANTIPING_PROJECTILE)
-			FillExtraInfo(pProj);
-		else
+		int TotalLifeSpanTick = (m_LifeSpan + (Server()->Tick() - m_StartTick));
+		float Variation = (1 - length(m_Direction));
+		int PushbackTick = Variation * TotalLifeSpanTick;
+		if(Server()->Tick() - m_StartTick > PushbackTick)
+		{
+			CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
+			if(pProj)
+				FillExtraInfo(pProj);
+		}
+	}
+	else
+	{
+		CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
+		if(pProj)
 			FillInfo(pProj);
 	}
 }
@@ -362,8 +377,18 @@ void CProjectile::FillExtraInfo(CNetObj_Projectile *pProj)
 	if(m_Freeze)
 		Data |= 1 << 13;
 
-	pProj->m_X = (int)(m_Pos.x * 100.0f);
-	pProj->m_Y = (int)(m_Pos.y * 100.0f);
+	// HACK: shotgun spread speed
+	// 		 use distance to trick the visual
+	float Curvature = 0;
+	float Speed = 0;
+	int TotalLifeSpanTick = (m_LifeSpan + (Server()->Tick() - m_StartTick));
+	float TotalLifeSpan = TotalLifeSpanTick / (float)Server()->TickSpeed();
+	float Variation = (1 - length(m_Direction));
+	float PushbackTime = Variation * TotalLifeSpan;
+	GetProjectileProperties(&Curvature, &Speed);
+	vec2 Pos = CalcPos(m_Pos, -m_Direction, Curvature, Speed, PushbackTime);
+	pProj->m_X = (int)(Pos.x * 100.0f);
+	pProj->m_Y = (int)(Pos.y * 100.0f);
 	pProj->m_VelX = (int)(Angle * 1000000.0f);
 	pProj->m_VelY = Data;
 	pProj->m_StartTick = m_StartTick;

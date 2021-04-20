@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "laser.h"
 #include <game/generated/protocol.h>
+#include <game/generated/server_data.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamemodes/DDRace.h>
 
@@ -35,14 +36,14 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	vec2 At;
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 	CCharacter *pHit;
-	bool pDontHitSelf = g_Config.m_SvOldLaser || (m_Bounces == 0 && !m_WasTele);
+	bool pDontHitSelf = ((pOwnerChar && !pOwnerChar->m_DDRLaser) || (m_Bounces == 0 && !m_WasTele));
 
 	if(pOwnerChar ? (!(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_LASER) && m_Type == WEAPON_LASER) || (!(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_SHOTGUN) && m_Type == WEAPON_SHOTGUN) : g_Config.m_SvHit)
 		pHit = GameServer()->m_World.IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : 0, m_Owner);
 	else
 		pHit = GameServer()->m_World.IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : 0, m_Owner, pOwnerChar);
 
-	if(!pHit || (pHit == pOwnerChar && g_Config.m_SvOldLaser) || (pHit != pOwnerChar && pOwnerChar ? (pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_LASER && m_Type == WEAPON_LASER) || (pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_SHOTGUN && m_Type == WEAPON_SHOTGUN) : !g_Config.m_SvHit))
+	if(!pHit || (pHit == pOwnerChar && pOwnerChar && !pOwnerChar->m_DDRLaser) || (pHit != pOwnerChar && pOwnerChar ? (pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_LASER && m_Type == WEAPON_LASER) || (pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_SHOTGUN && m_Type == WEAPON_SHOTGUN) : !g_Config.m_SvHit))
 		return false;
 	m_From = From;
 	m_Pos = At;
@@ -57,7 +58,7 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 		else
 			Strength = GameServer()->TuningList()[m_TuneZone].m_ShotgunStrength;
 
-		if(!g_Config.m_SvOldLaser)
+		if(pOwnerChar && pOwnerChar->m_DDRLaser)
 			Temp = pHit->Core()->m_Vel + normalize(m_PrevPos - pHit->Core()->m_Pos) * Strength;
 		else if(pOwnerChar)
 			Temp = pHit->Core()->m_Vel + normalize(pOwnerChar->Core()->m_Pos - pHit->Core()->m_Pos) * Strength;
@@ -67,7 +68,7 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	}
 	else if(m_Type == WEAPON_LASER)
 	{
-		pHit->UnFreeze();
+		pHit->TakeDamage(vec2(0.f, 0.f), g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Damage, m_Owner, WEAPON_LASER);
 	}
 	return true;
 }
@@ -169,7 +170,7 @@ void CLaser::DoBounce()
 		bool Found = false;
 
 		// Check if the laser hits a player.
-		bool pDontHitSelf = g_Config.m_SvOldLaser || (m_Bounces == 0 && !m_WasTele);
+		bool pDontHitSelf = (pOwnerChar && !pOwnerChar->m_DDRLaser) || (m_Bounces == 0 && !m_WasTele);
 		vec2 At;
 		CCharacter *pHit;
 		if(pOwnerChar ? (!(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_LASER) && m_Type == WEAPON_LASER) : g_Config.m_SvHit)

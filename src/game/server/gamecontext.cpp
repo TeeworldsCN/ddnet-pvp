@@ -3108,7 +3108,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	{
 		g_Config.m_SvHit = 1;
 		g_Config.m_SvEndlessDrag = 0;
-		g_Config.m_SvOldLaser = 1;
 		g_Config.m_SvOldTeleportHook = 0;
 		g_Config.m_SvOldTeleportWeapons = 0;
 		g_Config.m_SvTeleportHoldHook = 0;
@@ -3249,12 +3248,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		{
 			int Index = pTiles[y * pTileMap->m_Width + x].m_Index;
 
-			if(Index == TILE_OLDLASER)
-			{
-				g_Config.m_SvOldLaser = 1;
-				dbg_msg("game_layer", "found old laser tile");
-			}
-			else if(Index == TILE_NPC)
+			if(Index == TILE_NPC)
 			{
 				m_Tuning.Set("player_collision", 0);
 				dbg_msg("game_layer", "found no collision tile");
@@ -3285,12 +3279,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 			if(pFront)
 			{
 				Index = pFront[y * pTileMap->m_Width + x].m_Index;
-				if(Index == TILE_OLDLASER)
-				{
-					g_Config.m_SvOldLaser = 0;
-					dbg_msg("front_layer", "found old laser tile");
-				}
-				else if(Index == TILE_NPC)
+				if(Index == TILE_NPC)
 				{
 					m_Tuning.Set("player_collision", 0);
 					dbg_msg("front_layer", "found no collision tile");
