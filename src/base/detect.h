@@ -63,8 +63,8 @@
 #if defined(MACOSX) || defined(__APPLE__) || defined(__DARWIN__)
 #define CONF_FAMILY_UNIX 1
 #define CONF_FAMILY_STRING "unix"
-#define CONF_PLATFORM_MACOSX 1
-#define PLATFORM_STRING "macosx"
+#define CONF_PLATFORM_MACOS 1
+#define PLATFORM_STRING "macos"
 #endif
 
 #if defined(__sun)
@@ -80,6 +80,13 @@
 #define CONF_FAMILY_STRING "beos"
 #define CONF_PLATFORM_BEOS 1
 #define PLATFORM_STRING "beos"
+#endif
+
+#if defined(__HAIKU__)
+#define CONF_FAMILY_UNIX 1
+#define CONF_FAMILY_STRING "unix"
+#define CONF_PLATFORM_HAIKU 1
+#define CONF_PLATFORM_STRING "haiku"
 #endif
 
 /* use gcc endianness definitions when available */

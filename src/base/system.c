@@ -35,7 +35,7 @@
 
 #include <dirent.h>
 
-#if defined(CONF_PLATFORM_MACOSX)
+#if defined(CONF_PLATFORM_MACOS)
 // some lock and pthread functions are already defined in headers
 // included from Carbon.h
 // this prevents having duplicate definitions of those
@@ -177,10 +177,16 @@ static void logger_stdout_sync(const char *line, void *user)
 		char u16[4] = {0};
 
 		if(codepoint < 0)
+		{
+			free(wide);
 			return;
+		}
 
 		if(str_utf16le_encode(u16, codepoint) != 2)
+		{
+			free(wide);
 			return;
+		}
 
 		mem_copy(&wide[wlen], u16, 2);
 	}
@@ -188,6 +194,7 @@ static void logger_stdout_sync(const char *line, void *user)
 	console = GetStdHandle(STD_OUTPUT_HANDLE);
 	WriteConsoleW(console, wide, wlen, NULL, NULL);
 	WriteConsoleA(console, "\n", 1, NULL, NULL);
+	free(wide);
 }
 #endif
 
@@ -882,7 +889,7 @@ void sphore_init(SEMAPHORE *sem)
 void sphore_wait(SEMAPHORE *sem) { WaitForSingleObject((HANDLE)*sem, INFINITE); }
 void sphore_signal(SEMAPHORE *sem) { ReleaseSemaphore((HANDLE)*sem, 1, NULL); }
 void sphore_destroy(SEMAPHORE *sem) { CloseHandle((HANDLE)*sem); }
-#elif defined(CONF_PLATFORM_MACOSX)
+#elif defined(CONF_PLATFORM_MACOS)
 void sphore_init(SEMAPHORE *sem)
 {
 	char aBuf[64];
@@ -935,7 +942,7 @@ int64 time_get_impl(void)
 {
 	static int64 last = 0;
 	{
-#if defined(CONF_PLATFORM_MACOSX)
+#if defined(CONF_PLATFORM_MACOS)
 		static int got_timebase = 0;
 		mach_timebase_info_data_t timebase;
 		uint64 time;
@@ -986,7 +993,7 @@ int64 time_get(void)
 
 int64 time_freq(void)
 {
-#if defined(CONF_PLATFORM_MACOSX)
+#if defined(CONF_PLATFORM_MACOS)
 	return 1000000000;
 #elif defined(CONF_FAMILY_UNIX)
 	return 1000000;
@@ -1279,6 +1286,10 @@ int net_addr_from_str(NETADDR *addr, const char *string)
 				str++;
 				if(parse_uint16(&addr->port, &str))
 					return -1;
+			}
+			else
+			{
+				addr->port = 0;
 			}
 		}
 		else
@@ -2061,13 +2072,18 @@ int fs_storage_path(const char *appname, char *path, int max)
 	return 0;
 #else
 	char *home = getenv("HOME");
-#if !defined(CONF_PLATFORM_MACOSX)
+#if !defined(CONF_PLATFORM_MACOS)
 	int i;
 #endif
 	if(!home)
 		return -1;
 
-#if defined(CONF_PLATFORM_MACOSX)
+#if defined(CONF_PLATFORM_HAIKU)
+	str_format(path, max, "%s/config/settings/%s", home, appname);
+	return 0;
+#endif
+
+#if defined(CONF_PLATFORM_MACOS)
 	snprintf(path, max, "%s/Library/Application Support/%s", home, appname);
 #else
 	snprintf(path, max, "%s/.%s", home, appname);
@@ -2106,6 +2122,11 @@ int fs_makedir(const char *path)
 		return 0;
 	return -1;
 #else
+#ifdef CONF_PLATFORM_HAIKU
+	struct stat st;
+	if(stat(path, &st) == 0)
+		return 0;
+#endif
 	if(mkdir(path, 0755) == 0)
 		return 0;
 	if(errno == EEXIST)
@@ -3010,8 +3031,8 @@ const char *str_utf8_find_nocase(const char *haystack, const char *needle)
 
 int str_utf8_isspace(int code)
 {
-	return code <= 0x0020 || code == 0x0085 || code == 0x00A0 ||
-	       code == 0x034F || code == 0x1160 || code == 0x1680 || code == 0x180E ||
+	return code <= 0x0020 || code == 0x0085 || code == 0x00A0 || code == 0x034F ||
+	       code == 0x115F || code == 0x1160 || code == 0x1680 || code == 0x180E ||
 	       (code >= 0x2000 && code <= 0x200F) || (code >= 0x2028 && code <= 0x202F) ||
 	       (code >= 0x205F && code <= 0x2064) || (code >= 0x206A && code <= 0x206F) ||
 	       code == 0x2800 || code == 0x3000 || code == 0x3164 ||

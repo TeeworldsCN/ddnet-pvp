@@ -491,7 +491,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 	else if(g_Config.m_SvTeam == 0 || g_Config.m_SvTeam == 3)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
-			"Roms are disabled");
+			"Rooms are disabled");
 		return;
 	}
 	else if(g_Config.m_SvTeam == 2 && pResult->GetInteger(0) == 0 && pPlayer->GetCharacter() && pPlayer->GetCharacter()->m_LastStartWarning < pSelf->Server()->Tick() - 3 * pSelf->Server()->TickSpeed())
@@ -507,7 +507,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 	{
 		int Team = pResult->GetInteger(0);
 
-		if(pPlayer->m_Last_Team + (int64_t)pSelf->Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > pSelf->Server()->Tick())
+		if(pPlayer->m_Last_Team + (int64)pSelf->Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > pSelf->Server()->Tick())
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 				"You can\'t change rooms that fast!");
@@ -516,8 +516,8 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 				g_Config.m_SvInvite ?
-                                        "This room is locked using /lock. Only members of the team can unlock it using /lock." :
-                                        "This room is locked using /lock. Only members of the team can invite you or unlock it using /lock.");
+                                        "This room is locked using /lock. Only members of the room can unlock it using /lock." :
+                                        "This room is locked using /lock. Only members of the room can invite you or unlock it using /lock.");
 		}
 		else if(Team > 0 && Team < MAX_CLIENTS && pSelf->m_pTeams->Count(Team) >= g_Config.m_SvTeamMaxSize)
 		{
@@ -537,9 +537,6 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 				Team);
 			pSelf->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 			pPlayer->m_Last_Team = pSelf->Server()->Tick();
-
-			// if(pSelf->m_pTeams->IsPractice(Team))
-			// 	pSelf->SendChatTarget(pPlayer->GetCID(), "Practice mode enabled for your team, happy practicing!");
 		}
 	}
 	else

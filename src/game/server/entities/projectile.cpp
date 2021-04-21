@@ -5,6 +5,7 @@
 #include <game/server/gamecontext.h>
 #include <game/server/gamemodes/DDRace.h>
 #include <game/server/player.h>
+#include <game/version.h>
 
 #include <engine/shared/config.h>
 #include <game/server/teams.h>
@@ -327,23 +328,27 @@ void CProjectile::Snap(int SnappingClient)
 	if(m_Owner != -1 && !CmaskIsSet(TeamMask, SnappingClient))
 		return;
 
-	if(SnappingClient > -1 && GameServer()->m_apPlayers[SnappingClient] && GameServer()->m_apPlayers[SnappingClient]->GetClientVersion() >= VERSION_DDNET_ANTIPING_PROJECTILE)
+	int SnappingClientVersion = SnappingClient >= 0 ? GameServer()->GetClientVersion(SnappingClient) : CLIENT_VERSIONNR;
+
+	CNetObj_DDNetProjectile DDNetProjectile;
+	if(SnappingClientVersion >= VERSION_DDNET_ANTIPING_PROJECTILE && FillExtraInfo(&DDNetProjectile))
 	{
-		int TotalLifeSpanTick = (m_LifeSpan + (Server()->Tick() - m_StartTick));
-		float Variation = (1 - length(m_Direction));
-		int PushbackTick = Variation * TotalLifeSpanTick;
-		if(Server()->Tick() - m_StartTick > PushbackTick)
+		int Type = SnappingClientVersion < VERSION_DDNET_MSG_LEGACY ? (int)NETOBJTYPE_PROJECTILE : NETOBJTYPE_DDNETPROJECTILE;
+		void *pProj = Server()->SnapNewItem(Type, GetID(), sizeof(DDNetProjectile));
+		if(!pProj)
 		{
-			CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
-			if(pProj)
-				FillExtraInfo(pProj);
+			return;
 		}
+		mem_copy(pProj, &DDNetProjectile, sizeof(DDNetProjectile));
 	}
 	else
 	{
 		CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
-		if(pProj)
-			FillInfo(pProj);
+		if(!pProj)
+		{
+			return;
+		}
+		FillInfo(pProj);
 	}
 }
 
@@ -354,14 +359,13 @@ void CProjectile::SetBouncing(int Value)
 	m_Bouncing = Value;
 }
 
-void CProjectile::FillExtraInfo(CNetObj_Projectile *pProj)
+bool CProjectile::FillExtraInfo(CNetObj_DDNetProjectile *pProj)
 {
 	const int MaxPos = 0x7fffffff / 100;
 	if(abs((int)m_Pos.y) + 1 >= MaxPos || abs((int)m_Pos.x) + 1 >= MaxPos)
 	{
 		//If the modified data would be too large to fit in an integer, send normal data instead
-		FillInfo(pProj);
-		return;
+		return false;
 	}
 	//Send additional/modified info, by modifiying the fields of the netobj
 	float Angle = -atan2f(m_Direction.x, m_Direction.y);
@@ -389,8 +393,10 @@ void CProjectile::FillExtraInfo(CNetObj_Projectile *pProj)
 	vec2 Pos = CalcPos(m_Pos, -m_Direction, Curvature, Speed, PushbackTime);
 	pProj->m_X = (int)(Pos.x * 100.0f);
 	pProj->m_Y = (int)(Pos.y * 100.0f);
-	pProj->m_VelX = (int)(Angle * 1000000.0f);
-	pProj->m_VelY = Data;
+	pProj->m_Angle = (int)(Angle * 1000000.0f);
+	pProj->m_Data = Data;
 	pProj->m_StartTick = m_StartTick;
 	pProj->m_Type = m_Type;
+
+	return true;
 }

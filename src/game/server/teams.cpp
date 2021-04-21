@@ -23,6 +23,12 @@ void CGameTeams::Reset()
 	}
 }
 
+void CGameTeams::ResetRoundState(int Team)
+{
+	ResetInvited(Team);
+	ResetSwitchers(Team);
+}
+
 void CGameTeams::ResetSwitchers(int Team)
 {
 	if(GameServer()->Collision()->m_NumSwitchers > 0)
@@ -68,10 +74,21 @@ const char *CGameTeams::SetCharacterTeam(int ClientID, int Team)
 
 void CGameTeams::SetForceCharacterTeam(int ClientID, int Team)
 {
-	if(Team != m_Core.Team(ClientID))
-		ForceLeaveTeam(ClientID);
-
 	int OldTeam = m_Core.Team(ClientID);
+
+	if(Team != OldTeam && (OldTeam != TEAM_FLOCK || g_Config.m_SvTeam == 3) && OldTeam != TEAM_SUPER && m_TeamState[OldTeam] != TEAMSTATE_EMPTY)
+	{
+		bool NoElseInOldTeam = Count(OldTeam) <= 1;
+		if(NoElseInOldTeam)
+		{
+			m_TeamState[OldTeam] = TEAMSTATE_EMPTY;
+
+			// unlock team when last player leaves
+			SetTeamLock(OldTeam, false);
+			ResetRoundState(OldTeam);
+			// do not reset SaveTeamResult, because it should be logged into teehistorian even if the team leaves
+		}
+	}
 
 	m_Core.Team(ClientID, Team);
 
@@ -88,32 +105,6 @@ void CGameTeams::SetForceCharacterTeam(int ClientID, int Team)
 			ChangeTeamState(Team, TEAMSTATE_OPEN);
 
 		ResetSwitchers(Team);
-	}
-}
-
-void CGameTeams::ForceLeaveTeam(int ClientID)
-{
-	// m_TeeFinished[ClientID] = false;
-
-	if((m_Core.Team(ClientID) != TEAM_FLOCK || g_Config.m_SvTeam == 3) && m_Core.Team(ClientID) != TEAM_SUPER && m_TeamState[m_Core.Team(ClientID)] != TEAMSTATE_EMPTY)
-	{
-		bool NoOneInOldTeam = true;
-		for(int i = 0; i < MAX_CLIENTS; ++i)
-			if(i != ClientID && m_Core.Team(ClientID) == m_Core.Team(i))
-			{
-				NoOneInOldTeam = false; // all good exists someone in old team
-				break;
-			}
-		if(NoOneInOldTeam)
-		{
-			m_TeamState[m_Core.Team(ClientID)] = TEAMSTATE_EMPTY;
-
-			// unlock team when last player leaves
-			SetTeamLock(m_Core.Team(ClientID), false);
-			ResetInvited(m_Core.Team(ClientID));
-			// m_Practice[m_Core.Team(ClientID)] = false;
-			// do not reset SaveTeamResult, because it should be logged into teehistorian even if the team leaves
-		}
 	}
 }
 

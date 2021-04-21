@@ -62,10 +62,9 @@ public:
 
 	// need to be very careful using this method. SERIOUSLY...
 	void SetForceCharacterTeam(int ClientID, int Team);
-	void SetForceCharacterNewTeam(int ClientID, int Team);
-	void ForceLeaveTeam(int ClientID);
 
 	void Reset();
+	void ResetRoundState(int Team);
 	void ResetSwitchers(int Team);
 
 	void SendTeamsState(int ClientID);

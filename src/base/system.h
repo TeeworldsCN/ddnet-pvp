@@ -611,7 +611,7 @@ void lock_unlock(LOCK lock) RELEASE(lock);
 /* Group: Semaphores */
 #if defined(CONF_FAMILY_WINDOWS)
 typedef void *SEMAPHORE;
-#elif defined(CONF_PLATFORM_MACOSX)
+#elif defined(CONF_PLATFORM_MACOS)
 #include <semaphore.h>
 typedef sem_t *SEMAPHORE;
 #elif defined(CONF_FAMILY_UNIX)
@@ -631,7 +631,11 @@ void sphore_destroy(SEMAPHORE *sem);
 /* if compiled with -pedantic-errors it will complain about long
 	not being a C90 thing.
 */
+#ifdef CONF_PLATFORM_HAIKU
+#include <SupportDefs.h>
+#else
 __extension__ typedef long long int64;
+#endif
 __extension__ typedef unsigned long long uint64;
 #else
 typedef long long int64;
@@ -1655,7 +1659,7 @@ int fs_makedir_rec_for(const char *path);
 
 	Remarks:
 		- Returns ~/.appname on UNIX based systems
-		- Returns ~/Library/Applications Support/appname on Mac OS X
+		- Returns ~/Library/Applications Support/appname on macOS
 		- Returns %APPDATA%/Appname on Windows based systems
 */
 int fs_storage_path(const char *appname, char *path, int max);
