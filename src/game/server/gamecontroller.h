@@ -6,6 +6,9 @@
 #include <base/vmath.h>
 #include <engine/map.h>
 
+#include <map>
+#include <vector>
+
 /*
 	Class: Game Controller
 		Controls the main game logic. Keeping track of team and player score,
@@ -141,6 +144,10 @@ public:
 	// DDRace
 
 	float m_CurrentRecord;
+
+	// ddnet-pvp
+	std::map<int, std::vector<vec2>> m_TeleOuts;
+	std::map<int, std::vector<vec2>> m_TeleCheckOuts;
 };
 
 #endif
