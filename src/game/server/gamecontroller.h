@@ -28,6 +28,8 @@ protected:
 	CConfig *Config() { return m_pConfig; }
 	IServer *Server() const { return m_pServer; }
 
+	int m_ResponsibleTeam;
+
 	void DoActivityCheck();
 
 	struct CSpawnEval
@@ -98,11 +100,8 @@ public:
 		Arguments:
 			index - Entity index.
 			pos - Where the entity is located in the world.
-
-		Returns:
-			bool?
 	*/
-	virtual bool OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
+	virtual void OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
 
 	virtual void OnPlayerConnect(class CPlayer *pPlayer);
 	virtual void OnPlayerDisconnect(class CPlayer *pPlayer, const char *pReason);
@@ -114,7 +113,6 @@ public:
 
 	void StartRound();
 	void EndRound();
-	void ChangeMap(const char *pToMap);
 
 	bool IsForceBalanced();
 
@@ -142,7 +140,8 @@ public:
 	virtual int64 GetMaskForPlayerWorldEvent(int Asker, int ExceptID = -1);
 
 	// DDRace
-
+	int GetPlayerTeam(int ClientID) const;
+	void SetControllerTeam(int Team);
 	float m_CurrentRecord;
 };
 

@@ -6,10 +6,21 @@
 #include "entities/character.h"
 #include "player.h"
 
+#include "gamemodes/DDRace.h"
+
 CGameTeams::CGameTeams(CGameContext *pGameContext) :
 	m_pGameContext(pGameContext)
 {
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+		m_apControllers[i] = nullptr;
+
 	Reset();
+}
+
+CGameTeams::~CGameTeams()
+{
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+		DestroyGameController(i);
 }
 
 void CGameTeams::Reset()
@@ -17,6 +28,7 @@ void CGameTeams::Reset()
 	m_Core.Reset();
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
+		DestroyGameController(i);
 		m_TeamState[i] = TEAMSTATE_EMPTY;
 		m_TeamLocked[i] = false;
 		m_Invited[i] = 0;
@@ -86,6 +98,7 @@ void CGameTeams::SetForceCharacterTeam(int ClientID, int Team)
 			// unlock team when last player leaves
 			SetTeamLock(OldTeam, false);
 			ResetRoundState(OldTeam);
+			DestroyGameController(OldTeam);
 			// do not reset SaveTeamResult, because it should be logged into teehistorian even if the team leaves
 		}
 	}
@@ -99,7 +112,9 @@ void CGameTeams::SetForceCharacterTeam(int ClientID, int Team)
 				SendTeamsState(LoopClientID);
 	}
 
-	if(Team != TEAM_SUPER && (m_TeamState[Team] == TEAMSTATE_EMPTY || m_TeamLocked[Team]))
+	int TeamOldState = m_TeamState[Team];
+
+	if(Team != TEAM_SUPER && (TeamOldState == TEAMSTATE_EMPTY || m_TeamLocked[Team]))
 	{
 		if(!m_TeamLocked[Team])
 			ChangeTeamState(Team, TEAMSTATE_OPEN);
@@ -261,4 +276,66 @@ void CGameTeams::SetClientInvited(int Team, int ClientID, bool Invited)
 		else
 			m_Invited[Team] &= ~(1ULL << ClientID);
 	}
+}
+
+IGameController *CGameTeams::GetGameControllers(int Team)
+{
+	if (!m_apControllers[Team])
+		CreateGameController(Team);
+
+	return m_apControllers[Team];
+}
+
+void CGameTeams::CreateGameController(int Team)
+{
+	if (m_apControllers[Team])
+		DestroyGameController(Team);
+	dbg_msg("team", "creating game controller %d", Team);
+	m_apControllers[Team] = new CGameControllerDDRace(m_pGameContext);
+	m_apControllers[Team]->SetControllerTeam(Team);
+	for (auto &Ent : m_Entities)
+		m_apControllers[Team]->OnEntity(Ent.Index, Ent.Pos, Ent.Layer, Ent.Flags, Ent.Number);
+}
+
+void CGameTeams::DestroyGameController(int Team)
+{
+	if (!m_apControllers[Team])
+		return;
+
+	dbg_msg("team", "deleting game controller %d", Team);
+	delete m_apControllers[Team];
+	m_apControllers[Team] = nullptr;
+}
+
+void CGameTeams::Tick()
+{
+	for (int i = 0; i < MAX_CLIENTS; ++i)
+		if (m_apControllers[i])
+			m_apControllers[i]->Tick();
+}
+
+void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
+{
+	SEntity Ent;
+	Ent.Index = Index;
+	Ent.Pos = Pos;
+	Ent.Layer = Layer;
+	Ent.Flags = Flags;
+	Ent.Number = Number;
+
+	m_Entities.push_back(Ent);
+}
+
+void CGameTeams::Snap(int SnappingClient)
+{
+	for (int i = 0; i < MAX_CLIENTS; ++i)
+		if (m_apControllers[i])
+			m_apControllers[i]->Snap(SnappingClient);
+}
+
+void CGameTeams::OnReset() 
+{
+	for (int i = 0; i < MAX_CLIENTS; ++i)
+		if (m_apControllers[i])
+			m_apControllers[i]->OnReset();
 }

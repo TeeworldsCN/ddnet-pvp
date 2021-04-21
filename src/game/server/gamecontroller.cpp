@@ -2,6 +2,8 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <engine/shared/config.h>
 #include <game/mapitems.h>
+#include <game/version.h>
+#include <game/server/teams.h>
 
 #include <game/generated/protocol.h>
 
@@ -21,6 +23,8 @@
 
 IGameController::IGameController(class CGameContext *pGameServer)
 {
+	m_ResponsibleTeam = -1;
+
 	m_pGameServer = pGameServer;
 	m_pConfig = m_pGameServer->Config();
 	m_pServer = m_pGameServer->Server();
@@ -50,52 +54,52 @@ IGameController::~IGameController()
 
 void IGameController::DoActivityCheck()
 {
-	if(g_Config.m_SvInactiveKickTime == 0)
-		return;
+// 	if(g_Config.m_SvInactiveKickTime == 0)
+// 		return;
 
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-#ifdef CONF_DEBUG
-		if(g_Config.m_DbgDummies)
-		{
-			if(i >= MAX_CLIENTS - g_Config.m_DbgDummies)
-				break;
-		}
-#endif
-		if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS && Server()->GetAuthedState(i) == AUTHED_NO)
-		{
-			if(Server()->Tick() > GameServer()->m_apPlayers[i]->m_LastActionTick + g_Config.m_SvInactiveKickTime * Server()->TickSpeed() * 60)
-			{
-				switch(g_Config.m_SvInactiveKick)
-				{
-				case 0:
-				{
-					// move player to spectator
-					DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
-				}
-				break;
-				case 1:
-				{
-					// move player to spectator if the reserved slots aren't filled yet, kick him otherwise
-					int Spectators = 0;
-					for(auto &pPlayer : GameServer()->m_apPlayers)
-						if(pPlayer && pPlayer->GetTeam() == TEAM_SPECTATORS)
-							++Spectators;
-					if(Spectators >= g_Config.m_SvSpectatorSlots)
-						Server()->Kick(i, "Kicked for inactivity");
-					else
-						DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
-				}
-				break;
-				case 2:
-				{
-					// kick the player
-					Server()->Kick(i, "Kicked for inactivity");
-				}
-				}
-			}
-		}
-	}
+// 	for(int i = 0; i < MAX_CLIENTS; ++i)
+// 	{
+// #ifdef CONF_DEBUG
+// 		if(g_Config.m_DbgDummies)
+// 		{
+// 			if(i >= MAX_CLIENTS - g_Config.m_DbgDummies)
+// 				break;
+// 		}
+// #endif
+// 		if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS && Server()->GetAuthedState(i) == AUTHED_NO)
+// 		{
+// 			if(Server()->Tick() > GameServer()->m_apPlayers[i]->m_LastActionTick + g_Config.m_SvInactiveKickTime * Server()->TickSpeed() * 60)
+// 			{
+// 				switch(g_Config.m_SvInactiveKick)
+// 				{
+// 				case 0:
+// 				{
+// 					// move player to spectator
+// 					DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
+// 				}
+// 				break;
+// 				case 1:
+// 				{
+// 					// move player to spectator if the reserved slots aren't filled yet, kick him otherwise
+// 					int Spectators = 0;
+// 					for(auto &pPlayer : GameServer()->m_apPlayers)
+// 						if(pPlayer && pPlayer->GetTeam() == TEAM_SPECTATORS)
+// 							++Spectators;
+// 					if(Spectators >= g_Config.m_SvSpectatorSlots)
+// 						Server()->Kick(i, "Kicked for inactivity");
+// 					else
+// 						DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
+// 				}
+// 				break;
+// 				case 2:
+// 				{
+// 					// kick the player
+// 					Server()->Kick(i, "Kicked for inactivity");
+// 				}
+// 				}
+// 			}
+// 		}
+// 	}
 }
 
 float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int DDRTeam)
@@ -176,7 +180,7 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int DDRTeam)
 	return Eval.m_Got;
 }
 
-bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
+void IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 {
 	if(Index < 0)
 		return false;
@@ -386,10 +390,7 @@ bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 	{
 		CPickup *pPickup = new CPickup(&GameServer()->m_World, Type, SubType);
 		pPickup->m_Pos = Pos;
-		return true;
 	}
-
-	return false;
 }
 
 void IGameController::OnPlayerConnect(CPlayer *pPlayer)
@@ -399,16 +400,23 @@ void IGameController::OnPlayerConnect(CPlayer *pPlayer)
 
 	if(!Server()->ClientPrevIngame(ClientID))
 	{
-		char aBuf[128];
+		char aBuf[512];
 		str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam());
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+
+		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()));
+		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CGameContext::CHAT_SIX);
+
+		GameServer()->SendChatTarget(ClientID, "DDraceNetwork Mod. Version: " GAME_VERSION);
+		GameServer()->SendChatTarget(ClientID, "please visit DDNet.tw or say /info and make sure to read our /rules");
 	}
 }
 
 void IGameController::OnPlayerDisconnect(class CPlayer *pPlayer, const char *pReason)
 {
-	pPlayer->OnDisconnect();
 	int ClientID = pPlayer->GetCID();
+	bool WasModerator = pPlayer->m_Moderating && Server()->ClientIngame(ClientID);
+	pPlayer->OnDisconnect();
 	if(Server()->ClientIngame(ClientID))
 	{
 		char aBuf[512];
@@ -421,6 +429,12 @@ void IGameController::OnPlayerDisconnect(class CPlayer *pPlayer, const char *pRe
 		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", ClientID, Server()->ClientName(ClientID));
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
 	}
+
+	if(!GameServer()->PlayerModerating() && WasModerator)
+		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, "Server kick/spec votes are no longer actively moderated.");
+
+	if(g_Config.m_SvTeam != 3)
+		GameServer()->m_pTeams->SetForceCharacterTeam(ClientID, TEAM_FLOCK);
 }
 
 void IGameController::EndRound()
@@ -462,11 +476,6 @@ void IGameController::StartRound()
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 }
 
-void IGameController::ChangeMap(const char *pToMap)
-{
-	str_copy(g_Config.m_SvMap, pToMap, sizeof(g_Config.m_SvMap));
-}
-
 void IGameController::OnReset()
 {
 	for(auto &pPlayer : GameServer()->m_apPlayers)
@@ -504,11 +513,30 @@ void IGameController::OnCharacterSpawn(class CCharacter *pChr)
 	// give default weapons
 	pChr->GiveWeapon(WEAPON_HAMMER, -1);
 	pChr->GiveWeapon(WEAPON_GUN, 10);
+
+	// TODO: move pTeam calls
+	GameServer()->m_pTeams->OnCharacterSpawn(pChr->GetPlayer()->GetCID());
 }
 
 void IGameController::HandleCharacterTiles(CCharacter *pChr, int MapIndex)
 {
-	// Do nothing by default
+	CPlayer *pPlayer = pChr->GetPlayer();
+	int ClientID = pPlayer->GetCID();
+
+	int m_TileIndex = GameServer()->Collision()->GetTileIndex(MapIndex);
+	int m_TileFIndex = GameServer()->Collision()->GetFTileIndex(MapIndex);
+
+	// solo part
+	if(((m_TileIndex == TILE_SOLO_ENABLE) || (m_TileFIndex == TILE_SOLO_ENABLE)) && !GameServer()->m_pTeams->m_Core.GetSolo(ClientID))
+	{
+		GameServer()->SendChatTarget(ClientID, "You are now in a solo part");
+		pChr->SetSolo(true);
+	}
+	else if(((m_TileIndex == TILE_SOLO_DISABLE) || (m_TileFIndex == TILE_SOLO_DISABLE)) && GameServer()->m_pTeams->m_Core.GetSolo(ClientID))
+	{
+		GameServer()->SendChatTarget(ClientID, "You are now out of the solo part");
+		pChr->SetSolo(false);
+	}
 }
 
 void IGameController::DoWarmup(int Seconds)
@@ -554,6 +582,17 @@ void IGameController::Tick()
 
 void IGameController::Snap(int SnappingClient)
 {
+	if (m_ResponsibleTeam < 0)
+		return;
+	
+	// TODO: Think about what to do for SnappingClient -1 (server demo)
+	if (SnappingClient < 0)
+		return;
+
+	int DDRTeam = GameServer()->GetPlayerDDRTeam(SnappingClient);
+	if (DDRTeam != m_ResponsibleTeam)
+		return;
+
 	CNetObj_GameInfo *pGameInfoObj = (CNetObj_GameInfo *)Server()->SnapNewItem(NETOBJTYPE_GAMEINFO, 0, sizeof(CNetObj_GameInfo));
 	if(!pGameInfoObj)
 		return;
@@ -685,8 +724,15 @@ int IGameController::ClampTeam(int Team)
 
 int64 IGameController::GetMaskForPlayerWorldEvent(int Asker, int ExceptID)
 {
-	// Send all world events to everyone by default
-	return CmaskAllExceptOne(ExceptID);
+	if(Asker == -1)
+		return CmaskAllExceptOne(ExceptID);
+
+	return GameServer()->m_pTeams->TeamMask(m_ResponsibleTeam, ExceptID, Asker);
+}
+
+int IGameController::GetPlayerTeam(int ClientID) const
+{
+	return GameServer()->GetPlayerDDRTeam(ClientID);
 }
 
 void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
@@ -702,7 +748,7 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 	DoChatMsg = false;
 	if(DoChatMsg)
 	{
-		str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(ClientID), GameServer()->m_pController->GetTeamName(Team));
+		str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(ClientID), GetTeamName(Team));
 		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 	}
 
@@ -710,4 +756,9 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
 	// OnPlayerInfoChange(pPlayer);
+}
+
+void IGameController::SetControllerTeam(int Team)
+{
+	m_ResponsibleTeam = Team;
 }

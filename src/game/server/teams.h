@@ -7,14 +7,26 @@
 #include <game/teamscore.h>
 
 #include <utility>
+#include <vector>
 
 class CGameTeams
 {
+	IGameController *m_apControllers[MAX_CLIENTS];
 	int m_TeamState[MAX_CLIENTS];
 	bool m_TeamLocked[MAX_CLIENTS];
 	uint64 m_Invited[MAX_CLIENTS];
 
 	class CGameContext *m_pGameContext;
+
+	struct SEntity {
+		int Index;
+		vec2 Pos;
+		int Layer;
+		int Flags;
+		int Number;
+	};
+
+	std::vector<SEntity> m_Entities;
 
 public:
 	enum
@@ -28,6 +40,7 @@ public:
 	CTeamsCore m_Core;
 
 	CGameTeams(CGameContext *pGameContext);
+	~CGameTeams();
 
 	// helper methods
 	CCharacter *Character(int ClientID)
@@ -89,6 +102,14 @@ public:
 	{
 		return m_Invited[Team] & 1LL << ClientID;
 	}
+
+	IGameController *GetGameControllers(int Team);
+	void CreateGameController(int Team);
+	void DestroyGameController(int Team);
+	void Tick();
+	void OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
+	void Snap(int SnappingClient);
+	void OnReset();
 };
 
 #endif

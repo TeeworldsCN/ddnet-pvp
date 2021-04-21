@@ -24,9 +24,11 @@
 #include <game/generated/protocolglue.h>
 
 #include "entities/character.h"
-#include "gamemodes/DDRace.h"
 #include "player.h"
 #include "teams.h"
+
+#define GAMETYPE_NAME "BattleDDNet"
+#define TESTTYPE_NAME "TestBattleDDNet"
 
 enum
 {
@@ -42,7 +44,6 @@ void CGameContext::Construct(int Resetting)
 	for(auto &pPlayer : m_apPlayers)
 		pPlayer = 0;
 
-	m_pController = 0;
 	m_VoteType = VOTE_TYPE_UNKNOWN;
 	m_VoteCloseTime = 0;
 	m_pVoteOptionFirst = 0;
@@ -122,6 +123,16 @@ class CCharacter *CGameContext::GetPlayerChar(int ClientID)
 	if(ClientID < 0 || ClientID >= MAX_CLIENTS || !m_apPlayers[ClientID])
 		return 0;
 	return m_apPlayers[ClientID]->GetCharacter();
+}
+
+IGameController *CGameContext::Controller(int Team)
+{
+	return m_pTeams->GetGameControllers(Team);
+}
+
+int CGameContext::GetPlayerDDRTeam(int ClientID)
+{
+	return m_pTeams->m_Core.Team(ClientID);
 }
 
 bool CGameContext::EmulateBug(int Bug)
@@ -646,25 +657,6 @@ void CGameContext::AbortVoteKickOnDisconnect(int ClientID)
 		m_VoteEnforce = VOTE_ENFORCE_ABORT;
 }
 
-void CGameContext::CheckPureTuning()
-{
-	// might not be created yet during start up
-	if(!m_pController)
-		return;
-
-	if(str_comp(m_pController->m_pGameType, "DM") == 0 ||
-		str_comp(m_pController->m_pGameType, "TDM") == 0 ||
-		str_comp(m_pController->m_pGameType, "CTF") == 0)
-	{
-		CTuningParams p;
-		if(mem_comp(&p, &m_Tuning, sizeof(p)) != 0)
-		{
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "resetting tuning due to pure server");
-			m_Tuning = p;
-		}
-	}
-}
-
 void CGameContext::SendTuningParams(int ClientID, int Zone)
 {
 	if(ClientID == -1)
@@ -686,8 +678,6 @@ void CGameContext::SendTuningParams(int ClientID, int Zone)
 		}
 		return;
 	}
-
-	CheckPureTuning();
 
 	CMsgPacker Msg(NETMSGTYPE_SV_TUNEPARAMS);
 	int *pParams = 0;
@@ -755,9 +745,6 @@ void CGameContext::SendTuningParams(int ClientID, int Zone)
 
 void CGameContext::OnTick()
 {
-	// check tuning
-	CheckPureTuning();
-
 	if(m_TeeHistorianActive)
 	{
 		int Error = aio_error(m_pTeeHistorianFile);
@@ -781,7 +768,7 @@ void CGameContext::OnTick()
 	m_World.Tick();
 
 	//if(world.paused) // make sure that the game object always updates
-	m_pController->Tick();
+	m_pTeams->Tick();
 
 	if(m_TeeHistorianActive)
 	{
@@ -1177,7 +1164,8 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 
 void CGameContext::OnClientEnter(int ClientID)
 {
-	m_pController->OnPlayerConnect(m_apPlayers[ClientID]);
+	// TODO: Controller, move connection stuff out of controller, and add OnPlayerJoin()
+	// m_pController->OnPlayerConnect(m_apPlayers[ClientID]);
 
 	if(Server()->IsSixup(ClientID))
 	{
@@ -1361,7 +1349,9 @@ void CGameContext::OnClientConnected(int ClientID, void *pData)
 	}
 
 	// Check which team the player should be on
-	const int StartTeam = (Spec || g_Config.m_SvTournamentMode) ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
+	const int StartTeam = TEAM_SPECTATORS;
+	// TODO: Controller, connection stuff
+	// (Spec || g_Config.m_SvTournamentMode) ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
 
 	if(!m_apPlayers[ClientID])
 		m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, StartTeam);
@@ -1393,7 +1383,9 @@ void CGameContext::OnClientConnected(int ClientID, void *pData)
 void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 {
 	AbortVoteKickOnDisconnect(ClientID);
-	m_pController->OnPlayerDisconnect(m_apPlayers[ClientID], pReason);
+	
+	// TODO: Controller connection stuff
+	// m_pController->OnPlayerDisconnect(m_apPlayers[ClientID], pReason);
 	delete m_apPlayers[ClientID];
 	m_apPlayers[ClientID] = 0;
 
@@ -2096,8 +2088,10 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				return;
 			}
 
+			int DDRTeam = m_pTeams->m_Core.Team(ClientID);
+
 			// Switch team on given client and kill/respawn him
-			if(m_pController->CanJoinTeam(pMsg->m_Team, ClientID))
+			if(Controller(DDRTeam)->CanJoinTeam(pMsg->m_Team, ClientID))
 			{
 				if(pPlayer->IsPaused())
 					SendChatTarget(ClientID, "Use /pause first then you can kill");
@@ -2105,7 +2099,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				{
 					if(pPlayer->GetTeam() == TEAM_SPECTATORS || pMsg->m_Team == TEAM_SPECTATORS)
 						m_VoteUpdate = true;
-					m_pController->DoTeamChange(pPlayer, pMsg->m_Team);
+					Controller(DDRTeam)->DoTeamChange(pPlayer, pMsg->m_Team);
 					pPlayer->m_TeamChangeTick = Server()->Tick();
 				}
 			}
@@ -2554,7 +2548,7 @@ void CGameContext::ConMapbug(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const char *pMapBugName = pResult->GetString(0);
 
-	if(pSelf->m_pController)
+	if(pSelf->Controller(0))
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "mapbugs", "can't add map bugs after the game started");
 		return;
@@ -2603,7 +2597,7 @@ void CGameContext::ConPause(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConChangeMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_pController->ChangeMap(pResult->NumArguments() ? pResult->GetString(0) : "");
+	str_copy(g_Config.m_SvMap, pResult->NumArguments() ? pResult->GetString(0) : "", sizeof(g_Config.m_SvMap));
 }
 
 // void CGameContext::ConRandomMap(IConsole::IResult *pResult, void *pUserData)
@@ -2628,9 +2622,9 @@ void CGameContext::ConRestart(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	if(pResult->NumArguments())
-		pSelf->m_pController->DoWarmup(pResult->GetInteger(0));
+		pSelf->Controller(0)->DoWarmup(pResult->GetInteger(0));
 	else
-		pSelf->m_pController->StartRound();
+		pSelf->Controller(0)->StartRound();
 }
 
 void CGameContext::ConBroadcast(IConsole::IResult *pResult, void *pUserData)
@@ -2679,7 +2673,7 @@ void CGameContext::ConSetTeam(IConsole::IResult *pResult, void *pUserData)
 
 	pSelf->m_apPlayers[ClientID]->Pause(CPlayer::PAUSE_NONE, false); // reset /spec and /pause to allow rejoin
 	pSelf->m_apPlayers[ClientID]->m_TeamChangeTick = pSelf->Server()->Tick() + pSelf->Server()->TickSpeed() * Delay * 60;
-	pSelf->m_pController->DoTeamChange(pSelf->m_apPlayers[ClientID], Team);
+	pSelf->Controller(0)->DoTeamChange(pSelf->m_apPlayers[ClientID], Team);
 	if(Team == TEAM_SPECTATORS)
 		pSelf->m_apPlayers[ClientID]->Pause(CPlayer::PAUSE_NONE, true);
 }
@@ -2690,12 +2684,12 @@ void CGameContext::ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
 	int Team = clamp(pResult->GetInteger(0), -1, 1);
 
 	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "All players were moved to the %s", pSelf->m_pController->GetTeamName(Team));
+	str_format(aBuf, sizeof(aBuf), "All players were moved to the %s", pSelf->Controller(0)->GetTeamName(Team));
 	pSelf->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 
 	for(auto &pPlayer : pSelf->m_apPlayers)
 		if(pPlayer)
-			pSelf->m_pController->DoTeamChange(pPlayer, Team, false);
+			pSelf->Controller(0)->DoTeamChange(pPlayer, Team, false);
 }
 
 void CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
@@ -3143,7 +3137,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	}
 
 	m_pTeams = new CGameTeams(this);
-	m_pController = new CGameControllerDDRace(this);
 
 	const char *pCensorFilename = "censorlist.txt";
 	IOHANDLE File = Storage()->OpenFile(pCensorFilename, IOFLAG_READ, IStorage::TYPE_ALL);
@@ -3202,7 +3195,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 
 		GameInfo.m_pServerName = g_Config.m_SvName;
 		GameInfo.m_ServerPort = Server()->Port();
-		GameInfo.m_pGameType = m_pController->m_pGameType;
+		GameInfo.m_pGameType = "unknown"; //TODO: Fix teehistorian
 
 		GameInfo.m_pConfig = &g_Config;
 		GameInfo.m_pTuning = Tuning();
@@ -3267,7 +3260,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 			{
 				vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
 				//m_pController->OnEntity(Index-ENTITY_OFFSET, Pos);
-				m_pController->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_GAME, pTiles[y * pTileMap->m_Width + x].m_Flags);
+				m_pTeams->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_GAME, pTiles[y * pTileMap->m_Width + x].m_Flags);
 			}
 
 			if(pFront)
@@ -3296,7 +3289,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				if(Index >= ENTITY_OFFSET)
 				{
 					vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
-					m_pController->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_FRONT, pFront[y * pTileMap->m_Width + x].m_Flags);
+					m_pTeams->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_FRONT, pFront[y * pTileMap->m_Width + x].m_Flags);
 				}
 			}
 			if(pSwitch)
@@ -3307,7 +3300,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				if(Index >= ENTITY_OFFSET)
 				{
 					vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
-					m_pController->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_SWITCH, pSwitch[y * pTileMap->m_Width + x].m_Flags, pSwitch[y * pTileMap->m_Width + x].m_Number);
+					m_pTeams->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_SWITCH, pSwitch[y * pTileMap->m_Width + x].m_Flags, pSwitch[y * pTileMap->m_Width + x].m_Number);
 				}
 			}
 		}
@@ -3481,8 +3474,7 @@ void CGameContext::OnShutdown()
 	DeleteTempfile();
 	Console()->ResetServerGameSettings();
 	Collision()->Dest();
-	delete m_pController;
-	m_pController = 0;
+	delete m_pTeams;
 	Clear();
 }
 
@@ -3536,7 +3528,7 @@ void CGameContext::OnSnap(int ClientID)
 	}
 
 	m_World.Snap(ClientID);
-	m_pController->Snap(ClientID);
+	m_pTeams->Snap(ClientID);
 	m_Events.Snap(ClientID);
 
 	for(auto &pPlayer : m_apPlayers)
@@ -3565,7 +3557,7 @@ bool CGameContext::IsClientPlayer(int ClientID) const
 }
 
 CUuid CGameContext::GameUuid() const { return m_GameUuid; }
-const char *CGameContext::GameType() const { return m_pController && m_pController->m_pGameType ? m_pController->m_pGameType : ""; }
+const char *CGameContext::GameType() const { return g_Config.m_SvTestingCommands ? TESTTYPE_NAME : GAMETYPE_NAME; }
 const char *CGameContext::Version() const { return GAME_VERSION; }
 const char *CGameContext::NetVersion() const { return GAME_NETVERSION; }
 

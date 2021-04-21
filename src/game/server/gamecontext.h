@@ -147,12 +147,13 @@ public:
 	CEventHandler m_Events;
 	CPlayer *m_apPlayers[MAX_CLIENTS];
 
-	IGameController *m_pController;
 	CGameTeams *m_pTeams;
 	CGameWorld m_World;
 
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
+	IGameController *Controller(int Team);
+	int GetPlayerDDRTeam(int ClientID);
 	bool EmulateBug(int Bug);
 
 	// voting
@@ -226,7 +227,6 @@ public:
 	void List(int ClientID, const char *filter);
 
 	//
-	void CheckPureTuning();
 	void SendTuningParams(int ClientID, int Zone = 0);
 
 	struct CVoteOptionServer *GetVoteOption(int Index);

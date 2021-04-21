@@ -129,7 +129,6 @@ void CLaser::DoBounce()
 			else
 				m_Energy -= distance(m_From, m_Pos) + GameServer()->TuningList()[m_TuneZone].m_LaserBounceCost;
 
-			CGameControllerDDRace *pControllerDDRace = (CGameControllerDDRace *)GameServer()->m_pController;
 			if(Res == TILE_TELEINWEAPON && GameServer()->Collision()->NumTeles(z - 1))
 			{
 				m_TelePos = GameServer()->Collision()->TelePos(z - 1);

@@ -75,7 +75,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	GameServer()->m_World.InsertEntity(this);
 	m_Alive = true;
 
-	GameServer()->m_pController->OnCharacterSpawn(this);
+	GameServer()->Controller(Team())->OnCharacterSpawn(this);
 
 	DDRaceInit();
 
@@ -761,7 +761,7 @@ void CCharacter::Tick()
 	/*if(m_pPlayer->m_ForceBalanced)
 	{
 		char Buf[128];
-		str_format(Buf, sizeof(Buf), "You were moved to %s due to team balancing", GameServer()->m_pController->GetTeamName(m_pPlayer->GetTeam()));
+		str_format(Buf, sizeof(Buf), "You were moved to %s due to team balancing", GameServer()->Controller(Team())->GetTeamName(m_pPlayer->GetTeam()));
 		GameServer()->SendBroadcast(Buf, m_pPlayer->GetCID());
 
 		m_pPlayer->m_ForceBalanced = false;
@@ -950,7 +950,7 @@ void CCharacter::Die(int Killer, int Weapon)
 	if(Server()->IsRecording(m_pPlayer->GetCID()))
 		Server()->StopRecord(m_pPlayer->GetCID());
 
-	int ModeSpecial = GameServer()->m_pController->OnCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
+	int ModeSpecial = GameServer()->Controller(Team())->OnCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "kill killer='%d:%s' victim='%d:%s' weapon=%d special=%d",
@@ -1460,7 +1460,7 @@ void CCharacter::HandleTiles(int Index)
 		return;
 	}
 
-	GameServer()->m_pController->HandleCharacterTiles(this, Index);
+	GameServer()->Controller(Team())->HandleCharacterTiles(this, Index);
 
 	// endless hook
 	if(((m_TileIndex == TILE_EHOOK_ENABLE) || (m_TileFIndex == TILE_EHOOK_ENABLE)))
@@ -1876,7 +1876,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		// if no checkpointout have been found (or if there no recorded checkpoint), teleport to start
 		vec2 SpawnPos;
-		if(GameServer()->m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos, Team()))
+		if(GameServer()->Controller(Team())->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos, Team()))
 		{
 			m_Core.m_Pos = SpawnPos;
 			m_Core.m_Vel = vec2(0, 0);
@@ -1910,7 +1910,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		// if no checkpointout have been found (or if there no recorded checkpoint), teleport to start
 		vec2 SpawnPos;
-		if(GameServer()->m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos, Team()))
+		if(GameServer()->Controller(Team())->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos, Team()))
 		{
 			m_Core.m_Pos = SpawnPos;
 

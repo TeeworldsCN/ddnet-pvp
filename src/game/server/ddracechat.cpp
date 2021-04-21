@@ -331,7 +331,7 @@ void CGameContext::ConLockTeam(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	int Team = pSelf->m_pTeams->m_Core.Team(pResult->m_ClientID);
+	int Team = pSelf->GetPlayerDDRTeam(pResult->m_ClientID);
 
 	bool Lock = pSelf->m_pTeams->TeamLocked(Team);
 
@@ -362,7 +362,7 @@ void CGameContext::ConLockTeam(IConsole::IResult *pResult, void *pUserData)
 		str_format(aBuf, sizeof(aBuf), "'%s' locked your team. After the race starts, killing will kill everyone in your team.", pSelf->Server()->ClientName(pResult->m_ClientID));
 
 		for(int i = 0; i < MAX_CLIENTS; i++)
-			if(pSelf->m_pTeams->m_Core.Team(i) == Team)
+			if(pSelf->GetPlayerDDRTeam(i) == Team)
 				pSelf->SendChatTarget(i, aBuf);
 	}
 }
@@ -380,7 +380,7 @@ void CGameContext::ConUnlockTeam(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	int Team = pSelf->m_pTeams->m_Core.Team(pResult->m_ClientID);
+	int Team = pSelf->GetPlayerDDRTeam(pResult->m_ClientID);
 
 	if(Team <= TEAM_FLOCK || Team >= TEAM_SUPER)
 		return;
@@ -399,7 +399,7 @@ void CGameContext::UnlockTeam(int ClientID, int Team)
 	str_format(aBuf, sizeof(aBuf), "'%s' unlocked your team.", Server()->ClientName(ClientID));
 
 	for(int i = 0; i < MAX_CLIENTS; i++)
-		if(m_pTeams->m_Core.Team(i) == Team)
+		if(GetPlayerDDRTeam(i) == Team)
 			SendChatTarget(i, aBuf);
 }
 
@@ -422,7 +422,7 @@ void CGameContext::ConInviteTeam(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	int Team = pSelf->m_pTeams->m_Core.Team(pResult->m_ClientID);
+	int Team = pSelf->GetPlayerDDRTeam(pResult->m_ClientID);
 	if(Team > TEAM_FLOCK && Team < TEAM_SUPER)
 	{
 		int Target = -1;
@@ -463,7 +463,7 @@ void CGameContext::ConInviteTeam(IConsole::IResult *pResult, void *pUserData)
 		str_format(aBuf, sizeof aBuf, "'%s' invited '%s' to your team.", pSelf->Server()->ClientName(pResult->m_ClientID), pSelf->Server()->ClientName(Target));
 		;
 		for(int i = 0; i < MAX_CLIENTS; i++)
-			if(pSelf->m_pTeams->m_Core.Team(i) == Team)
+			if(pSelf->GetPlayerDDRTeam(i) == Team)
 				pSelf->SendChatTarget(i, aBuf);
 	}
 	else
@@ -546,7 +546,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 			aBuf,
 			sizeof(aBuf),
 			"You are in room %d",
-			pSelf->m_pTeams->m_Core.Team(pResult->m_ClientID));
+			pSelf->GetPlayerDDRTeam(pResult->m_ClientID));
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			aBuf);
 	}

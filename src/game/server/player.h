@@ -131,6 +131,8 @@ private:
 	CGameContext *GameServer() const { return m_pGameServer; }
 	IServer *Server() const;
 
+	int DDRTeam() const { return GameServer()->GetPlayerDDRTeam(m_ClientID); }
+
 	//
 	bool m_Spawning;
 	int m_ClientID;

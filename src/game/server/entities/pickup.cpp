@@ -199,7 +199,7 @@ void CPickup::Snap(int SnappingClient)
 		{
 			int SnapCID = SnapPlayer->GetCID();
 			bool isSoloActive = GameServer()->m_pTeams->m_Core.GetSolo(SnapCID) && (m_SoloSpawnTick[SnapCID] < 0);
-			bool isTeamActive = !GameServer()->m_pTeams->m_Core.GetSolo(SnapCID) && m_SpawnTick[GameServer()->m_pTeams->m_Core.Team(SnapCID)] < 0;
+			bool isTeamActive = !GameServer()->m_pTeams->m_Core.GetSolo(SnapCID) && m_SpawnTick[GameServer()->GetPlayerDDRTeam(SnapCID)] < 0;
 			if(!isSoloActive && !isTeamActive)
 				return;
 		}

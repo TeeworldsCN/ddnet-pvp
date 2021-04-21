@@ -8,6 +8,7 @@
 #include "player.h"
 #include <algorithm>
 #include <engine/shared/config.h>
+#include "teams.h"
 #include <utility>
 
 //////////////////////////////////////////////////
@@ -132,7 +133,7 @@ void CGameWorld::Reset()
 		}
 	RemoveEntities();
 
-	GameServer()->m_pController->OnReset();
+	GameServer()->m_pTeams->OnReset();
 	RemoveEntities();
 
 	m_ResetRequested = false;
@@ -255,8 +256,10 @@ void CGameWorld::Tick()
 
 	if(!m_Paused)
 	{
-		if(GameServer()->m_pController->IsForceBalanced())
-			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, "Teams have been balanced");
+		// TODO: Controller, move force balance in controller
+		// if(GameServer()->m_pController->IsForceBalanced())
+		// 	GameServer()->SendChat(-1, CGameContext::CHAT_ALL, "Teams have been balanced");
+		
 		// update all objects
 		for(auto *pEnt : m_apFirstEntityTypes)
 			for(; pEnt;)

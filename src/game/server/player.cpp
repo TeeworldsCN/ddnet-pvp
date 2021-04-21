@@ -17,7 +17,7 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 {
 	m_pGameServer = pGameServer;
 	m_ClientID = ClientID;
-	m_Team = GameServer()->m_pController->ClampTeam(Team);
+	m_Team = GameServer()->Controller(DDRTeam())->ClampTeam(Team);
 	m_NumInputs = 0;
 	Reset();
 	GameServer()->Antibot()->OnPlayerInit(m_ClientID);
@@ -651,14 +651,15 @@ bool CPlayer::SetTimerType(int TimerType)
 void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
+	IGameController *pController = GameServer()->Controller(DDRTeam());
 
-	if(!GameServer()->m_pController->CanSpawn(m_Team, &SpawnPos, GameServer()->GetDDRaceTeam(m_ClientID)))
+	if(!pController || !pController->CanSpawn(m_Team, &SpawnPos, DDRTeam()))
 		return;
 
 	m_Spawning = false;
 	m_pCharacter = new(m_ClientID) CCharacter(&GameServer()->m_World);
 	m_pCharacter->Spawn(this, SpawnPos);
-	GameServer()->CreatePlayerSpawn(SpawnPos, GameServer()->m_pController->GetMaskForPlayerWorldEvent(m_ClientID));
+	GameServer()->CreatePlayerSpawn(SpawnPos, GameServer()->Controller(DDRTeam())->GetMaskForPlayerWorldEvent(m_ClientID));
 
 	if(g_Config.m_SvTeam == 3)
 		m_pCharacter->SetSolo(true);
@@ -783,8 +784,8 @@ void CPlayer::ProcessPause()
 	if(m_Paused == PAUSE_SPEC && !m_pCharacter->IsPaused() && m_pCharacter->IsGrounded() && m_pCharacter->m_Pos == m_pCharacter->m_PrevPos)
 	{
 		m_pCharacter->Pause(true);
-		GameServer()->CreateDeath(m_pCharacter->m_Pos, m_ClientID, GameServer()->m_pController->GetMaskForPlayerWorldEvent(m_ClientID));
-		GameServer()->CreateSound(m_pCharacter->m_Pos, SOUND_PLAYER_DIE, GameServer()->m_pController->GetMaskForPlayerWorldEvent(m_ClientID));
+		GameServer()->CreateDeath(m_pCharacter->m_Pos, m_ClientID, GameServer()->Controller(DDRTeam())->GetMaskForPlayerWorldEvent(m_ClientID));
+		GameServer()->CreateSound(m_pCharacter->m_Pos, SOUND_PLAYER_DIE, GameServer()->Controller(DDRTeam())->GetMaskForPlayerWorldEvent(m_ClientID));
 	}
 }
 
@@ -812,7 +813,7 @@ int CPlayer::Pause(int State, bool Force)
 					return m_Paused; // Do not update state. Do not collect $200
 				}
 				m_pCharacter->Pause(false);
-				GameServer()->CreatePlayerSpawn(m_pCharacter->m_Pos, GameServer()->m_pController->GetMaskForPlayerWorldEvent(m_ClientID));
+				GameServer()->CreatePlayerSpawn(m_pCharacter->m_Pos, GameServer()->Controller(DDRTeam())->GetMaskForPlayerWorldEvent(m_ClientID));
 			}
 			// fall-thru
 		case PAUSE_SPEC:
