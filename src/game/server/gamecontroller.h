@@ -144,10 +144,6 @@ public:
 	// DDRace
 
 	float m_CurrentRecord;
-
-	// ddnet-pvp
-	std::map<int, std::vector<vec2>> m_TeleOuts;
-	std::map<int, std::vector<vec2>> m_TeleCheckOuts;
 };
 
 #endif

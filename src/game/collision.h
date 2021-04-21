@@ -7,6 +7,10 @@
 #include <engine/shared/protocol.h>
 
 #include <list>
+#include <map>
+#include <vector>
+
+#include "prng.h"
 
 enum
 {
@@ -27,11 +31,24 @@ class CCollision
 	int m_Width;
 	int m_Height;
 	class CLayers *m_pLayers;
+	CPrng *m_pPrng;
+
+	int RandomOr0(int BelowThis) const
+	{
+		if(BelowThis <= 1 || !m_pPrng)
+		{
+			return 0;
+		}
+		// This makes the random number slightly biased if `BelowThis`
+		// is not a power of two, but we have decided that this is not
+		// significant for DDNet and favored the simple implementation.
+		return m_pPrng->RandomBits() % BelowThis;
+	}
 
 public:
 	CCollision();
 	~CCollision();
-	void Init(class CLayers *pLayers);
+	void Init(class CLayers *pLayers, CPrng *pPrng);
 	void FillAntibot(CAntibotMapData *pMapData);
 	bool CheckPoint(float x, float y) const { return IsSolid(round_to_int(x), round_to_int(y)); }
 	bool CheckPoint(vec2 Pos) const { return CheckPoint(Pos.x, Pos.y); }
@@ -110,6 +127,13 @@ public:
 
 	vec2 CpSpeed(int index, int Flags = 0) const;
 
+	int NumTeles(int To) const;
+	int NumCpTeles(int To) const;
+
+	// get a position of TeleTo tile, if Out is -1, choose a random one.
+	vec2 TelePos(int To, int Out = -1);
+	vec2 CpTelePos(int To, int Out = -1);
+
 	class CTeleTile *TeleLayer() { return m_pTele; }
 	class CSwitchTile *SwitchLayer() { return m_pSwitch; }
 	class CTuneTile *TuneLayer() { return m_pTune; }
@@ -130,6 +154,9 @@ private:
 		int m_EndTick[MAX_CLIENTS];
 		int m_Type[MAX_CLIENTS];
 	};
+
+	std::map<int, std::vector<vec2>> m_TeleOuts;
+	std::map<int, std::vector<vec2>> m_TeleCheckOuts;
 
 public:
 	SSwitchers *m_pSwitchers;

@@ -31,8 +31,6 @@ class CCharacter : public CEntity
 {
 	MACRO_ALLOC_POOL_ID()
 
-	friend class CSaveTee; // need to use core
-
 public:
 	//character's size
 	static const int ms_PhysSize = 28;
@@ -78,9 +76,7 @@ public:
 	void SetEndlessHook(bool Enable);
 
 	void SetEmote(int Emote, int Tick);
-
-	// void Rescue();
-
+	
 	int NeededFaketuning() { return m_NeededFaketuning; }
 	bool IsAlive() const { return m_Alive; }
 	bool IsPaused() const { return m_Paused; }
@@ -150,10 +146,6 @@ private:
 
 	// the player core for the physics
 	CCharacterCore m_Core;
-	CGameTeams *m_pTeams = nullptr;
-
-	std::map<int, std::vector<vec2>> *m_pTeleOuts = nullptr;
-	std::map<int, std::vector<vec2>> *m_pTeleCheckOuts = nullptr;
 
 	// info for dead reckoning
 	int m_ReckoningTick; // tick that we are performing dead reckoning From
@@ -180,9 +172,7 @@ private:
 	bool m_Solo;
 
 public:
-	CGameTeams *Teams() { return m_pTeams; }
-	void SetTeams(CGameTeams *pTeams);
-	void SetTeleports(std::map<int, std::vector<vec2>> *pTeleOuts, std::map<int, std::vector<vec2>> *pTeleCheckOuts);
+	CGameTeams *Teams() { return GameServer()->m_pTeams; }
 
 	void FillAntibot(CAntibotCharacterData *pData);
 	void Pause(bool Pause);

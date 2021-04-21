@@ -56,11 +56,10 @@ float VelocityRamp(float Value, float Start, float Range, float Curvature)
 	return 1.0f / powf(Curvature, (Value - Start) / Range);
 }
 
-void CCharacterCore::Init(CWorldCore *pWorld, CCollision *pCollision, CTeamsCore *pTeams, std::map<int, std::vector<vec2>> *pTeleOuts)
+void CCharacterCore::Init(CWorldCore *pWorld, CCollision *pCollision, CTeamsCore *pTeams)
 {
 	m_pWorld = pWorld;
 	m_pCollision = pCollision;
-	m_pTeleOuts = pTeleOuts;
 
 	m_pTeams = pTeams;
 	m_Id = -1;
@@ -296,14 +295,13 @@ void CCharacterCore::Tick(bool UseInput)
 				m_HookState = HOOK_RETRACT_START;
 			}
 
-			if(GoingThroughTele && m_pTeleOuts && m_pTeleOuts->size() && (*m_pTeleOuts)[teleNr - 1].size())
+			if(GoingThroughTele && m_pCollision->NumTeles(teleNr - 1))
 			{
 				m_TriggeredEvents = 0;
 				m_HookedPlayer = -1;
 
 				m_NewHook = true;
-				int RandomOut = m_pWorld->RandomOr0((*m_pTeleOuts)[teleNr - 1].size());
-				m_HookPos = (*m_pTeleOuts)[teleNr - 1][RandomOut] + TargetDirection * PhysSize * 1.5f;
+				m_HookPos = m_pCollision->TelePos(teleNr - 1) + TargetDirection * PhysSize * 1.5f;
 				m_HookDir = TargetDirection;
 				m_HookTeleBase = m_HookPos;
 			}
@@ -591,11 +589,6 @@ void CCharacterCore::Quantize()
 void CCharacterCore::SetTeamsCore(CTeamsCore *pTeams)
 {
 	m_pTeams = pTeams;
-}
-
-void CCharacterCore::SetTeleOuts(std::map<int, std::vector<vec2>> *pTeleOuts)
-{
-	m_pTeleOuts = pTeleOuts;
 }
 
 bool CCharacterCore::IsSwitchActiveCb(int Number, void *pUser)

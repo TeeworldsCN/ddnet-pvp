@@ -58,11 +58,12 @@ CCollision::~CCollision()
 	Dest();
 }
 
-void CCollision::Init(class CLayers *pLayers)
+void CCollision::Init(class CLayers *pLayers, CPrng *pPrng)
 {
 	Dest();
 	m_NumSwitchers = 0;
 	m_pLayers = pLayers;
+	m_pPrng = pPrng;
 	m_Width = m_pLayers->GameLayer()->m_Width;
 	m_Height = m_pLayers->GameLayer()->m_Height;
 	m_pTiles = static_cast<CTile *>(m_pLayers->Map()->GetData(m_pLayers->GameLayer()->m_Data));
@@ -108,6 +109,32 @@ void CCollision::Init(class CLayers *pLayers)
 		unsigned int Size = m_pLayers->Map()->GetDataSize(m_pLayers->FrontLayer()->m_Front);
 		if(Size >= (size_t)m_Width * m_Height * sizeof(CTile))
 			m_pFront = static_cast<CTile *>(m_pLayers->Map()->GetData(m_pLayers->FrontLayer()->m_Front));
+	}
+	
+	CMapItemLayerTilemap *pTeleLayer = m_pLayers->TeleLayer();
+
+	if (pTeleLayer && m_pTele) {
+		int Width = pTeleLayer->m_Width;
+		int Height = pTeleLayer->m_Height;
+
+		for(int i = 0; i < Width * Height; i++)
+		{
+			int Number = m_pTele[i].m_Number;
+			int Type = m_pTele[i].m_Type;
+			if(Number > 0)
+			{
+				if(Type == TILE_TELEOUT)
+				{
+					m_TeleOuts[Number - 1].push_back(
+						vec2(i % Width * 32 + 16, i / Width * 32 + 16));
+				}
+				else if(Type == TILE_TELECHECKOUT)
+				{
+					m_TeleCheckOuts[Number - 1].push_back(
+						vec2(i % Width * 32 + 16, i / Width * 32 + 16));
+				}
+			}
+		}
 	}
 
 	for(int i = 0; i < m_Width * m_Height; i++)
@@ -832,6 +859,28 @@ vec2 CCollision::CpSpeed(int Index, int Flags) const
 	if(Index == TILE_CP_F)
 		target *= 4;
 	return target;
+}
+
+int CCollision::NumTeles(int To) const {
+	return m_TeleOuts.size();
+}
+
+int CCollision::NumCpTeles(int To) const {
+	return m_TeleCheckOuts.size();
+}
+
+vec2 CCollision::TelePos(int To, int Out) {
+	if (Out < 0)
+		Out = RandomOr0(m_TeleOuts.size());
+	
+	return m_TeleOuts[To][Out];
+}
+
+vec2 CCollision::CpTelePos(int To, int Out) {
+	if (Out < 0)
+		Out = RandomOr0(m_TeleCheckOuts.size());
+	
+	return m_TeleCheckOuts[To][Out];
 }
 
 int CCollision::GetPureMapIndex(float x, float y) const

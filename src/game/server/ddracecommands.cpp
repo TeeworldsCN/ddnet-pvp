@@ -280,15 +280,13 @@ void CGameContext::ConToTeleporter(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	unsigned int TeleTo = pResult->GetInteger(0);
-	CGameControllerDDRace *pGameControllerDDRace = (CGameControllerDDRace *)pSelf->m_pController;
 
-	if(pGameControllerDDRace->m_TeleOuts[TeleTo - 1].size())
+	if(pSelf->Collision()->NumTeles(TeleTo - 1))
 	{
 		CCharacter *pChr = pSelf->GetPlayerChar(pResult->m_ClientID);
 		if(pChr)
 		{
-			int TeleOut = pSelf->m_World.m_Core.RandomOr0(pGameControllerDDRace->m_TeleOuts[TeleTo - 1].size());
-			vec2 TelePos = pGameControllerDDRace->m_TeleOuts[TeleTo - 1][TeleOut];
+			vec2 TelePos = pSelf->Collision()->TelePos(TeleTo - 1);
 			pChr->Core()->m_Pos = TelePos;
 			pChr->m_Pos = TelePos;
 			pChr->m_PrevPos = TelePos;
@@ -301,15 +299,13 @@ void CGameContext::ConToCheckTeleporter(IConsole::IResult *pResult, void *pUserD
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	unsigned int TeleTo = pResult->GetInteger(0);
-	CGameControllerDDRace *pGameControllerDDRace = (CGameControllerDDRace *)pSelf->m_pController;
 
-	if(pGameControllerDDRace->m_TeleCheckOuts[TeleTo - 1].size())
+	if(pSelf->Collision()->NumCpTeles(TeleTo - 1))
 	{
 		CCharacter *pChr = pSelf->GetPlayerChar(pResult->m_ClientID);
 		if(pChr)
 		{
-			int TeleOut = pSelf->m_World.m_Core.RandomOr0(pGameControllerDDRace->m_TeleCheckOuts[TeleTo - 1].size());
-			vec2 TelePos = pGameControllerDDRace->m_TeleCheckOuts[TeleTo - 1][TeleOut];
+			vec2 TelePos = pSelf->Collision()->TelePos(TeleTo);
 			pChr->Core()->m_Pos = TelePos;
 			pChr->m_Pos = TelePos;
 			pChr->m_PrevPos = TelePos;

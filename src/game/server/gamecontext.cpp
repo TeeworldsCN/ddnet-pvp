@@ -3052,7 +3052,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	uint64 aSeed[2];
 	secure_random_fill(aSeed, sizeof(aSeed));
 	m_Prng.Seed(aSeed);
-	m_World.m_Core.m_pPrng = &m_Prng;
 
 	DeleteTempfile();
 
@@ -3063,7 +3062,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		Server()->SnapSetStaticsize(i, m_NetObjHandler.GetObjSize(i));
 
 	m_Layers.Init(Kernel());
-	m_Collision.Init(&m_Layers);
+	m_Collision.Init(&m_Layers, &m_Prng);
 
 	char aMapName[128];
 	int MapSize;
@@ -3226,15 +3225,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		}
 	}
 
-	// if(!m_pScore)
-	// {
-	// 	m_pScore = new CScore(this, ((CServer *)Server())->DbPool());
-	// }
-
-	// setup core world
-	//for(int i = 0; i < MAX_CLIENTS; i++)
-	//	game.players[i].core.world = &game.world.core;
-
 	// create all entities from the game layer
 	CMapItemLayerTilemap *pTileMap = m_Layers.GameLayer();
 	CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(pTileMap->m_Data);
@@ -3322,8 +3312,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 			}
 		}
 	}
-
-	//game.world.insert_entity(game.Controller);
 
 #ifdef CONF_DEBUG
 	if(g_Config.m_DbgDummies)

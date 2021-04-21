@@ -288,16 +288,12 @@ public:
 	bool RateLimitPlayerVote(int ClientID);
 	bool RateLimitPlayerMapVote(int ClientID);
 
-	// std::shared_ptr<CScoreRandomMapResult> m_SqlRandomMapResult;
 
 private:
 	bool m_VoteWillPass;
-	// class CScore *m_pScore;
 
 	//DDRace Console Commands
 
-	//static void ConMute(IConsole::IResult *pResult, void *pUserData);
-	//static void ConUnmute(IConsole::IResult *pResult, void *pUserData);
 	static void ConKillPlayer(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConNinja(IConsole::IResult *pResult, void *pUserData);
@@ -359,7 +355,6 @@ private:
 	static void ConToggleBroadcast(IConsole::IResult *pResult, void *pUserData);
 	static void ConEyeEmote(IConsole::IResult *pResult, void *pUserData);
 	static void ConShowOthers(IConsole::IResult *pResult, void *pUserData);
-	// static void ConSpecTeam(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConVoteMute(IConsole::IResult *pResult, void *pUserData);
 	static void ConVoteUnmute(IConsole::IResult *pResult, void *pUserData);
@@ -403,7 +398,6 @@ private:
 
 public:
 	CLayers *Layers() { return &m_Layers; }
-	// class CScore *Score() { return m_pScore; }
 
 	enum
 	{
