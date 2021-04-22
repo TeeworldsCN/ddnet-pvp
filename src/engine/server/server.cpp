@@ -35,6 +35,7 @@
 // DDRace
 #include <engine/shared/linereader.h>
 #include <game/extrainfo.h>
+#include <cstring>
 #include <vector>
 #include <zlib.h>
 
