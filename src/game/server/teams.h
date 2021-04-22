@@ -116,9 +116,10 @@ public:
 	SGameInstance GetPlayerGameInstance(int ClientID);
 	void CreateGameInstance(int Team);
 	void DestroyGameInstance(int Team);
-	void Tick();
+	void OnTick();
 	void OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
-	void Snap(int SnappingClient);
+	void OnSnap(int SnappingClient);
+	void OnPostSnap();
 };
 
 #endif

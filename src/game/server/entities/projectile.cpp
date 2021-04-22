@@ -164,9 +164,9 @@ void CProjectile::Tick()
 			}
 			for(int i = 0; i < Number; i++)
 			{
-				GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1, (!pTargetChr ? -1 : pTargetChr->Team()),
+				GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1, (!pTargetChr ? -1 : pTargetChr->Team()),
 					(m_Owner != -1) ? TeamMask : -1LL);
-				GameServer()->CreateSound(ColPos, m_SoundImpact,
+				GameWorld()->CreateSound(ColPos, m_SoundImpact,
 					(m_Owner != -1) ? TeamMask : -1LL);
 			}
 		}
@@ -265,9 +265,9 @@ void CProjectile::Tick()
 				TeamMask = pOwnerChar->Teams()->TeamMask(pOwnerChar->Team(), -1, m_Owner);
 			}
 
-			GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1, (!pOwnerChar ? -1 : pOwnerChar->Team()),
+			GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1, (!pOwnerChar ? -1 : pOwnerChar->Team()),
 				(m_Owner != -1) ? TeamMask : -1LL);
-			GameServer()->CreateSound(ColPos, m_SoundImpact,
+			GameWorld()->CreateSound(ColPos, m_SoundImpact,
 				(m_Owner != -1) ? TeamMask : -1LL);
 		}
 		GameWorld()->DestroyEntity(this);

@@ -658,7 +658,7 @@ void CPlayer::TryRespawn()
 	m_Spawning = false;
 	m_pCharacter = new(m_ClientID) CCharacter(GameWorld());
 	m_pCharacter->Spawn(this, SpawnPos);
-	GameServer()->CreatePlayerSpawn(SpawnPos, Controller()->GetMaskForPlayerWorldEvent(m_ClientID));
+	GameWorld()->CreatePlayerSpawn(SpawnPos, Controller()->GetMaskForPlayerWorldEvent(m_ClientID));
 
 	if(g_Config.m_SvTeam == 3)
 		m_pCharacter->SetSolo(true);
@@ -783,8 +783,8 @@ void CPlayer::ProcessPause()
 	if(m_Paused == PAUSE_SPEC && !m_pCharacter->IsPaused() && m_pCharacter->IsGrounded() && m_pCharacter->m_Pos == m_pCharacter->m_PrevPos)
 	{
 		m_pCharacter->Pause(true);
-		GameServer()->CreateDeath(m_pCharacter->m_Pos, m_ClientID, Controller()->GetMaskForPlayerWorldEvent(m_ClientID));
-		GameServer()->CreateSound(m_pCharacter->m_Pos, SOUND_PLAYER_DIE, Controller()->GetMaskForPlayerWorldEvent(m_ClientID));
+		GameWorld()->CreateDeath(m_pCharacter->m_Pos, m_ClientID, Controller()->GetMaskForPlayerWorldEvent(m_ClientID));
+		GameWorld()->CreateSound(m_pCharacter->m_Pos, SOUND_PLAYER_DIE, Controller()->GetMaskForPlayerWorldEvent(m_ClientID));
 	}
 }
 
@@ -812,7 +812,7 @@ int CPlayer::Pause(int State, bool Force)
 					return m_Paused; // Do not update state. Do not collect $200
 				}
 				m_pCharacter->Pause(false);
-				GameServer()->CreatePlayerSpawn(m_pCharacter->m_Pos, Controller()->GetMaskForPlayerWorldEvent(m_ClientID));
+				GameWorld()->CreatePlayerSpawn(m_pCharacter->m_Pos, Controller()->GetMaskForPlayerWorldEvent(m_ClientID));
 			}
 			// fall-thru
 		case PAUSE_SPEC:

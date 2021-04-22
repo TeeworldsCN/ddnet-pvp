@@ -316,7 +316,7 @@ void CGameTeams::DestroyGameInstance(int Team)
 	m_aTeamInstances[Team].m_pWorld = nullptr;
 }
 
-void CGameTeams::Tick()
+void CGameTeams::OnTick()
 {
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 		if(m_aTeamInstances[i].m_IsCreated)
@@ -339,11 +339,18 @@ void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 	m_Entities.push_back(Ent);
 }
 
-void CGameTeams::Snap(int SnappingClient)
+void CGameTeams::OnSnap(int SnappingClient)
 {
 	SGameInstance Instance = GetPlayerGameInstance(SnappingClient);
 	if(!Instance.m_IsCreated)
 		return;
 	Instance.m_pWorld->Snap(SnappingClient);
 	Instance.m_pController->Snap(SnappingClient);
+}
+
+void CGameTeams::OnPostSnap()
+{
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+		if(m_aTeamInstances[i].m_IsCreated)
+			m_aTeamInstances[i].m_pWorld->OnPostSnap();
 }

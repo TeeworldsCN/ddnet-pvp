@@ -46,7 +46,7 @@ void CPickup::Tick()
 			m_SpawnTick = -1;
 
 			if(m_Type == POWERUP_WEAPON)
-				GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, GameServer()->m_pTeams->TeamMask(GameWorld()->Team()));
+				GameWorld()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, GameServer()->m_pTeams->TeamMask(GameWorld()->Team()));
 		}
 	}
 
@@ -60,7 +60,7 @@ void CPickup::Tick()
 				m_SoloSpawnTick[i] = -1;
 
 				if(m_Type == POWERUP_WEAPON)
-					GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, CmaskOne(i));
+					GameWorld()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, CmaskOne(i));
 			}
 		}
 	}
@@ -90,7 +90,7 @@ void CPickup::Tick()
 			case POWERUP_HEALTH:
 				if(pChr->IncreaseHealth(1))
 				{
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, Mask);
+					GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, Mask);
 					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 				}
 				break;
@@ -98,7 +98,7 @@ void CPickup::Tick()
 			case POWERUP_ARMOR:
 				if(pChr->IncreaseArmor(1))
 				{
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, Mask);
+					GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, Mask);
 					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 				}
 				break;
@@ -112,11 +112,11 @@ void CPickup::Tick()
 						RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 
 						if(m_Subtype == WEAPON_GRENADE)
-							GameServer()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE, Mask);
+							GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE, Mask);
 						else if(m_Subtype == WEAPON_SHOTGUN)
-							GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
+							GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
 						else if(m_Subtype == WEAPON_LASER)
-							GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
+							GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
 
 						if(pChr->GetPlayer())
 							GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);

@@ -38,7 +38,7 @@ bool CPlasma::HitCharacter()
 		return false;
 	m_Freeze ? Hit->Freeze() : Hit->UnFreeze();
 	if(m_Explosive)
-		GameServer()->CreateExplosion(m_Pos, -1, WEAPON_GRENADE, 0, true,
+		GameWorld()->CreateExplosion(m_Pos, -1, WEAPON_GRENADE, 0, true,
 			m_ResponsibleTeam, Hit->Teams()->TeamMask(m_ResponsibleTeam));
 	GameWorld()->DestroyEntity(this);
 	return true;
@@ -72,7 +72,7 @@ void CPlasma::Tick()
 	if(Res)
 	{
 		if(m_Explosive)
-			GameServer()->CreateExplosion(
+			GameWorld()->CreateExplosion(
 				m_Pos,
 				-1,
 				WEAPON_GRENADE,

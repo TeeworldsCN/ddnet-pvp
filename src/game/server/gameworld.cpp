@@ -20,6 +20,7 @@ CGameWorld::CGameWorld(int Team, CGameContext *pGameServer)
 	m_pGameServer = pGameServer;
 	m_pConfig = m_pGameServer->Config();
 	m_pServer = m_pGameServer->Server();
+	m_Events.SetGameServer(pGameServer);
 
 	m_Paused = false;
 	m_ResetRequested = false;
@@ -113,6 +114,12 @@ void CGameWorld::Snap(int SnappingClient)
 			pEnt->Snap(SnappingClient);
 			pEnt = m_pNextTraverseEntity;
 		}
+	m_Events.Snap(SnappingClient);
+}
+
+void CGameWorld::OnPostSnap()
+{
+	m_Events.Clear();
 }
 
 void CGameWorld::Reset()
@@ -394,59 +401,135 @@ void CGameWorld::ReleaseHooked(int ClientID)
 	}
 }
 
-// void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage, bool NoKnockback, int ActivatedTeam, int64 Mask)
-// {
-// 	// create the event
-// 	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)GameServer()->m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), Mask);
-// 	if(pEvent)
-// 	{
-// 		pEvent->m_X = (int)Pos.x;
-// 		pEvent->m_Y = (int)Pos.y;
-// 	}
+void CGameWorld::CreateDamageInd(vec2 Pos, float Angle, int Amount, int64 Mask)
+{
+	float a = 3 * 3.14159f / 2 + Angle;
+	//float a = get_angle(dir);
+	float s = a - pi / 3;
+	float e = a + pi / 3;
+	for(int i = 0; i < Amount; i++)
+	{
+		float f = mix(s, e, float(i + 1) / float(Amount + 2));
+		CNetEvent_DamageInd *pEvent = (CNetEvent_DamageInd *)m_Events.Create(NETEVENTTYPE_DAMAGEIND, sizeof(CNetEvent_DamageInd), Mask);
+		if(pEvent)
+		{
+			pEvent->m_X = (int)Pos.x;
+			pEvent->m_Y = (int)Pos.y;
+			pEvent->m_Angle = (int)(f * 256.0f);
+		}
+	}
+}
 
-// 	// deal damage
-// 	CCharacter *apEnts[MAX_CLIENTS];
-// 	float Radius = 135.0f;
-// 	float InnerRadius = 48.0f;
-// 	int Num = FindEntities(Pos, Radius, (CEntity **)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
-// 	int64 TeamMask = -1;
-// 	for(int i = 0; i < Num; i++)
-// 	{
-// 		vec2 Diff = apEnts[i]->m_Pos - Pos;
-// 		vec2 ForceDir(0, 1);
-// 		float l = length(Diff);
-// 		if(l)
-// 			ForceDir = normalize(Diff);
-// 		l = 1 - clamp((l - InnerRadius) / (Radius - InnerRadius), 0.0f, 1.0f);
-// 		float Strength;
-// 		if(Owner == -1 || !GameServer()->m_apPlayers[Owner] || !GameServer()->m_apPlayers[Owner]->m_TuneZone)
-// 			Strength = GameServer()->Tuning()->m_ExplosionStrength;
-// 		else
-// 			Strength = GameServer()->TuningList()[GameServer()->m_apPlayers[Owner]->m_TuneZone].m_ExplosionStrength;
+void CGameWorld::CreateHammerHit(vec2 Pos, int64 Mask)
+{
+	// create the event
+	CNetEvent_HammerHit *pEvent = (CNetEvent_HammerHit *)m_Events.Create(NETEVENTTYPE_HAMMERHIT, sizeof(CNetEvent_HammerHit), Mask);
+	if(pEvent)
+	{
+		pEvent->m_X = (int)Pos.x;
+		pEvent->m_Y = (int)Pos.y;
+	}
+}
 
-// 		float Knockback = Strength * l;
-// 		float Dmg = MaxDamage * l;
+void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage, bool NoKnockback, int ActivatedTeam, int64 Mask)
+{
+	// create the event
+	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), Mask);
+	if(pEvent)
+	{
+		pEvent->m_X = (int)Pos.x;
+		pEvent->m_Y = (int)Pos.y;
+	}
 
-// 		if(int(Knockback) == 0 && int(Dmg) == 0)
-// 			continue;
+	CCharacter *apEnts[MAX_CLIENTS];
+	float Radius = 135.0f;
+	float InnerRadius = 48.0f;
+	int Num = FindEntities(Pos, Radius, (CEntity **)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 
-// 		if((GameServer()->GetPlayerChar(Owner) ? !(GameServer()->GetPlayerChar(Owner)->m_Hit & CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit) || Owner == apEnts[i]->GetPlayer()->GetCID())
-// 		{
-// 			if(Owner != -1 && apEnts[i]->IsAlive() && !apEnts[i]->CanCollide(Owner))
-// 				continue;
-// 			if(Owner == -1 && ActivatedTeam != -1 && apEnts[i]->IsAlive() && apEnts[i]->Team() != ActivatedTeam)
-// 				continue;
+	for(int i = 0; i < Num; i++)
+	{
+		vec2 Diff = apEnts[i]->m_Pos - Pos;
+		vec2 ForceDir(0, 1);
+		float l = length(Diff);
+		if(l)
+			ForceDir = normalize(Diff);
+		l = 1 - clamp((l - InnerRadius) / (Radius - InnerRadius), 0.0f, 1.0f);
+		float Strength;
+		if(Owner == -1 || !GameServer()->m_apPlayers[Owner] || !GameServer()->m_apPlayers[Owner]->m_TuneZone)
+			Strength = GameServer()->Tuning()->m_ExplosionStrength;
+		else
+			Strength = GameServer()->TuningList()[GameServer()->m_apPlayers[Owner]->m_TuneZone].m_ExplosionStrength;
 
-// 			// Explode at most once per team
-// 			int PlayerTeam = GameServer()->m_pTeams->m_Core.Team(apEnts[i]->GetPlayer()->GetCID());
-// 			if(GameServer()->GetPlayerChar(Owner) ? GameServer()->GetPlayerChar(Owner)->m_Hit & CCharacter::DISABLE_HIT_GRENADE : !g_Config.m_SvHit)
-// 			{
-// 				if(!CmaskIsSet(TeamMask, PlayerTeam))
-// 					continue;
-// 				TeamMask = CmaskUnset(TeamMask, PlayerTeam);
-// 			}
+		float Knockback = Strength * l;
+		float Dmg = MaxDamage * l;
 
-// 			apEnts[i]->TakeDamage(ForceDir * Knockback * 2, (int)Dmg, Owner, Weapon);
-// 		}
-// 	}
-// }
+		if(int(Knockback) == 0 && int(Dmg) == 0)
+			continue;
+
+		if((GameServer()->GetPlayerChar(Owner) ? !(GameServer()->GetPlayerChar(Owner)->m_Hit & CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit) || Owner == apEnts[i]->GetPlayer()->GetCID())
+		{
+			if(Owner != -1 && apEnts[i]->IsAlive() && !apEnts[i]->CanCollide(Owner))
+				continue;
+			if(Owner == -1 && ActivatedTeam != -1 && apEnts[i]->IsAlive() && apEnts[i]->Team() != ActivatedTeam)
+				continue;
+
+			apEnts[i]->TakeDamage(ForceDir * Knockback * 2, (int)Dmg, Owner, Weapon);
+		}
+	}
+}
+
+void CGameWorld::CreatePlayerSpawn(vec2 Pos, int64 Mask)
+{
+	// create the event
+	CNetEvent_Spawn *ev = (CNetEvent_Spawn *)m_Events.Create(NETEVENTTYPE_SPAWN, sizeof(CNetEvent_Spawn), Mask);
+	if(ev)
+	{
+		ev->m_X = (int)Pos.x;
+		ev->m_Y = (int)Pos.y;
+	}
+}
+
+void CGameWorld::CreateDeath(vec2 Pos, int ClientID, int64 Mask)
+{
+	// create the event
+	CNetEvent_Death *pEvent = (CNetEvent_Death *)m_Events.Create(NETEVENTTYPE_DEATH, sizeof(CNetEvent_Death), Mask);
+	if(pEvent)
+	{
+		pEvent->m_X = (int)Pos.x;
+		pEvent->m_Y = (int)Pos.y;
+		pEvent->m_ClientID = ClientID;
+	}
+}
+
+void CGameWorld::CreateSound(vec2 Pos, int Sound, int64 Mask)
+{
+	if(Sound < 0)
+		return;
+
+	// create a sound
+	CNetEvent_SoundWorld *pEvent = (CNetEvent_SoundWorld *)m_Events.Create(NETEVENTTYPE_SOUNDWORLD, sizeof(CNetEvent_SoundWorld), Mask);
+	if(pEvent)
+	{
+		pEvent->m_X = (int)Pos.x;
+		pEvent->m_Y = (int)Pos.y;
+		pEvent->m_SoundID = Sound;
+	}
+}
+
+void CGameWorld::CreateSoundGlobal(int Sound, int Target)
+{
+	if(Sound < 0)
+		return;
+
+	CNetMsg_Sv_SoundGlobal Msg;
+	Msg.m_SoundID = Sound;
+	if(Target == -2)
+		Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, -1);
+	else
+	{
+		int Flag = MSGFLAG_VITAL;
+		if(Target != -1)
+			Flag |= MSGFLAG_NORECORD;
+		Server()->SendPackMsg(&Msg, Flag, Target);
+	}
+}

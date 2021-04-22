@@ -147,7 +147,7 @@ void CLaser::DoBounce()
 			if(m_Bounces > BounceNum)
 				m_Energy = -1;
 
-			GameServer()->CreateSound(m_Pos, SOUND_LASER_BOUNCE, m_TeamMask);
+			GameWorld()->CreateSound(m_Pos, SOUND_LASER_BOUNCE, m_TeamMask);
 		}
 	}
 	else
