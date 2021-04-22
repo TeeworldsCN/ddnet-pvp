@@ -2459,7 +2459,6 @@ void CGameContext::ConPause(IConsole::IResult *pResult, void *pUserData)
 
 void CGameContext::ConChangeMap(IConsole::IResult *pResult, void *pUserData)
 {
-	CGameContext *pSelf = (CGameContext *)pUserData;
 	str_copy(g_Config.m_SvMap, pResult->NumArguments() ? pResult->GetString(0) : "", sizeof(g_Config.m_SvMap));
 }
 

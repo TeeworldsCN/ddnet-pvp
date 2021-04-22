@@ -62,7 +62,7 @@ void CDoor::Tick()
 
 void CDoor::Snap(int SnappingClient, bool IsOther)
 {
-	if(IsOther || NetworkClipped(SnappingClient, m_Pos) && NetworkClipped(SnappingClient, m_To))
+	if(IsOther || (NetworkClipped(SnappingClient, m_Pos) && NetworkClipped(SnappingClient, m_To)))
 		return;
 
 	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(

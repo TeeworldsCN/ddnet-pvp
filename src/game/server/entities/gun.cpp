@@ -46,10 +46,10 @@ void CGun::Fire()
 		int res = GameServer()->Collision()->IntersectLine(m_Pos, Target->m_Pos, 0, 0);
 		if(!res)
 		{
-			int Len = length(Target->m_Pos - m_Pos);
-			if(Len == 0 || Len > Len)
+			int TargetLen = length(Target->m_Pos - m_Pos);
+			if(Len == 0 || Len > TargetLen)
 			{
-				Len = Len;
+				Len = TargetLen;
 				Id = i;
 			}
 		}
