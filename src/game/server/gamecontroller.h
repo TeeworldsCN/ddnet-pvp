@@ -139,8 +139,6 @@ public:
 	virtual bool CanJoinTeam(int Team, int NotThisID);
 	int ClampTeam(int Team);
 
-	virtual int64 GetMaskForPlayerWorldEvent(int Asker, int ExceptID = -1);
-
 	// DDRace
 	int GetPlayerTeam(int ClientID) const;
 	void InitController(int Team, class CGameContext *pGameServer, class CGameWorld *pWorld);

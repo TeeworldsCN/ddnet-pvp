@@ -716,12 +716,6 @@ int IGameController::ClampTeam(int Team)
 	return 0;
 }
 
-// TODO: Controller, don't need this anymore
-int64 IGameController::GetMaskForPlayerWorldEvent(int Asker, int ExceptID)
-{
-	return CmaskAllExceptOne(ExceptID);
-}
-
 int IGameController::GetPlayerTeam(int ClientID) const
 {
 	return GameServer()->GetPlayerDDRTeam(ClientID);
