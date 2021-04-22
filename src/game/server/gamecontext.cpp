@@ -3335,8 +3335,8 @@ void CGameContext::OnShutdown()
 	DeleteTempfile();
 	Console()->ResetServerGameSettings();
 	Collision()->Dest();
-	delete m_pTeams;
 	Clear();
+	delete m_pTeams;
 }
 
 void CGameContext::LoadMapSettings()
