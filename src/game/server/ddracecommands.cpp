@@ -305,7 +305,7 @@ void CGameContext::ConToCheckTeleporter(IConsole::IResult *pResult, void *pUserD
 		CCharacter *pChr = pSelf->GetPlayerChar(pResult->m_ClientID);
 		if(pChr)
 		{
-			vec2 TelePos = pSelf->Collision()->TelePos(TeleTo);
+			vec2 TelePos = pSelf->Collision()->CpTelePos(TeleTo - 1);
 			pChr->Core()->m_Pos = TelePos;
 			pChr->m_Pos = TelePos;
 			pChr->m_PrevPos = TelePos;

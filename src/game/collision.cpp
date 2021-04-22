@@ -883,7 +883,7 @@ vec2 CCollision::TelePos(int To, int Out)
 vec2 CCollision::CpTelePos(int To, int Out)
 {
 	if(Out < 0)
-		Out = RandomOr0(m_TeleCheckOuts.size());
+		Out = RandomOr0(m_TeleCheckOuts[To].size());
 
 	return m_TeleCheckOuts[To][Out];
 }

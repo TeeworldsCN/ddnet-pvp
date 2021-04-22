@@ -1453,6 +1453,10 @@ void CCharacter::HandleTiles(int Index)
 		return;
 	}
 
+	int tcp = GameServer()->Collision()->IsTCheckpoint(MapIndex);
+	if(tcp)
+		m_TeleCheckpoint = tcp;
+
 	GameServer()->GameInstance(Team()).m_pController->HandleCharacterTiles(this, Index);
 	// freeze
 	if(((m_TileIndex == TILE_FREEZE) || (m_TileFIndex == TILE_FREEZE)) && !m_Super && !m_DeepFreeze)
