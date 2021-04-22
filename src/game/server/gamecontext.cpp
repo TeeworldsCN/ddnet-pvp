@@ -130,6 +130,11 @@ SGameInstance CGameContext::GameInstance(int Team)
 	return m_pTeams->GetGameInstance(Team);
 }
 
+SGameInstance CGameContext::PlayerGameInstance(int ClientID)
+{
+	return m_pTeams->GetGameInstance(m_pTeams->m_Core.Team(ClientID));
+}
+
 int CGameContext::GetPlayerDDRTeam(int ClientID)
 {
 	return m_pTeams->m_Core.Team(ClientID);
@@ -226,7 +231,7 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamag
 	CCharacter *apEnts[MAX_CLIENTS];
 	float Radius = 135.0f;
 	float InnerRadius = 48.0f;
-	int Num = GameInstance(Owner).m_pWorld->FindEntities(Pos, Radius, (CEntity **)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+	int Num = PlayerGameInstance(Owner).m_pWorld->FindEntities(Pos, Radius, (CEntity **)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 	int64 TeamMask = -1;
 	for(int i = 0; i < Num; i++)
 	{
@@ -1043,7 +1048,7 @@ void CGameContext::OnTick()
 // Server hooks
 void CGameContext::OnClientDirectInput(int ClientID, void *pInput)
 {
-	CGameWorld *pPlayerWorld = GameInstance(ClientID).m_pWorld;
+	CGameWorld *pPlayerWorld = PlayerGameInstance(ClientID).m_pWorld;
 	if(pPlayerWorld && !pPlayerWorld->m_Paused)
 		m_apPlayers[ClientID]->OnDirectInput((CNetObj_PlayerInput *)pInput);
 
@@ -1056,14 +1061,14 @@ void CGameContext::OnClientDirectInput(int ClientID, void *pInput)
 
 void CGameContext::OnClientPredictedInput(int ClientID, void *pInput)
 {
-	CGameWorld *pPlayerWorld = GameInstance(ClientID).m_pWorld;
+	CGameWorld *pPlayerWorld = PlayerGameInstance(ClientID).m_pWorld;
 	if(pPlayerWorld && !pPlayerWorld->m_Paused)
 		m_apPlayers[ClientID]->OnPredictedInput((CNetObj_PlayerInput *)pInput);
 }
 
 void CGameContext::OnClientPredictedEarlyInput(int ClientID, void *pInput)
 {
-	CGameWorld *pPlayerWorld = GameInstance(ClientID).m_pWorld;
+	CGameWorld *pPlayerWorld = PlayerGameInstance(ClientID).m_pWorld;
 	if(pPlayerWorld && !pPlayerWorld->m_Paused)
 		m_apPlayers[ClientID]->OnPredictedEarlyInput((CNetObj_PlayerInput *)pInput);
 
@@ -1668,7 +1673,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 	if(Server()->ClientIngame(ClientID))
 	{
-		CGameWorld *pPlayerWorld = GameInstance(ClientID).m_pWorld;
+		CGameWorld *pPlayerWorld = PlayerGameInstance(ClientID).m_pWorld;
 		if(MsgID == NETMSGTYPE_CL_SAY)
 		{
 			CNetMsg_Cl_Say *pMsg = (CNetMsg_Cl_Say *)pRawMsg;

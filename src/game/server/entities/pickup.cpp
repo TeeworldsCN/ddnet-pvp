@@ -27,35 +27,31 @@ void CPickup::Reset()
 	int SpawnTick = -1;
 	if(g_pData->m_aPickups[m_Type].m_Spawndelay > 0)
 		SpawnTick = Server()->Tick() + Server()->TickSpeed() * g_pData->m_aPickups[m_Type].m_Spawndelay;
+
+	m_SpawnTick = SpawnTick;
 	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		m_SpawnTick[i] = SpawnTick;
 		m_SoloSpawnTick[i] = SpawnTick;
-	}
 }
 
 void CPickup::Tick()
 {
 	Move();
 
+	// wait for respawn
+	if(m_SpawnTick > 0)
+	{
+		if(Server()->Tick() > m_SpawnTick)
+		{
+			// respawn
+			m_SpawnTick = -1;
+
+			if(m_Type == POWERUP_WEAPON)
+				GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, GameServer()->m_pTeams->TeamMask(GameWorld()->Team()));
+		}
+	}
+
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
-		int64 TeamMask = GameServer()->m_pTeams->TeamMask(i);
-		int64 SoloMask = CmaskOne(i);
-
-		// wait for respawn
-		if(m_SpawnTick[i] > 0)
-		{
-			if(Server()->Tick() > m_SpawnTick[i])
-			{
-				// respawn
-				m_SpawnTick[i] = -1;
-
-				if(m_Type == POWERUP_WEAPON)
-					GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, TeamMask);
-			}
-		}
-
 		if(m_SoloSpawnTick[i] > 0)
 		{
 			if(Server()->Tick() > m_SoloSpawnTick[i])
@@ -64,7 +60,7 @@ void CPickup::Tick()
 				m_SoloSpawnTick[i] = -1;
 
 				if(m_Type == POWERUP_WEAPON)
-					GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, SoloMask);
+					GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, CmaskOne(i));
 			}
 		}
 	}
@@ -76,7 +72,7 @@ void CPickup::Tick()
 	{
 		CCharacter *pChr = apEnts[i];
 		bool isSoloInteract = (m_SoloSpawnTick[i] < 0) && GameServer()->m_pTeams->m_Core.GetSolo(i);
-		bool isTeamInteract = m_SpawnTick[pChr->Team()] < 0 && !GameServer()->m_pTeams->m_Core.GetSolo(i);
+		bool isTeamInteract = m_SpawnTick < 0 && !GameServer()->m_pTeams->m_Core.GetSolo(i);
 
 		if(pChr && pChr->IsAlive() && (isSoloInteract || isTeamInteract))
 		{
@@ -161,7 +157,7 @@ void CPickup::Tick()
 				if(isSoloInteract)
 					m_SoloSpawnTick[i] = RespawnTick;
 				else if(isTeamInteract)
-					m_SpawnTick[pChr->Team()] = RespawnTick;
+					m_SpawnTick = RespawnTick;
 			}
 		}
 	}
@@ -169,10 +165,10 @@ void CPickup::Tick()
 
 void CPickup::TickPaused()
 {
+	if(m_SpawnTick != -1)
+		++m_SpawnTick;
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
-		if(m_SpawnTick[i] != -1)
-			++m_SpawnTick[i];
 		if(m_SoloSpawnTick[i] != -1)
 			++m_SoloSpawnTick[i];
 	}
@@ -199,7 +195,7 @@ void CPickup::Snap(int SnappingClient)
 		{
 			int SnapCID = SnapPlayer->GetCID();
 			bool isSoloActive = GameServer()->m_pTeams->m_Core.GetSolo(SnapCID) && (m_SoloSpawnTick[SnapCID] < 0);
-			bool isTeamActive = !GameServer()->m_pTeams->m_Core.GetSolo(SnapCID) && m_SpawnTick[GameServer()->GetPlayerDDRTeam(SnapCID)] < 0;
+			bool isTeamActive = !GameServer()->m_pTeams->m_Core.GetSolo(SnapCID) && m_SpawnTick < 0;
 			if(!isSoloActive && !isTeamActive)
 				return;
 		}

@@ -380,11 +380,11 @@ void IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 		new CGun(GameWorld(), Pos, false, false, Layer, Number);
 	}
 
-	// if(Type != -1)
-	// {
-	// 	CPickup *pPickup = new CPickup(GameWorld(), Type, SubType);
-	// 	pPickup->m_Pos = Pos;
-	// }
+	if(Type != -1)
+	{
+		CPickup *pPickup = new CPickup(GameWorld(), Type, SubType);
+		pPickup->m_Pos = Pos;
+	}
 }
 
 void IGameController::OnPlayerConnect(CPlayer *pPlayer)

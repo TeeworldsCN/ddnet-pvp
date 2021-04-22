@@ -47,6 +47,8 @@ public:
 	class CConfig *Config() { return m_pConfig; }
 	class IServer *Server() { return m_pServer; }
 
+	int Team() { return m_ResponsibleTeam; }
+
 	bool m_ResetRequested;
 	bool m_Paused;
 	CWorldCore m_Core;

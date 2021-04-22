@@ -20,7 +20,7 @@ public:
 private:
 	int m_Type;
 	int m_Subtype;
-	int m_SpawnTick[MAX_CLIENTS]; // for team
+	int m_SpawnTick; // for team
 	int m_SoloSpawnTick[MAX_CLIENTS]; // for solo
 
 	// DDRace

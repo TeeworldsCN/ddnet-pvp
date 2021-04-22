@@ -153,6 +153,7 @@ public:
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
 	SGameInstance GameInstance(int Team);
+	SGameInstance PlayerGameInstance(int ClientID);
 	int GetPlayerDDRTeam(int ClientID);
 	bool EmulateBug(int Bug);
 
