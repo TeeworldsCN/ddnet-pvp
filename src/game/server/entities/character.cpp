@@ -24,7 +24,6 @@ CCharacter::CCharacter(CGameWorld *pWorld) :
 {
 	m_Health = 0;
 	m_Armor = 0;
-	m_StrongWeakID = 0;
 
 	// never intilize both to zero
 	m_Input.m_TargetX = 0;
@@ -63,19 +62,19 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	Antibot()->OnSpawn(m_pPlayer->GetCID());
 
 	m_Core.Reset();
-	m_Core.Init(&GameServer()->m_World.m_Core, GameServer()->Collision(), &GameServer()->m_pTeams->m_Core);
+	m_Core.Init(&GameWorld()->m_Core, GameServer()->Collision(), &GameServer()->m_pTeams->m_Core);
 	m_Core.m_ActiveWeapon = WEAPON_GUN;
 	m_Core.m_Pos = m_Pos;
-	GameServer()->m_World.m_Core.m_apCharacters[m_pPlayer->GetCID()] = &m_Core;
+	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = &m_Core;
 
 	m_ReckoningTick = 0;
 	mem_zero(&m_SendCore, sizeof(m_SendCore));
 	mem_zero(&m_ReckoningCore, sizeof(m_ReckoningCore));
 
-	GameServer()->m_World.InsertEntity(this);
+	GameWorld()->InsertEntity(this);
 	m_Alive = true;
 
-	GameServer()->Controller(Team())->OnCharacterSpawn(this);
+	GameServer()->GameInstance(Team()).m_pController->OnCharacterSpawn(this);
 
 	DDRaceInit();
 
@@ -92,7 +91,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 
 void CCharacter::Destroy()
 {
-	GameServer()->m_World.m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
+	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 	m_Alive = false;
 	m_Solo = false;
 }
@@ -233,7 +232,7 @@ void CCharacter::HandleNinja()
 			vec2 Dir = m_Pos - OldPos;
 			float Radius = GetProximityRadius() * 2.0f;
 			vec2 Center = OldPos + Dir * 0.5f;
-			int Num = GameServer()->m_World.FindEntities(Center, Radius, (CEntity **)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+			int Num = GameWorld()->FindEntities(Center, Radius, (CEntity **)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 
 			// check that we're not in solo part
 			if(Teams()->m_Core.GetSolo(m_pPlayer->GetCID()))
@@ -404,7 +403,7 @@ void CCharacter::FireWeapon()
 
 		CCharacter *apEnts[MAX_CLIENTS];
 		int Hits = 0;
-		int Num = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, (CEntity **)apEnts,
+		int Num = GameWorld()->FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, (CEntity **)apEnts,
 			MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 
 		for(int i = 0; i < Num; ++i)
@@ -540,7 +539,7 @@ void CCharacter::FireWeapon()
 			else
 				LaserReach = GameServer()->TuningList()[m_TuneZone].m_LaserReach;
 
-			new CLaser(&GameServer()->m_World, m_Pos, Direction, LaserReach, m_pPlayer->GetCID(), WEAPON_SHOTGUN);
+			new CLaser(GameWorld(), m_Pos, Direction, LaserReach, m_pPlayer->GetCID(), WEAPON_SHOTGUN);
 			GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
 		}
 	}
@@ -761,7 +760,7 @@ void CCharacter::Tick()
 	/*if(m_pPlayer->m_ForceBalanced)
 	{
 		char Buf[128];
-		str_format(Buf, sizeof(Buf), "You were moved to %s due to team balancing", GameServer()->Controller(Team())->GetTeamName(m_pPlayer->GetTeam()));
+		str_format(Buf, sizeof(Buf), "You were moved to %s due to team balancing", GameServer()->GameInstance(Team()).m_pController->GetTeamName(m_pPlayer->GetTeam()));
 		GameServer()->SendBroadcast(Buf, m_pPlayer->GetCID());
 
 		m_pPlayer->m_ForceBalanced = false;
@@ -950,7 +949,7 @@ void CCharacter::Die(int Killer, int Weapon)
 	if(Server()->IsRecording(m_pPlayer->GetCID()))
 		Server()->StopRecord(m_pPlayer->GetCID());
 
-	int ModeSpecial = GameServer()->Controller(Team())->OnCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
+	int ModeSpecial = GameServer()->GameInstance(Team()).m_pController->OnCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "kill killer='%d:%s' victim='%d:%s' weapon=%d special=%d",
@@ -977,8 +976,8 @@ void CCharacter::Die(int Killer, int Weapon)
 	m_pPlayer->m_RespawnTick = Server()->Tick() + Server()->TickSpeed() / 2;
 	m_Solo = false;
 
-	GameServer()->m_World.RemoveEntity(this);
-	GameServer()->m_World.m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
+	GameWorld()->RemoveEntity(this);
+	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCID(), Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
 	Teams()->OnCharacterDeath(GetPlayer()->GetCID(), Weapon);
 }
@@ -1086,7 +1085,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int ID)
 	CCharacterCore *pCore;
 	int Tick, Emote = m_EmoteType, Weapon = m_Core.m_ActiveWeapon, AmmoCount = 0,
 		  Health = 0, Armor = 0;
-	if(!m_ReckoningTick || GameServer()->m_World.m_Paused)
+	if(!m_ReckoningTick || GameWorld()->m_Paused)
 	{
 		Tick = 0;
 		pCore = &m_Core;
@@ -1292,7 +1291,7 @@ void CCharacter::Snap(int SnappingClient)
                                                                                Server()->Tick() + m_FreezeTime;
 	pDDNetCharacter->m_Jumps = m_Core.m_Jumps;
 	pDDNetCharacter->m_TeleCheckpoint = m_TeleCheckpoint;
-	pDDNetCharacter->m_StrongWeakID = m_StrongWeakID;
+	pDDNetCharacter->m_StrongWeakID = 0;
 }
 
 // DDRace
@@ -1460,7 +1459,7 @@ void CCharacter::HandleTiles(int Index)
 		return;
 	}
 
-	GameServer()->Controller(Team())->HandleCharacterTiles(this, Index);
+	GameServer()->GameInstance(Team()).m_pController->HandleCharacterTiles(this, Index);
 
 	// endless hook
 	if(((m_TileIndex == TILE_EHOOK_ENABLE) || (m_TileFIndex == TILE_EHOOK_ENABLE)))
@@ -1816,12 +1815,12 @@ void CCharacter::HandleTiles(int Index)
 	}
 
 	int z = GameServer()->Collision()->IsTeleport(MapIndex);
-	if(!g_Config.m_SvOldTeleportHook && !g_Config.m_SvOldTeleportWeapons && z && GameServer()->Collision()->NumTeles(z-1))
+	if(!g_Config.m_SvOldTeleportHook && !g_Config.m_SvOldTeleportWeapons && z && GameServer()->Collision()->NumTeles(z - 1))
 	{
 		if(m_Super)
 			return;
 
-		m_Core.m_Pos = GameServer()->Collision()->TelePos(z-1);
+		m_Core.m_Pos = GameServer()->Collision()->TelePos(z - 1);
 		if(!g_Config.m_SvTeleportHoldHook)
 		{
 			ResetHook();
@@ -1835,7 +1834,7 @@ void CCharacter::HandleTiles(int Index)
 	{
 		if(m_Super)
 			return;
-	
+
 		m_Core.m_Pos = GameServer()->Collision()->TelePos(evilz - 1);
 		if(!g_Config.m_SvOldTeleportHook && !g_Config.m_SvOldTeleportWeapons)
 		{
@@ -1876,7 +1875,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		// if no checkpointout have been found (or if there no recorded checkpoint), teleport to start
 		vec2 SpawnPos;
-		if(GameServer()->Controller(Team())->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos, Team()))
+		if(GameServer()->GameInstance(Team()).m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos))
 		{
 			m_Core.m_Pos = SpawnPos;
 			m_Core.m_Vel = vec2(0, 0);
@@ -1910,7 +1909,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		// if no checkpointout have been found (or if there no recorded checkpoint), teleport to start
 		vec2 SpawnPos;
-		if(GameServer()->Controller(Team())->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos, Team()))
+		if(GameServer()->GameInstance(Team()).m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos))
 		{
 			m_Core.m_Pos = SpawnPos;
 
@@ -2186,8 +2185,8 @@ void CCharacter::Pause(bool Pause)
 	m_Paused = Pause;
 	if(Pause)
 	{
-		GameServer()->m_World.m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
-		GameServer()->m_World.RemoveEntity(this);
+		GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
+		GameWorld()->RemoveEntity(this);
 
 		if(m_Core.m_HookedPlayer != -1) // Keeping hook would allow cheats
 		{
@@ -2198,8 +2197,8 @@ void CCharacter::Pause(bool Pause)
 	else
 	{
 		m_Core.m_Vel = vec2(0, 0);
-		GameServer()->m_World.m_Core.m_apCharacters[m_pPlayer->GetCID()] = &m_Core;
-		GameServer()->m_World.InsertEntity(this);
+		GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = &m_Core;
+		GameWorld()->InsertEntity(this);
 	}
 }
 

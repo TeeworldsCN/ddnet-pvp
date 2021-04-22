@@ -6,19 +6,20 @@
 #include "entity.h"
 #include "gamecontext.h"
 #include "player.h"
+#include "teams.h"
 #include <algorithm>
 #include <engine/shared/config.h>
-#include "teams.h"
 #include <utility>
 
 //////////////////////////////////////////////////
 // game world
 //////////////////////////////////////////////////
-CGameWorld::CGameWorld()
+CGameWorld::CGameWorld(int Team, CGameContext *pGameServer)
 {
-	m_pGameServer = 0x0;
-	m_pConfig = 0x0;
-	m_pServer = 0x0;
+	m_ResponsibleTeam = Team;
+	m_pGameServer = pGameServer;
+	m_pConfig = m_pGameServer->Config();
+	m_pServer = m_pGameServer->Server();
 
 	m_Paused = false;
 	m_ResetRequested = false;
@@ -32,13 +33,6 @@ CGameWorld::~CGameWorld()
 	for(auto &pFirstEntityType : m_apFirstEntityTypes)
 		while(pFirstEntityType)
 			delete pFirstEntityType;
-}
-
-void CGameWorld::SetGameServer(CGameContext *pGameServer)
-{
-	m_pGameServer = pGameServer;
-	m_pConfig = m_pGameServer->Config();
-	m_pServer = m_pGameServer->Server();
 }
 
 CEntity *CGameWorld::FindFirst(int Type)
@@ -133,7 +127,7 @@ void CGameWorld::Reset()
 		}
 	RemoveEntities();
 
-	GameServer()->m_pTeams->OnReset();
+	GameServer()->GameInstance(m_ResponsibleTeam).m_pController->OnReset();
 	RemoveEntities();
 
 	m_ResetRequested = false;
@@ -259,7 +253,7 @@ void CGameWorld::Tick()
 		// TODO: Controller, move force balance in controller
 		// if(GameServer()->m_pController->IsForceBalanced())
 		// 	GameServer()->SendChat(-1, CGameContext::CHAT_ALL, "Teams have been balanced");
-		
+
 		// update all objects
 		for(auto *pEnt : m_apFirstEntityTypes)
 			for(; pEnt;)
@@ -292,14 +286,6 @@ void CGameWorld::Tick()
 	RemoveEntities();
 
 	UpdatePlayerMaps();
-
-	// find the characters' strong/weak id
-	int StrongWeakID = 0;
-	for(CCharacter *pChar = (CCharacter *)FindFirst(ENTTYPE_CHARACTER); pChar; pChar = (CCharacter *)pChar->TypeNext())
-	{
-		pChar->m_StrongWeakID = StrongWeakID;
-		StrongWeakID++;
-	}
 }
 
 // TODO: should be more general
@@ -348,7 +334,7 @@ CCharacter *CGameWorld::ClosestCharacter(vec2 Pos, float Radius, CEntity *pNotTh
 	float ClosestRange = Radius * 2;
 	CCharacter *pClosest = 0;
 
-	CCharacter *p = (CCharacter *)GameServer()->m_World.FindFirst(ENTTYPE_CHARACTER);
+	CCharacter *p = (CCharacter *)FindFirst(ENTTYPE_CHARACTER);
 	for(; p; p = (CCharacter *)p->TypeNext())
 	{
 		if(p == pNotThis)
@@ -407,3 +393,60 @@ void CGameWorld::ReleaseHooked(int ClientID)
 		}
 	}
 }
+
+// void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage, bool NoKnockback, int ActivatedTeam, int64 Mask)
+// {
+// 	// create the event
+// 	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)GameServer()->m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), Mask);
+// 	if(pEvent)
+// 	{
+// 		pEvent->m_X = (int)Pos.x;
+// 		pEvent->m_Y = (int)Pos.y;
+// 	}
+
+// 	// deal damage
+// 	CCharacter *apEnts[MAX_CLIENTS];
+// 	float Radius = 135.0f;
+// 	float InnerRadius = 48.0f;
+// 	int Num = FindEntities(Pos, Radius, (CEntity **)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+// 	int64 TeamMask = -1;
+// 	for(int i = 0; i < Num; i++)
+// 	{
+// 		vec2 Diff = apEnts[i]->m_Pos - Pos;
+// 		vec2 ForceDir(0, 1);
+// 		float l = length(Diff);
+// 		if(l)
+// 			ForceDir = normalize(Diff);
+// 		l = 1 - clamp((l - InnerRadius) / (Radius - InnerRadius), 0.0f, 1.0f);
+// 		float Strength;
+// 		if(Owner == -1 || !GameServer()->m_apPlayers[Owner] || !GameServer()->m_apPlayers[Owner]->m_TuneZone)
+// 			Strength = GameServer()->Tuning()->m_ExplosionStrength;
+// 		else
+// 			Strength = GameServer()->TuningList()[GameServer()->m_apPlayers[Owner]->m_TuneZone].m_ExplosionStrength;
+
+// 		float Knockback = Strength * l;
+// 		float Dmg = MaxDamage * l;
+
+// 		if(int(Knockback) == 0 && int(Dmg) == 0)
+// 			continue;
+
+// 		if((GameServer()->GetPlayerChar(Owner) ? !(GameServer()->GetPlayerChar(Owner)->m_Hit & CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit) || Owner == apEnts[i]->GetPlayer()->GetCID())
+// 		{
+// 			if(Owner != -1 && apEnts[i]->IsAlive() && !apEnts[i]->CanCollide(Owner))
+// 				continue;
+// 			if(Owner == -1 && ActivatedTeam != -1 && apEnts[i]->IsAlive() && apEnts[i]->Team() != ActivatedTeam)
+// 				continue;
+
+// 			// Explode at most once per team
+// 			int PlayerTeam = GameServer()->m_pTeams->m_Core.Team(apEnts[i]->GetPlayer()->GetCID());
+// 			if(GameServer()->GetPlayerChar(Owner) ? GameServer()->GetPlayerChar(Owner)->m_Hit & CCharacter::DISABLE_HIT_GRENADE : !g_Config.m_SvHit)
+// 			{
+// 				if(!CmaskIsSet(TeamMask, PlayerTeam))
+// 					continue;
+// 				TeamMask = CmaskUnset(TeamMask, PlayerTeam);
+// 			}
+
+// 			apEnts[i]->TakeDamage(ForceDir * Knockback * 2, (int)Dmg, Owner, Weapon);
+// 		}
+// 	}
+// }

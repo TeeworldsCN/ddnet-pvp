@@ -11,16 +11,14 @@
 CGameTeams::CGameTeams(CGameContext *pGameContext) :
 	m_pGameContext(pGameContext)
 {
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-		m_apControllers[i] = nullptr;
-
+	mem_zero(m_aTeamInstances, sizeof(m_aTeamInstances));
 	Reset();
 }
 
 CGameTeams::~CGameTeams()
 {
 	for(int i = 0; i < MAX_CLIENTS; ++i)
-		DestroyGameController(i);
+		DestroyGameInstance(i);
 }
 
 void CGameTeams::Reset()
@@ -28,10 +26,10 @@ void CGameTeams::Reset()
 	m_Core.Reset();
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
-		DestroyGameController(i);
-		m_TeamState[i] = TEAMSTATE_EMPTY;
-		m_TeamLocked[i] = false;
-		m_Invited[i] = 0;
+		DestroyGameInstance(i);
+		m_aTeamState[i] = TEAMSTATE_EMPTY;
+		m_aTeamLocked[i] = false;
+		m_aInvited[i] = 0;
 	}
 }
 
@@ -60,7 +58,7 @@ const char *CGameTeams::SetCharacterTeam(int ClientID, int Team)
 		return "Invalid client ID";
 	if(Team < 0 || Team >= MAX_CLIENTS + 1)
 		return "Invalid room number";
-	if(Team != TEAM_SUPER && m_TeamState[Team] > TEAMSTATE_OPEN)
+	if(Team != TEAM_SUPER && m_aTeamState[Team] > TEAMSTATE_OPEN)
 		return "This room started already";
 	if(m_Core.Team(ClientID) == Team)
 		return "You are in this room already";
@@ -88,17 +86,17 @@ void CGameTeams::SetForceCharacterTeam(int ClientID, int Team)
 {
 	int OldTeam = m_Core.Team(ClientID);
 
-	if(Team != OldTeam && (OldTeam != TEAM_FLOCK || g_Config.m_SvTeam == 3) && OldTeam != TEAM_SUPER && m_TeamState[OldTeam] != TEAMSTATE_EMPTY)
+	if(Team != OldTeam && (OldTeam != TEAM_FLOCK || g_Config.m_SvTeam == 3) && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
 	{
 		bool NoElseInOldTeam = Count(OldTeam) <= 1;
 		if(NoElseInOldTeam)
 		{
-			m_TeamState[OldTeam] = TEAMSTATE_EMPTY;
+			m_aTeamState[OldTeam] = TEAMSTATE_EMPTY;
 
 			// unlock team when last player leaves
 			SetTeamLock(OldTeam, false);
 			ResetRoundState(OldTeam);
-			DestroyGameController(OldTeam);
+			DestroyGameInstance(OldTeam);
 			// do not reset SaveTeamResult, because it should be logged into teehistorian even if the team leaves
 		}
 	}
@@ -112,11 +110,11 @@ void CGameTeams::SetForceCharacterTeam(int ClientID, int Team)
 				SendTeamsState(LoopClientID);
 	}
 
-	int TeamOldState = m_TeamState[Team];
+	int TeamOldState = m_aTeamState[Team];
 
-	if(Team != TEAM_SUPER && (TeamOldState == TEAMSTATE_EMPTY || m_TeamLocked[Team]))
+	if(Team != TEAM_SUPER && (TeamOldState == TEAMSTATE_EMPTY || m_aTeamLocked[Team]))
 	{
-		if(!m_TeamLocked[Team])
+		if(!m_aTeamLocked[Team])
 			ChangeTeamState(Team, TEAMSTATE_OPEN);
 
 		ResetSwitchers(Team);
@@ -139,7 +137,7 @@ int CGameTeams::Count(int Team) const
 
 void CGameTeams::ChangeTeamState(int Team, int State)
 {
-	m_TeamState[Team] = State;
+	m_aTeamState[Team] = State;
 }
 
 int64 CGameTeams::TeamMask(int Team, int ExceptID, int Asker)
@@ -232,7 +230,7 @@ void CGameTeams::OnCharacterSpawn(int ClientID)
 	m_Core.SetSolo(ClientID, false);
 	int Team = m_Core.Team(ClientID);
 
-	if(m_Core.Team(ClientID) >= TEAM_SUPER || !m_TeamLocked[Team])
+	if(m_Core.Team(ClientID) >= TEAM_SUPER || !m_aTeamLocked[Team])
 	{
 		if(g_Config.m_SvTeam != 3)
 			SetForceCharacterTeam(ClientID, Team);
@@ -259,12 +257,12 @@ void CGameTeams::OnCharacterDeath(int ClientID, int Weapon)
 void CGameTeams::SetTeamLock(int Team, bool Lock)
 {
 	if(Team > TEAM_FLOCK && Team < TEAM_SUPER)
-		m_TeamLocked[Team] = Lock;
+		m_aTeamLocked[Team] = Lock;
 }
 
 void CGameTeams::ResetInvited(int Team)
 {
-	m_Invited[Team] = 0;
+	m_aInvited[Team] = 0;
 }
 
 void CGameTeams::SetClientInvited(int Team, int ClientID, bool Invited)
@@ -272,46 +270,61 @@ void CGameTeams::SetClientInvited(int Team, int ClientID, bool Invited)
 	if(Team > TEAM_FLOCK && Team < TEAM_SUPER)
 	{
 		if(Invited)
-			m_Invited[Team] |= 1ULL << ClientID;
+			m_aInvited[Team] |= 1ULL << ClientID;
 		else
-			m_Invited[Team] &= ~(1ULL << ClientID);
+			m_aInvited[Team] &= ~(1ULL << ClientID);
 	}
 }
 
-IGameController *CGameTeams::GetGameControllers(int Team)
+SGameInstance CGameTeams::GetGameInstance(int Team)
 {
-	if (!m_apControllers[Team])
-		CreateGameController(Team);
-
-	return m_apControllers[Team];
+	if(!m_aTeamInstances[Team].m_IsCreated)
+		CreateGameInstance(Team);
+	return m_aTeamInstances[Team];
 }
 
-void CGameTeams::CreateGameController(int Team)
+SGameInstance CGameTeams::GetPlayerGameInstance(int ClientID)
 {
-	if (m_apControllers[Team])
-		DestroyGameController(Team);
+	return m_aTeamInstances[m_Core.Team(ClientID)];
+}
+
+void CGameTeams::CreateGameInstance(int Team)
+{
+	if(m_aTeamInstances[Team].m_IsCreated)
+		DestroyGameInstance(Team);
+
 	dbg_msg("team", "creating game controller %d", Team);
-	m_apControllers[Team] = new CGameControllerDDRace(m_pGameContext);
-	m_apControllers[Team]->SetControllerTeam(Team);
-	for (auto &Ent : m_Entities)
-		m_apControllers[Team]->OnEntity(Ent.Index, Ent.Pos, Ent.Layer, Ent.Flags, Ent.Number);
+	CGameWorld *pWorld = new CGameWorld(Team, m_pGameContext);
+	m_aTeamInstances[Team].m_pWorld = pWorld;
+	m_aTeamInstances[Team].m_pController = new CGameControllerDDRace();
+	m_aTeamInstances[Team].m_pController->InitController(Team, m_pGameContext, pWorld);
+	for(auto &Ent : m_Entities)
+		m_aTeamInstances[Team].m_pController->OnEntity(Ent.Index, Ent.Pos, Ent.Layer, Ent.Flags, Ent.Number);
+	m_aTeamInstances[Team].m_IsCreated = true;
 }
 
-void CGameTeams::DestroyGameController(int Team)
+void CGameTeams::DestroyGameInstance(int Team)
 {
-	if (!m_apControllers[Team])
+	if(!m_aTeamInstances[Team].m_IsCreated)
 		return;
 
 	dbg_msg("team", "deleting game controller %d", Team);
-	delete m_apControllers[Team];
-	m_apControllers[Team] = nullptr;
+	delete m_aTeamInstances[Team].m_pController;
+	delete m_aTeamInstances[Team].m_pWorld;
+	m_aTeamInstances[Team].m_IsCreated = false;
+	m_aTeamInstances[Team].m_pController = nullptr;
+	m_aTeamInstances[Team].m_pWorld = nullptr;
 }
 
 void CGameTeams::Tick()
 {
-	for (int i = 0; i < MAX_CLIENTS; ++i)
-		if (m_apControllers[i])
-			m_apControllers[i]->Tick();
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+		if(m_aTeamInstances[i].m_IsCreated)
+		{
+			m_aTeamInstances[i].m_pWorld->m_Core.m_Tuning[0] = *GameServer()->Tuning();
+			m_aTeamInstances[i].m_pWorld->Tick();
+			m_aTeamInstances[i].m_pController->Tick();
+		}
 }
 
 void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
@@ -322,20 +335,15 @@ void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 	Ent.Layer = Layer;
 	Ent.Flags = Flags;
 	Ent.Number = Number;
-
+	dbg_msg("entities", "%d", m_Entities.size());
 	m_Entities.push_back(Ent);
 }
 
 void CGameTeams::Snap(int SnappingClient)
 {
-	for (int i = 0; i < MAX_CLIENTS; ++i)
-		if (m_apControllers[i])
-			m_apControllers[i]->Snap(SnappingClient);
-}
-
-void CGameTeams::OnReset() 
-{
-	for (int i = 0; i < MAX_CLIENTS; ++i)
-		if (m_apControllers[i])
-			m_apControllers[i]->OnReset();
+	SGameInstance Instance = GetPlayerGameInstance(SnappingClient);
+	if(!Instance.m_IsCreated)
+		return;
+	Instance.m_pWorld->Snap(SnappingClient);
+	Instance.m_pController->Snap(SnappingClient);
 }

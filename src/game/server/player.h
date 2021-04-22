@@ -7,6 +7,7 @@
 
 // this include should perhaps be removed
 // #include "score.h"
+#include "teams.h"
 #include "teeinfo.h"
 #include <game/server/gamecontext.h>
 
@@ -128,10 +129,11 @@ private:
 	int m_NumInputs;
 	CGameContext *m_pGameServer;
 
+	int DDRTeam() const { return m_pGameServer->GetPlayerDDRTeam(m_ClientID); }
 	CGameContext *GameServer() const { return m_pGameServer; }
+	CGameWorld *GameWorld() const { return m_pGameServer->GameInstance(DDRTeam()).m_pWorld; }
+	IGameController *Controller() const { return m_pGameServer->GameInstance(DDRTeam()).m_pController; }
 	IServer *Server() const;
-
-	int DDRTeam() const { return GameServer()->GetPlayerDDRTeam(m_ClientID); }
 
 	//
 	bool m_Spawning;

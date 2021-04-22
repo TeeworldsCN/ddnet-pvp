@@ -52,7 +52,7 @@ CProjectile::CProjectile(
 void CProjectile::Reset()
 {
 	if(m_LifeSpan > -2)
-		GameServer()->m_World.DestroyEntity(this);
+		GameWorld()->DestroyEntity(this);
 }
 
 void CProjectile::GetProjectileProperties(float *pCurvature, float *pSpeed)
@@ -127,7 +127,7 @@ void CProjectile::Tick()
 	CCharacter *pTargetChr = 0;
 
 	if(pOwnerChar ? !(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit)
-		pTargetChr = GameServer()->m_World.IntersectCharacter(PrevPos, ColPos, m_Freeze ? 1.0f : 6.0f, ColPos, pOwnerChar, m_Owner);
+		pTargetChr = GameWorld()->IntersectCharacter(PrevPos, ColPos, m_Freeze ? 1.0f : 6.0f, ColPos, pOwnerChar, m_Owner);
 
 	if(m_LifeSpan > -1)
 		m_LifeSpan--;
@@ -149,7 +149,7 @@ void CProjectile::Tick()
 	}
 	else if(m_Owner >= 0 && (m_Type != WEAPON_GRENADE || g_Config.m_SvDestroyBulletsOnDeath))
 	{
-		GameServer()->m_World.DestroyEntity(this);
+		GameWorld()->DestroyEntity(this);
 		return;
 	}
 
@@ -238,7 +238,7 @@ void CProjectile::Tick()
 		{
 			if(pTargetChr)
 				pTargetChr->TakeDamage(m_Direction * maximum(0.001f, m_Force), m_Damage, m_Owner, m_Type);
-			GameServer()->m_World.DestroyEntity(this);
+			GameWorld()->DestroyEntity(this);
 			return;
 		}
 		else
@@ -247,7 +247,7 @@ void CProjectile::Tick()
 			{
 				if(pTargetChr)
 					pTargetChr->TakeDamage(m_Direction * maximum(0.001f, m_Force), m_Damage, m_Owner, m_Type);
-				GameServer()->m_World.DestroyEntity(this);
+				GameWorld()->DestroyEntity(this);
 				return;
 			}
 		}
@@ -270,7 +270,7 @@ void CProjectile::Tick()
 			GameServer()->CreateSound(ColPos, m_SoundImpact,
 				(m_Owner != -1) ? TeamMask : -1LL);
 		}
-		GameServer()->m_World.DestroyEntity(this);
+		GameWorld()->DestroyEntity(this);
 		return;
 	}
 

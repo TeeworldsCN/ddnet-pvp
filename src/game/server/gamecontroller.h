@@ -22,11 +22,13 @@ class IGameController
 	class CGameContext *m_pGameServer;
 	class CConfig *m_pConfig;
 	class IServer *m_pServer;
+	class CGameWorld *m_pWorld;
 
 protected:
 	CGameContext *GameServer() const { return m_pGameServer; }
 	CConfig *Config() { return m_pConfig; }
 	IServer *Server() const { return m_pServer; }
+	CGameWorld *GameWorld() const { return m_pWorld; }
 
 	int m_ResponsibleTeam;
 
@@ -47,8 +49,8 @@ protected:
 		float m_Score;
 	};
 
-	float EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int DDRTeam);
-	void EvaluateSpawnType(CSpawnEval *pEval, int Type, int DDRTeam);
+	float EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos);
+	void EvaluateSpawnType(CSpawnEval *pEval, int Type);
 
 	void ResetGame();
 
@@ -66,7 +68,7 @@ protected:
 public:
 	const char *m_pGameType;
 
-	IGameController(class CGameContext *pGameServer);
+	IGameController();
 	virtual ~IGameController();
 
 	// event
@@ -126,7 +128,7 @@ public:
 	virtual void Snap(int SnappingClient);
 
 	//spawn
-	virtual bool CanSpawn(int Team, vec2 *pPos, int DDRTeam);
+	virtual bool CanSpawn(int Team, vec2 *pPos);
 
 	virtual void DoTeamChange(class CPlayer *pPlayer, int Team, bool DoChatMsg = true);
 	/*
@@ -141,7 +143,7 @@ public:
 
 	// DDRace
 	int GetPlayerTeam(int ClientID) const;
-	void SetControllerTeam(int Team);
+	void InitController(int Team, class CGameContext *pGameServer, class CGameWorld *pWorld);
 	float m_CurrentRecord;
 };
 

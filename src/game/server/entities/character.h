@@ -76,7 +76,7 @@ public:
 	void SetEndlessHook(bool Enable);
 
 	void SetEmote(int Emote, int Tick);
-	
+
 	int NeededFaketuning() { return m_NeededFaketuning; }
 	bool IsAlive() const { return m_Alive; }
 	bool IsPaused() const { return m_Paused; }
@@ -231,7 +231,6 @@ public:
 	vec2 m_TeleGunPos;
 	bool m_TeleGunTeleport;
 	bool m_IsBlueTeleGunTeleport;
-	int m_StrongWeakID;
 
 	int m_SpawnTick;
 	int m_WeaponChangeTick;

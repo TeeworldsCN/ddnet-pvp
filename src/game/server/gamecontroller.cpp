@@ -2,8 +2,8 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <engine/shared/config.h>
 #include <game/mapitems.h>
-#include <game/version.h>
 #include <game/server/teams.h>
+#include <game/version.h>
 
 #include <game/generated/protocol.h>
 
@@ -21,22 +21,21 @@
 #include "entities/projectile.h"
 #include <game/layers.h>
 
-IGameController::IGameController(class CGameContext *pGameServer)
+IGameController::IGameController()
 {
 	m_ResponsibleTeam = -1;
 
-	m_pGameServer = pGameServer;
-	m_pConfig = m_pGameServer->Config();
-	m_pServer = m_pGameServer->Server();
+	m_pGameServer = nullptr;
+	m_pConfig = nullptr;
+	m_pServer = nullptr;
+	m_pWorld = nullptr;
 	m_pGameType = "unknown";
 
-	//
-	DoWarmup(g_Config.m_SvWarmup);
 	m_GameOverTick = -1;
 	m_SuddenDeath = 0;
-	m_RoundStartTick = Server()->Tick();
 	m_RoundCount = 0;
 	m_GameFlags = 0;
+	m_RoundStartTick = 0;
 
 	m_UnbalancedTick = -1;
 	m_ForceBalanced = false;
@@ -54,63 +53,60 @@ IGameController::~IGameController()
 
 void IGameController::DoActivityCheck()
 {
-// 	if(g_Config.m_SvInactiveKickTime == 0)
-// 		return;
+	// 	if(g_Config.m_SvInactiveKickTime == 0)
+	// 		return;
 
-// 	for(int i = 0; i < MAX_CLIENTS; ++i)
-// 	{
-// #ifdef CONF_DEBUG
-// 		if(g_Config.m_DbgDummies)
-// 		{
-// 			if(i >= MAX_CLIENTS - g_Config.m_DbgDummies)
-// 				break;
-// 		}
-// #endif
-// 		if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS && Server()->GetAuthedState(i) == AUTHED_NO)
-// 		{
-// 			if(Server()->Tick() > GameServer()->m_apPlayers[i]->m_LastActionTick + g_Config.m_SvInactiveKickTime * Server()->TickSpeed() * 60)
-// 			{
-// 				switch(g_Config.m_SvInactiveKick)
-// 				{
-// 				case 0:
-// 				{
-// 					// move player to spectator
-// 					DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
-// 				}
-// 				break;
-// 				case 1:
-// 				{
-// 					// move player to spectator if the reserved slots aren't filled yet, kick him otherwise
-// 					int Spectators = 0;
-// 					for(auto &pPlayer : GameServer()->m_apPlayers)
-// 						if(pPlayer && pPlayer->GetTeam() == TEAM_SPECTATORS)
-// 							++Spectators;
-// 					if(Spectators >= g_Config.m_SvSpectatorSlots)
-// 						Server()->Kick(i, "Kicked for inactivity");
-// 					else
-// 						DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
-// 				}
-// 				break;
-// 				case 2:
-// 				{
-// 					// kick the player
-// 					Server()->Kick(i, "Kicked for inactivity");
-// 				}
-// 				}
-// 			}
-// 		}
-// 	}
+	// 	for(int i = 0; i < MAX_CLIENTS; ++i)
+	// 	{
+	// #ifdef CONF_DEBUG
+	// 		if(g_Config.m_DbgDummies)
+	// 		{
+	// 			if(i >= MAX_CLIENTS - g_Config.m_DbgDummies)
+	// 				break;
+	// 		}
+	// #endif
+	// 		if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS && Server()->GetAuthedState(i) == AUTHED_NO)
+	// 		{
+	// 			if(Server()->Tick() > GameServer()->m_apPlayers[i]->m_LastActionTick + g_Config.m_SvInactiveKickTime * Server()->TickSpeed() * 60)
+	// 			{
+	// 				switch(g_Config.m_SvInactiveKick)
+	// 				{
+	// 				case 0:
+	// 				{
+	// 					// move player to spectator
+	// 					DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
+	// 				}
+	// 				break;
+	// 				case 1:
+	// 				{
+	// 					// move player to spectator if the reserved slots aren't filled yet, kick him otherwise
+	// 					int Spectators = 0;
+	// 					for(auto &pPlayer : GameServer()->m_apPlayers)
+	// 						if(pPlayer && pPlayer->GetTeam() == TEAM_SPECTATORS)
+	// 							++Spectators;
+	// 					if(Spectators >= g_Config.m_SvSpectatorSlots)
+	// 						Server()->Kick(i, "Kicked for inactivity");
+	// 					else
+	// 						DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
+	// 				}
+	// 				break;
+	// 				case 2:
+	// 				{
+	// 					// kick the player
+	// 					Server()->Kick(i, "Kicked for inactivity");
+	// 				}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
 }
 
-float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int DDRTeam)
+float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos)
 {
 	float Score = 0.0f;
-	CCharacter *pC = static_cast<CCharacter *>(GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER));
+	CCharacter *pC = static_cast<CCharacter *>(GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER));
 	for(; pC; pC = (CCharacter *)pC->TypeNext())
 	{
-		if(pC->Team() != DDRTeam)
-			continue;
-
 		// team mates are not as dangerous as enemies
 		float Scoremod = 1.0f;
 		if(pEval->m_FriendlyTeam != -1 && pC->GetPlayer()->GetTeam() == pEval->m_FriendlyTeam)
@@ -123,25 +119,23 @@ float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int DDRTeam
 	return Score;
 }
 
-void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int DDRTeam)
+void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type)
 {
 	// get spawn point
 	for(int i = 0; i < m_aNumSpawnPoints[Type]; i++)
 	{
 		// check if the position is occupado
 		CCharacter *aEnts[MAX_CLIENTS];
-		int Num = GameServer()->m_World.FindEntities(m_aaSpawnPoints[Type][i], 64, (CEntity **)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+		int Num = GameWorld()->FindEntities(m_aaSpawnPoints[Type][i], 64, (CEntity **)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 		vec2 Positions[5] = {vec2(0.0f, 0.0f), vec2(-32.0f, 0.0f), vec2(0.0f, -32.0f), vec2(32.0f, 0.0f), vec2(0.0f, 32.0f)}; // start, left, up, right, down
 		int Result = -1;
 		for(int Index = 0; Index < 5 && Result == -1; ++Index)
 		{
 			Result = Index;
-			if(!GameServer()->m_World.m_Core.m_Tuning[0].m_PlayerCollision)
+			if(!GameWorld()->m_Core.m_Tuning[0].m_PlayerCollision)
 				break;
 			for(int c = 0; c < Num; ++c)
 			{
-				if(aEnts[c]->Team() != DDRTeam)
-					continue;
 				if(GameServer()->Collision()->CheckPoint(m_aaSpawnPoints[Type][i] + Positions[Index]) ||
 					distance(aEnts[c]->m_Pos, m_aaSpawnPoints[Type][i] + Positions[Index]) <= aEnts[c]->GetProximityRadius())
 				{
@@ -154,7 +148,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int DDRTeam
 			continue; // try next spawn point
 
 		vec2 P = m_aaSpawnPoints[Type][i] + Positions[Result];
-		float S = EvaluateSpawnPos(pEval, P, DDRTeam);
+		float S = EvaluateSpawnPos(pEval, P);
 		if(!pEval->m_Got || pEval->m_Score > S)
 		{
 			pEval->m_Got = true;
@@ -164,7 +158,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int DDRTeam
 	}
 }
 
-bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int DDRTeam)
+bool IGameController::CanSpawn(int Team, vec2 *pOutPos)
 {
 	CSpawnEval Eval;
 
@@ -172,9 +166,9 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int DDRTeam)
 	if(Team == TEAM_SPECTATORS)
 		return false;
 
-	EvaluateSpawnType(&Eval, 0, DDRTeam);
-	EvaluateSpawnType(&Eval, 1, DDRTeam);
-	EvaluateSpawnType(&Eval, 2, DDRTeam);
+	EvaluateSpawnType(&Eval, 0);
+	EvaluateSpawnType(&Eval, 1);
+	EvaluateSpawnType(&Eval, 2);
 
 	*pOutPos = Eval.m_Pos;
 	return Eval.m_Got;
@@ -183,7 +177,7 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int DDRTeam)
 void IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 {
 	if(Index < 0)
-		return false;
+		return;
 
 	int Type = -1;
 	int SubType = 0;
@@ -215,7 +209,7 @@ void IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 			if(sides[i] >= ENTITY_LASER_SHORT && sides[i] <= ENTITY_LASER_LONG)
 			{
 				new CDoor(
-					&GameServer()->m_World, //GameWorld
+					GameWorld(), //GameWorld
 					Pos, //Pos
 					pi / 4 * i, //Rotation
 					32 * 3 + 32 * (sides[i] - ENTITY_LASER_SHORT) * 3, //Length
@@ -237,7 +231,7 @@ void IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 			Dir = 3;
 		float Deg = Dir * (pi / 2);
 		CProjectile *bullet = new CProjectile(
-			&GameServer()->m_World,
+			GameWorld(),
 			WEAPON_SHOTGUN, //Type
 			-1, //Owner
 			Pos, //Pos
@@ -265,7 +259,7 @@ void IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 			Dir = 3;
 		float Deg = Dir * (pi / 2);
 		CProjectile *bullet = new CProjectile(
-			&GameServer()->m_World,
+			GameWorld(),
 			WEAPON_SHOTGUN, //Type
 			-1, //Owner
 			Pos, //Pos
@@ -344,7 +338,7 @@ void IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 		{
 			if(sides[i] >= ENTITY_LASER_SHORT && sides[i] <= ENTITY_LASER_LONG)
 			{
-				CLight *Lgt = new CLight(&GameServer()->m_World, Pos, pi / 4 * i, 32 * 3 + 32 * (sides[i] - ENTITY_LASER_SHORT) * 3, Layer, Number);
+				CLight *Lgt = new CLight(GameWorld(), Pos, pi / 4 * i, 32 * 3 + 32 * (sides[i] - ENTITY_LASER_SHORT) * 3, Layer, Number);
 				Lgt->m_AngularSpeed = AngularSpeed;
 				if(sides2[i] >= ENTITY_LASER_C_SLOW && sides2[i] <= ENTITY_LASER_C_FAST)
 				{
@@ -363,34 +357,34 @@ void IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 	}
 	else if(Index >= ENTITY_DRAGGER_WEAK && Index <= ENTITY_DRAGGER_STRONG)
 	{
-		CDraggerTeam(&GameServer()->m_World, Pos, Index - ENTITY_DRAGGER_WEAK + 1, false, Layer, Number);
+		CDraggerTeam(GameWorld(), Pos, Index - ENTITY_DRAGGER_WEAK + 1, false, Layer, Number);
 	}
 	else if(Index >= ENTITY_DRAGGER_WEAK_NW && Index <= ENTITY_DRAGGER_STRONG_NW)
 	{
-		CDraggerTeam(&GameServer()->m_World, Pos, Index - ENTITY_DRAGGER_WEAK_NW + 1, true, Layer, Number);
+		CDraggerTeam(GameWorld(), Pos, Index - ENTITY_DRAGGER_WEAK_NW + 1, true, Layer, Number);
 	}
 	else if(Index == ENTITY_PLASMAE)
 	{
-		new CGun(&GameServer()->m_World, Pos, false, true, Layer, Number);
+		new CGun(GameWorld(), Pos, false, true, Layer, Number);
 	}
 	else if(Index == ENTITY_PLASMAF)
 	{
-		new CGun(&GameServer()->m_World, Pos, true, false, Layer, Number);
+		new CGun(GameWorld(), Pos, true, false, Layer, Number);
 	}
 	else if(Index == ENTITY_PLASMA)
 	{
-		new CGun(&GameServer()->m_World, Pos, true, true, Layer, Number);
+		new CGun(GameWorld(), Pos, true, true, Layer, Number);
 	}
 	else if(Index == ENTITY_PLASMAU)
 	{
-		new CGun(&GameServer()->m_World, Pos, false, false, Layer, Number);
+		new CGun(GameWorld(), Pos, false, false, Layer, Number);
 	}
 
-	if(Type != -1)
-	{
-		CPickup *pPickup = new CPickup(&GameServer()->m_World, Type, SubType);
-		pPickup->m_Pos = Pos;
-	}
+	// if(Type != -1)
+	// {
+	// 	CPickup *pPickup = new CPickup(GameWorld(), Type, SubType);
+	// 	pPickup->m_Pos = Pos;
+	// }
 }
 
 void IGameController::OnPlayerConnect(CPlayer *pPlayer)
@@ -442,14 +436,14 @@ void IGameController::EndRound()
 	if(m_Warmup) // game can't end when we are running warmup
 		return;
 
-	GameServer()->m_World.m_Paused = true;
+	GameWorld()->m_Paused = true;
 	m_GameOverTick = Server()->Tick();
 	m_SuddenDeath = 0;
 }
 
 void IGameController::ResetGame()
 {
-	GameServer()->m_World.m_ResetRequested = true;
+	GameWorld()->m_ResetRequested = true;
 }
 
 const char *IGameController::GetTeamName(int Team)
@@ -468,7 +462,7 @@ void IGameController::StartRound()
 	m_RoundStartTick = Server()->Tick();
 	m_SuddenDeath = 0;
 	m_GameOverTick = -1;
-	GameServer()->m_World.m_Paused = false;
+	GameWorld()->m_Paused = false;
 	m_ForceBalanced = false;
 	Server()->DemoRecorder_HandleAutoStart();
 	char aBuf[256];
@@ -582,15 +576,15 @@ void IGameController::Tick()
 
 void IGameController::Snap(int SnappingClient)
 {
-	if (m_ResponsibleTeam < 0)
+	if(m_ResponsibleTeam < 0)
 		return;
-	
+
 	// TODO: Think about what to do for SnappingClient -1 (server demo)
-	if (SnappingClient < 0)
+	if(SnappingClient < 0)
 		return;
 
 	int DDRTeam = GameServer()->GetPlayerDDRTeam(SnappingClient);
-	if (DDRTeam != m_ResponsibleTeam)
+	if(DDRTeam != m_ResponsibleTeam)
 		return;
 
 	CNetObj_GameInfo *pGameInfoObj = (CNetObj_GameInfo *)Server()->SnapNewItem(NETOBJTYPE_GAMEINFO, 0, sizeof(CNetObj_GameInfo));
@@ -603,7 +597,7 @@ void IGameController::Snap(int SnappingClient)
 		pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_GAMEOVER;
 	if(m_SuddenDeath)
 		pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_SUDDENDEATH;
-	if(GameServer()->m_World.m_Paused)
+	if(GameWorld()->m_Paused)
 		pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_PAUSED;
 	pGameInfoObj->m_RoundStartTick = m_RoundStartTick;
 	pGameInfoObj->m_WarmupTimer = m_Warmup;
@@ -657,7 +651,7 @@ void IGameController::Snap(int SnappingClient)
 			pGameData->m_GameStateFlags |= protocol7::GAMESTATEFLAG_GAMEOVER;
 		if(m_SuddenDeath)
 			pGameData->m_GameStateFlags |= protocol7::GAMESTATEFLAG_SUDDENDEATH;
-		if(GameServer()->m_World.m_Paused)
+		if(GameWorld()->m_Paused)
 			pGameData->m_GameStateFlags |= protocol7::GAMESTATEFLAG_PAUSED;
 
 		pGameData->m_GameStateEndTick = 0;
@@ -758,7 +752,13 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 	// OnPlayerInfoChange(pPlayer);
 }
 
-void IGameController::SetControllerTeam(int Team)
+void IGameController::InitController(int Team, class CGameContext *pGameServer, class CGameWorld *pWorld)
 {
 	m_ResponsibleTeam = Team;
+	m_pGameServer = pGameServer;
+	m_pConfig = m_pGameServer->Config();
+	m_pServer = m_pGameServer->Server();
+	m_pWorld = pWorld;
+	DoWarmup(g_Config.m_SvWarmup);
+	m_RoundStartTick = Server()->Tick();
 }

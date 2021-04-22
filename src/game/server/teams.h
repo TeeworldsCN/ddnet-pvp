@@ -9,16 +9,24 @@
 #include <utility>
 #include <vector>
 
+struct SGameInstance
+{
+	bool m_IsCreated;
+	IGameController *m_pController;
+	CGameWorld *m_pWorld;
+};
+
 class CGameTeams
 {
-	IGameController *m_apControllers[MAX_CLIENTS];
-	int m_TeamState[MAX_CLIENTS];
-	bool m_TeamLocked[MAX_CLIENTS];
-	uint64 m_Invited[MAX_CLIENTS];
+	SGameInstance m_aTeamInstances[MAX_CLIENTS];
+	int m_aTeamState[MAX_CLIENTS];
+	bool m_aTeamLocked[MAX_CLIENTS];
+	uint64 m_aInvited[MAX_CLIENTS];
 
 	class CGameContext *m_pGameContext;
 
-	struct SEntity {
+	struct SEntity
+	{
 		int Index;
 		vec2 Pos;
 		int Layer;
@@ -87,7 +95,7 @@ public:
 
 	int GetTeamState(int Team)
 	{
-		return m_TeamState[Team];
+		return m_aTeamState[Team];
 	}
 
 	bool TeamLocked(int Team)
@@ -95,21 +103,22 @@ public:
 		if(Team <= TEAM_FLOCK || Team >= TEAM_SUPER)
 			return false;
 
-		return m_TeamLocked[Team];
+		return m_aTeamLocked[Team];
 	}
 
 	bool IsInvited(int Team, int ClientID)
 	{
-		return m_Invited[Team] & 1LL << ClientID;
+		return m_aInvited[Team] & 1LL << ClientID;
 	}
 
-	IGameController *GetGameControllers(int Team);
-	void CreateGameController(int Team);
-	void DestroyGameController(int Team);
+	// Game Instances
+	SGameInstance GetGameInstance(int Team);
+	SGameInstance GetPlayerGameInstance(int ClientID);
+	void CreateGameInstance(int Team);
+	void DestroyGameInstance(int Team);
 	void Tick();
 	void OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
 	void Snap(int SnappingClient);
-	void OnReset();
 };
 
 #endif

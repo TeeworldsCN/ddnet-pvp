@@ -29,6 +29,7 @@ public:
 	};
 
 private:
+	int m_ResponsibleTeam;
 	void Reset();
 	void RemoveEntities();
 
@@ -50,10 +51,8 @@ public:
 	bool m_Paused;
 	CWorldCore m_Core;
 
-	CGameWorld();
+	CGameWorld(int Team, CGameContext *pGameServer);
 	~CGameWorld();
-
-	void SetGameServer(CGameContext *pGameServer);
 
 	CEntity *FindFirst(int Type);
 

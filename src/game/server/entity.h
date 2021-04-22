@@ -24,6 +24,7 @@ private:
 
 	/* Identity */
 	class CGameWorld *m_pGameWorld;
+	class CGameContext *m_pGameServer;
 
 	int m_ID;
 	int m_ObjType;
@@ -39,7 +40,7 @@ public: // TODO: Maybe make protected
 			Contains the current posititon of the entity.
 	*/
 	vec2 m_Pos;
-	
+
 	/*
 		Variable: m_ProximityRadius
 			Contains the physical size of the entity.
@@ -58,9 +59,9 @@ public:
 
 	/* Objects */
 	class CGameWorld *GameWorld() { return m_pGameWorld; }
-	class CConfig *Config() { return m_pGameWorld->Config(); }
-	class CGameContext *GameServer() { return m_pGameWorld->GameServer(); }
-	class IServer *Server() { return m_pGameWorld->Server(); }
+	class CConfig *Config() { return m_pGameServer->Config(); }
+	class CGameContext *GameServer() { return m_pGameServer; }
+	class IServer *Server() { return m_pGameServer->Server(); }
 
 	/* Getters */
 	CEntity *TypeNext() { return m_pNextTypeEntity; }

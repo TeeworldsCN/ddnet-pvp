@@ -58,6 +58,7 @@ class IEngine;
 class IStorage;
 class CGameTeams;
 struct CAntibotData;
+struct SGameInstance;
 // struct CScoreRandomMapResult;
 
 class CGameContext : public IGameServer
@@ -148,11 +149,10 @@ public:
 	CPlayer *m_apPlayers[MAX_CLIENTS];
 
 	CGameTeams *m_pTeams;
-	CGameWorld m_World;
 
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
-	IGameController *Controller(int Team);
+	SGameInstance GameInstance(int Team);
 	int GetPlayerDDRTeam(int ClientID);
 	bool EmulateBug(int Bug);
 
@@ -287,7 +287,6 @@ public:
 	// Checks if player can vote and notify them about the reason
 	bool RateLimitPlayerVote(int ClientID);
 	bool RateLimitPlayerMapVote(int ClientID);
-
 
 private:
 	bool m_VoteWillPass;
