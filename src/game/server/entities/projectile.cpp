@@ -160,7 +160,7 @@ void CProjectile::Tick()
 			}
 			for(int i = 0; i < Number; i++)
 			{
-				GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1, (!pTargetChr ? -1 : pTargetChr->Team()));
+				GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1);
 				GameWorld()->CreateSound(ColPos, m_SoundImpact);
 			}
 		}
@@ -253,7 +253,7 @@ void CProjectile::Tick()
 			if(m_Owner >= 0)
 				pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 
-			GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1, (!pOwnerChar ? -1 : pOwnerChar->Team()));
+			GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1);
 			GameWorld()->CreateSound(ColPos, m_SoundImpact);
 		}
 		GameWorld()->DestroyEntity(this);
@@ -296,15 +296,9 @@ void CProjectile::Snap(int SnappingClient, bool IsOther)
 	if(NetworkClipped(SnappingClient, GetPos(Ct)))
 		return;
 
-	CCharacter *pSnapChar = GameServer()->GetPlayerChar(SnappingClient);
 	int Tick = (Server()->Tick() % Server()->TickSpeed()) % ((m_Explosive) ? 6 : 20);
-	if(pSnapChar && pSnapChar->IsAlive() && (m_Layer == LAYER_SWITCH && m_Number > 0 && !GameServer()->Collision()->m_pSwitchers[m_Number].m_Status[pSnapChar->Team()] && (!Tick)))
+	if(m_Layer == LAYER_SWITCH && m_Number > 0 && !GameServer()->Collision()->m_pSwitchers[m_Number].m_Status[GameWorld()->Team()] && (!Tick))
 		return;
-
-	CCharacter *pOwnerChar = 0;
-
-	if(m_Owner >= 0)
-		pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 
 	int SnappingClientVersion = SnappingClient >= 0 ? GameServer()->GetClientVersion(SnappingClient) : CLIENT_VERSIONNR;
 

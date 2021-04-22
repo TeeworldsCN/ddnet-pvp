@@ -377,6 +377,17 @@ void CCharacter::FireWeapon()
 	if(!WillFire)
 		return;
 
+	if(m_FreezeTime)
+	{
+		// Timer stuff to avoid shrieking orchestra caused by unfreeze-plasma
+		// if(m_PainSoundTimer <= 0 && !(m_LatestPrevInput.m_Fire & 1))
+		// {
+		// 	m_PainSoundTimer = 1 * Server()->TickSpeed();
+		// 	GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		// }
+		return;
+	}
+
 	// check for ammo
 	if(!m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo)
 	{
@@ -1219,22 +1230,6 @@ void CCharacter::Snap(int SnappingClient, bool IsOther)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	if(SnappingClient > -1)
-	{
-		CCharacter *pSnapChar = GameServer()->GetPlayerChar(SnappingClient);
-		CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-		if(pSnapPlayer->GetTeam() == TEAM_SPECTATORS || pSnapPlayer->IsPaused())
-		{
-			if(pSnapPlayer->m_SpectatorID != -1 && !CanCollide(pSnapPlayer->m_SpectatorID) && (pSnapPlayer->m_ShowOthers == 0 || (pSnapPlayer->m_ShowOthers == 2 && !SameTeam(pSnapPlayer->m_SpectatorID))))
-				return;
-			else if(pSnapPlayer->m_SpectatorID == -1 && !CanCollide(SnappingClient) && pSnapPlayer->m_SpecTeam)
-				return;
-		}
-		else if(pSnapChar && !pSnapChar->m_Super && !CanCollide(SnappingClient) && (pSnapPlayer->m_ShowOthers == 0 || (pSnapPlayer->m_ShowOthers == 2 && !SameTeam(SnappingClient))))
-			return;
-	}
-
 	if(m_Paused)
 		return;
 
@@ -1290,7 +1285,7 @@ void CCharacter::Snap(int SnappingClient, bool IsOther)
                                                                                Server()->Tick() + m_FreezeTime;
 	pDDNetCharacter->m_Jumps = m_Core.m_Jumps;
 	pDDNetCharacter->m_TeleCheckpoint = m_TeleCheckpoint;
-	pDDNetCharacter->m_StrongWeakID = 0;
+	pDDNetCharacter->m_StrongWeakID = SnappingClient == ID ? 1 : 0;
 }
 
 // DDRace
@@ -1459,6 +1454,25 @@ void CCharacter::HandleTiles(int Index)
 	}
 
 	GameServer()->GameInstance(Team()).m_pController->HandleCharacterTiles(this, Index);
+	// freeze
+	if(((m_TileIndex == TILE_FREEZE) || (m_TileFIndex == TILE_FREEZE)) && !m_Super && !m_DeepFreeze)
+	{
+		Freeze();
+	}
+	else if(((m_TileIndex == TILE_UNFREEZE) || (m_TileFIndex == TILE_UNFREEZE)) && !m_DeepFreeze)
+	{
+		UnFreeze();
+	}
+
+	// deep freeze
+	if(((m_TileIndex == TILE_DFREEZE) || (m_TileFIndex == TILE_DFREEZE)) && !m_Super && !m_DeepFreeze)
+	{
+		m_DeepFreeze = true;
+	}
+	else if(((m_TileIndex == TILE_DUNFREEZE) || (m_TileFIndex == TILE_DUNFREEZE)) && !m_Super && m_DeepFreeze)
+	{
+		m_DeepFreeze = false;
+	}
 
 	// endless hook
 	if(((m_TileIndex == TILE_EHOOK_ENABLE) || (m_TileFIndex == TILE_EHOOK_ENABLE)))

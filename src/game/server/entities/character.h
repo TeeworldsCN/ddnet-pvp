@@ -172,8 +172,6 @@ private:
 	bool m_Solo;
 
 public:
-	CGameTeams *Teams() { return GameServer()->m_pTeams; }
-
 	void FillAntibot(CAntibotCharacterData *pData);
 	void Pause(bool Pause);
 	bool Freeze(int Time);

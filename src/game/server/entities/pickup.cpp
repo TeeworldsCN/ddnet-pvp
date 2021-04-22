@@ -194,8 +194,8 @@ void CPickup::Snap(int SnappingClient, bool IsOther)
 		if(!isFreeViewing || (SnappingPlayer && SnappingPlayer->m_SpecTeam))
 		{
 			int SnapCID = SnapPlayer->GetCID();
-			bool isSoloActive = GameServer()->m_pTeams->m_Core.GetSolo(SnapCID) && (m_SoloSpawnTick[SnapCID] < 0);
-			bool isTeamActive = !GameServer()->m_pTeams->m_Core.GetSolo(SnapCID) && m_SpawnTick < 0;
+			bool isSoloActive = Teams()->m_Core.GetSolo(SnapCID) && (m_SoloSpawnTick[SnapCID] < 0);
+			bool isTeamActive = !Teams()->m_Core.GetSolo(SnapCID) && m_SpawnTick < 0;
 			if(!isSoloActive && !isTeamActive)
 				return;
 		}

@@ -337,7 +337,7 @@ void CGameWorld::CreateHammerHit(vec2 Pos, int64 Mask)
 	}
 }
 
-void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage, bool NoKnockback, int ActivatedTeam, int64 Mask)
+void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage, bool NoKnockback, int64 Mask)
 {
 	// create the event
 	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), Mask);
@@ -375,8 +375,6 @@ void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage,
 		if((GameServer()->GetPlayerChar(Owner) ? !(GameServer()->GetPlayerChar(Owner)->m_Hit & CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit) || Owner == apEnts[i]->GetPlayer()->GetCID())
 		{
 			if(Owner != -1 && apEnts[i]->IsAlive() && !apEnts[i]->CanCollide(Owner))
-				continue;
-			if(Owner == -1 && ActivatedTeam != -1 && apEnts[i]->IsAlive() && apEnts[i]->Team() != ActivatedTeam)
 				continue;
 
 			apEnts[i]->TakeDamage(ForceDir * Knockback * 2, (int)Dmg, Owner, Weapon);

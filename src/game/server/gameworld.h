@@ -176,7 +176,7 @@ public:
 
 	// helper functions
 	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, int64 Mask = -1LL);
-	void CreateExplosion(vec2 Pos, int Owner, int Weapon, int Damage, bool NoKnockback, int ActivatedTeam, int64 Mask = -1LL);
+	void CreateExplosion(vec2 Pos, int Owner, int Weapon, int Damage, bool NoKnockback, int64 Mask = -1LL);
 	void CreateHammerHit(vec2 Pos, int64 Mask = -1LL);
 	void CreatePlayerSpawn(vec2 Pos, int64 Mask = -1LL);
 	void CreateDeath(vec2 Pos, int Who, int64 Mask = -1LL);

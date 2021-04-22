@@ -256,16 +256,6 @@ void CLaser::Snap(int SnappingClient, bool IsOther)
 {
 	if(NetworkClipped(SnappingClient))
 		return;
-	CCharacter *OwnerChar = 0;
-	if(m_Owner >= 0)
-		OwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	if(!OwnerChar)
-		return;
-
-	CCharacter *pOwnerChar = 0;
-
-	if(m_Owner >= 0)
-		pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 
 	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
 	if(!pObj)
@@ -275,5 +265,5 @@ void CLaser::Snap(int SnappingClient, bool IsOther)
 	pObj->m_Y = (int)m_Pos.y;
 	pObj->m_FromX = (int)m_From.x;
 	pObj->m_FromY = (int)m_From.y;
-	pObj->m_StartTick = m_EvalTick;
+	pObj->m_StartTick = IsOther ? m_EvalTick - 4 : m_EvalTick; // HACK: Send thin laser for other team.
 }

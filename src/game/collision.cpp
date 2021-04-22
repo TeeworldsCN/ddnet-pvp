@@ -110,10 +110,11 @@ void CCollision::Init(class CLayers *pLayers, CPrng *pPrng)
 		if(Size >= (size_t)m_Width * m_Height * sizeof(CTile))
 			m_pFront = static_cast<CTile *>(m_pLayers->Map()->GetData(m_pLayers->FrontLayer()->m_Front));
 	}
-	
+
 	CMapItemLayerTilemap *pTeleLayer = m_pLayers->TeleLayer();
 
-	if (pTeleLayer && m_pTele) {
+	if(pTeleLayer && m_pTele)
+	{
 		int Width = pTeleLayer->m_Width;
 		int Height = pTeleLayer->m_Height;
 
@@ -861,25 +862,29 @@ vec2 CCollision::CpSpeed(int Index, int Flags) const
 	return target;
 }
 
-int CCollision::NumTeles(int To) const {
+int CCollision::NumTeles(int To) const
+{
 	return m_TeleOuts.size();
 }
 
-int CCollision::NumCpTeles(int To) const {
+int CCollision::NumCpTeles(int To) const
+{
 	return m_TeleCheckOuts.size();
 }
 
-vec2 CCollision::TelePos(int To, int Out) {
-	if (Out < 0)
-		Out = RandomOr0(m_TeleOuts.size());
-	
+vec2 CCollision::TelePos(int To, int Out)
+{
+	if(Out < 0)
+		Out = RandomOr0(m_TeleOuts[To].size());
+
 	return m_TeleOuts[To][Out];
 }
 
-vec2 CCollision::CpTelePos(int To, int Out) {
-	if (Out < 0)
+vec2 CCollision::CpTelePos(int To, int Out)
+{
+	if(Out < 0)
 		Out = RandomOr0(m_TeleCheckOuts.size());
-	
+
 	return m_TeleCheckOuts[To][Out];
 }
 

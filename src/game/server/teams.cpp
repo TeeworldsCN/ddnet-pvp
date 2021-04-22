@@ -31,6 +31,7 @@ void CGameTeams::Reset()
 		m_aTeamLocked[i] = false;
 		m_aInvited[i] = 0;
 	}
+	CreateGameInstance(0);
 }
 
 void CGameTeams::ResetRoundState(int Team)
@@ -118,6 +119,12 @@ void CGameTeams::SetForceCharacterTeam(int ClientID, int Team)
 			ChangeTeamState(Team, TEAMSTATE_OPEN);
 
 		ResetSwitchers(Team);
+	}
+
+	if(TeamOldState == TEAMSTATE_EMPTY && m_aTeamState[Team] != TEAMSTATE_EMPTY)
+	{
+		if(!m_aTeamInstances[Team].m_IsCreated)
+			CreateGameInstance(Team);
 	}
 }
 
@@ -209,8 +216,6 @@ void CGameTeams::SetClientInvited(int Team, int ClientID, bool Invited)
 
 SGameInstance CGameTeams::GetGameInstance(int Team)
 {
-	if(!m_aTeamInstances[Team].m_IsCreated)
-		CreateGameInstance(Team);
 	return m_aTeamInstances[Team];
 }
 
@@ -266,8 +271,10 @@ void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 	Ent.Layer = Layer;
 	Ent.Flags = Flags;
 	Ent.Number = Number;
-	dbg_msg("entities", "%d", m_Entities.size());
 	m_Entities.push_back(Ent);
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+		if(m_aTeamInstances[i].m_IsCreated)
+			m_aTeamInstances[i].m_pController->OnEntity(Index, Pos, Layer, Flags, Number);
 }
 
 void CGameTeams::OnSnap(int SnappingClient)

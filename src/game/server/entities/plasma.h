@@ -12,7 +12,6 @@ class CPlasma : public CEntity
 	int m_EvalTick;
 	int m_LifeTime;
 
-	int m_ResponsibleTeam;
 	int m_Freeze;
 
 	bool m_Explosive;
@@ -21,7 +20,7 @@ class CPlasma : public CEntity
 
 public:
 	CPlasma(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir, bool Freeze,
-		bool Explosive, int ResponsibleTeam);
+		bool Explosive);
 
 	virtual void Reset();
 	virtual void Tick();
