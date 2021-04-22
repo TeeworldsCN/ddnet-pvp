@@ -77,8 +77,6 @@ public:
 
 	void ChangeTeamState(int Team, int State);
 
-	int64 TeamMask(int Team, int ExceptID = -1, int Asker = -1);
-
 	int Count(int Team) const;
 
 	// need to be very careful using this method. SERIOUSLY...

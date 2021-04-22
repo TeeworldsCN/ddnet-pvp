@@ -140,75 +140,6 @@ void CGameTeams::ChangeTeamState(int Team, int State)
 	m_aTeamState[Team] = State;
 }
 
-int64 CGameTeams::TeamMask(int Team, int ExceptID, int Asker)
-{
-	int64 Mask = 0;
-
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		if(i == ExceptID)
-			continue; // Explicitly excluded
-		if(!GetPlayer(i))
-			continue; // Player doesn't exist
-
-		if(!(GetPlayer(i)->GetTeam() == -1 || GetPlayer(i)->IsPaused()))
-		{ // Not spectator
-			if(i != Asker)
-			{ // Actions of other players
-				if(!Character(i))
-					continue; // Player is currently dead
-				if(GetPlayer(i)->m_ShowOthers == 2)
-				{
-					if(m_Core.Team(i) != Team && m_Core.Team(i) != TEAM_SUPER)
-						continue; // In different teams
-				}
-				else if(GetPlayer(i)->m_ShowOthers == 0)
-				{
-					if(m_Core.GetSolo(Asker))
-						continue; // When in solo part don't show others
-					if(m_Core.GetSolo(i))
-						continue; // When in solo part don't show others
-					if(m_Core.Team(i) != Team && m_Core.Team(i) != TEAM_SUPER)
-						continue; // In different teams
-				}
-			} // See everything of yourself
-		}
-		else if(GetPlayer(i)->m_SpectatorID != SPEC_FREEVIEW)
-		{ // Spectating specific player
-			if(GetPlayer(i)->m_SpectatorID != Asker)
-			{ // Actions of other players
-				if(!Character(GetPlayer(i)->m_SpectatorID))
-					continue; // Player is currently dead
-				if(GetPlayer(i)->m_ShowOthers == 2)
-				{
-					if(m_Core.Team(GetPlayer(i)->m_SpectatorID) != Team && m_Core.Team(GetPlayer(i)->m_SpectatorID) != TEAM_SUPER)
-						continue; // In different teams
-				}
-				else if(GetPlayer(i)->m_ShowOthers == 0)
-				{
-					if(m_Core.GetSolo(Asker))
-						continue; // When in solo part don't show others
-					if(m_Core.GetSolo(GetPlayer(i)->m_SpectatorID))
-						continue; // When in solo part don't show others
-					if(m_Core.Team(GetPlayer(i)->m_SpectatorID) != Team && m_Core.Team(GetPlayer(i)->m_SpectatorID) != TEAM_SUPER)
-						continue; // In different teams
-				}
-			} // See everything of player you're spectating
-		}
-		else
-		{ // Freeview
-			if(GetPlayer(i)->m_SpecTeam)
-			{ // Show only players in own team when spectating
-				if(m_Core.Team(i) != Team && m_Core.Team(i) != TEAM_SUPER)
-					continue; // in different teams
-			}
-		}
-
-		Mask |= 1LL << i;
-	}
-	return Mask;
-}
-
 void CGameTeams::SendTeamsState(int ClientID)
 {
 	if(g_Config.m_SvTeam == 3)
@@ -341,11 +272,28 @@ void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 
 void CGameTeams::OnSnap(int SnappingClient)
 {
-	SGameInstance Instance = GetPlayerGameInstance(SnappingClient);
-	if(!Instance.m_IsCreated)
-		return;
-	Instance.m_pWorld->Snap(SnappingClient);
-	Instance.m_pController->Snap(SnappingClient);
+	int ClientTeam = m_Core.Team(SnappingClient);
+	int ShowOthers = GetPlayer(SnappingClient)->m_ShowOthers;
+
+	// Spectator
+
+	if(ShowOthers)
+	{
+		for(int i = 0; i < MAX_CLIENTS; ++i)
+			if(m_aTeamInstances[i].m_IsCreated)
+			{
+				m_aTeamInstances[i].m_pWorld->Snap(SnappingClient, ClientTeam != i, ClientTeam == i || ShowOthers == 2);
+				m_aTeamInstances[i].m_pController->Snap(SnappingClient);
+			}
+	}
+	else
+	{
+		SGameInstance Instance = GetPlayerGameInstance(SnappingClient);
+		if(!Instance.m_IsCreated)
+			return;
+		Instance.m_pWorld->Snap(SnappingClient, false, true);
+		Instance.m_pController->Snap(SnappingClient);
+	}
 }
 
 void CGameTeams::OnPostSnap()

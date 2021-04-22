@@ -38,8 +38,7 @@ bool CPlasma::HitCharacter()
 		return false;
 	m_Freeze ? Hit->Freeze() : Hit->UnFreeze();
 	if(m_Explosive)
-		GameWorld()->CreateExplosion(m_Pos, -1, WEAPON_GRENADE, 0, true,
-			m_ResponsibleTeam, Hit->Teams()->TeamMask(m_ResponsibleTeam));
+		GameWorld()->CreateExplosion(m_Pos, -1, WEAPON_GRENADE, 0, true, m_ResponsibleTeam);
 	GameWorld()->DestroyEntity(this);
 	return true;
 }
@@ -79,12 +78,12 @@ void CPlasma::Tick()
 				0,
 				true,
 				m_ResponsibleTeam,
-				GameServer()->m_pTeams->TeamMask(m_ResponsibleTeam));
+				-1LL);
 		Reset();
 	}
 }
 
-void CPlasma::Snap(int SnappingClient)
+void CPlasma::Snap(int SnappingClient, bool IsOther)
 {
 	if(NetworkClipped(SnappingClient))
 		return;

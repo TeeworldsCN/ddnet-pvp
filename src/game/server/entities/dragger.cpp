@@ -158,7 +158,7 @@ void CDragger::Tick()
 	return;
 }
 
-void CDragger::Snap(int SnappingClient)
+void CDragger::Snap(int SnappingClient, bool IsOther)
 {
 	if(GameServer()->m_pTeams->GetTeamState(m_CaughtTeam) == CGameTeams::TEAMSTATE_EMPTY)
 		return;
@@ -257,20 +257,3 @@ void CDragger::Snap(int SnappingClient)
 		obj->m_StartTick = StartTick;
 	}
 }
-
-CDraggerTeam::CDraggerTeam(CGameWorld *pGameWorld, vec2 Pos, float Strength,
-	bool NW, int Layer, int Number)
-{
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		m_Draggers[i] = new CDragger(pGameWorld, Pos, Strength, NW, i, Layer, Number);
-	}
-}
-
-//CDraggerTeam::~CDraggerTeam()
-//{
-//	for (int i = 0; i < MAX_CLIENTS; ++i)
-//	{
-//		delete m_Draggers[i];
-//	}
-//}

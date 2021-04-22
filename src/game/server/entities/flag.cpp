@@ -4,8 +4,8 @@
 #include "flag.h"
 #include <game/server/gamecontext.h>
 
-CFlag::CFlag(CGameWorld *pGameWorld, int Team)
-: CEntity(pGameWorld, CGameWorld::ENTTYPE_FLAG)
+CFlag::CFlag(CGameWorld *pGameWorld, int Team) :
+	CEntity(pGameWorld, CGameWorld::ENTTYPE_FLAG)
 {
 	m_Team = Team;
 	m_ProximityRadius = ms_PhysSize;
@@ -20,7 +20,7 @@ void CFlag::Reset()
 	m_pCarryingCharacter = NULL;
 	m_AtStand = 1;
 	m_Pos = m_StandPos;
-	m_Vel = vec2(0,0);
+	m_Vel = vec2(0, 0);
 	m_GrabTick = 0;
 }
 
@@ -31,9 +31,9 @@ void CFlag::TickPaused()
 		++m_GrabTick;
 }
 
-void CFlag::Snap(int SnappingClient)
+void CFlag::Snap(int SnappingClient, bool IsOther)
 {
-	if(NetworkClipped(SnappingClient))
+	if(IsOther || NetworkClipped(SnappingClient))
 		return;
 
 	CNetObj_Flag *pFlag = (CNetObj_Flag *)Server()->SnapNewItem(NETOBJTYPE_FLAG, m_Team, sizeof(CNetObj_Flag));
@@ -44,4 +44,3 @@ void CFlag::Snap(int SnappingClient)
 	pFlag->m_Y = (int)m_Pos.y;
 	pFlag->m_Team = m_Team;
 }
-

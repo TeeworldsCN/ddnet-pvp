@@ -109,9 +109,9 @@ void CGun::Tick()
 		Fire();
 }
 
-void CGun::Snap(int SnappingClient)
+void CGun::Snap(int SnappingClient, bool IsOther)
 {
-	if(NetworkClipped(SnappingClient))
+	if(IsOther || NetworkClipped(SnappingClient))
 		return;
 
 	CCharacter *Char = GameServer()->GetPlayerChar(SnappingClient);

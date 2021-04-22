@@ -99,7 +99,7 @@ void CLight::Tick()
 	return;
 }
 
-void CLight::Snap(int SnappingClient)
+void CLight::Snap(int SnappingClient, bool IsOther)
 {
 	if(NetworkClipped(SnappingClient, m_Pos) && NetworkClipped(SnappingClient, m_To))
 		return;

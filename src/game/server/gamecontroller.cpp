@@ -357,11 +357,11 @@ void IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 	}
 	else if(Index >= ENTITY_DRAGGER_WEAK && Index <= ENTITY_DRAGGER_STRONG)
 	{
-		CDraggerTeam(GameWorld(), Pos, Index - ENTITY_DRAGGER_WEAK + 1, false, Layer, Number);
+		new CDragger(GameWorld(), Pos, Index - ENTITY_DRAGGER_WEAK + 1, false, Layer, Number);
 	}
 	else if(Index >= ENTITY_DRAGGER_WEAK_NW && Index <= ENTITY_DRAGGER_STRONG_NW)
 	{
-		CDraggerTeam(GameWorld(), Pos, Index - ENTITY_DRAGGER_WEAK_NW + 1, true, Layer, Number);
+		new CDragger(GameWorld(), Pos, Index - ENTITY_DRAGGER_WEAK_NW + 1, true, Layer, Number);
 	}
 	else if(Index == ENTITY_PLASMAE)
 	{
@@ -716,12 +716,10 @@ int IGameController::ClampTeam(int Team)
 	return 0;
 }
 
+// TODO: Controller, don't need this anymore
 int64 IGameController::GetMaskForPlayerWorldEvent(int Asker, int ExceptID)
 {
-	if(Asker == -1)
-		return CmaskAllExceptOne(ExceptID);
-
-	return GameServer()->m_pTeams->TeamMask(m_ResponsibleTeam, ExceptID, Asker);
+	return CmaskAllExceptOne(ExceptID);
 }
 
 int IGameController::GetPlayerTeam(int ClientID) const

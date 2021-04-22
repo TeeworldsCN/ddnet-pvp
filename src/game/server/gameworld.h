@@ -42,8 +42,6 @@ private:
 	class CConfig *m_pConfig;
 	class IServer *m_pServer;
 
-	void UpdatePlayerMaps();
-
 public:
 	class CGameContext *GameServer() { return m_pGameServer; }
 	class CConfig *Config() { return m_pConfig; }
@@ -143,7 +141,7 @@ public:
 			snapping_client - ID of the client which snapshot
 			is being created.
 	*/
-	void Snap(int SnappingClient);
+	void Snap(int SnappingClient, bool IsOther, bool SnapEvents);
 
 	/*
 		Function: tick
@@ -177,13 +175,13 @@ public:
 	std::list<class CCharacter *> IntersectedCharacters(vec2 Pos0, vec2 Pos1, float Radius, class CEntity *pNotThis = 0);
 
 	// helper functions
-	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, int64 Mask = -1);
-	void CreateExplosion(vec2 Pos, int Owner, int Weapon, int Damage, bool NoKnockback, int ActivatedTeam, int64 Mask);
-	void CreateHammerHit(vec2 Pos, int64 Mask = -1);
-	void CreatePlayerSpawn(vec2 Pos, int64 Mask = -1);
-	void CreateDeath(vec2 Pos, int Who, int64 Mask = -1);
-	void CreateSound(vec2 Pos, int Sound, int64 Mask = -1);
-	void CreateSoundGlobal(int Sound, int Target = -1);
+	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, int64 Mask = -1LL);
+	void CreateExplosion(vec2 Pos, int Owner, int Weapon, int Damage, bool NoKnockback, int ActivatedTeam, int64 Mask = -1LL);
+	void CreateHammerHit(vec2 Pos, int64 Mask = -1LL);
+	void CreatePlayerSpawn(vec2 Pos, int64 Mask = -1LL);
+	void CreateDeath(vec2 Pos, int Who, int64 Mask = -1LL);
+	void CreateSound(vec2 Pos, int Sound, int64 Mask = -1LL);
+	void CreateSoundGlobal(int Sound, int Target = -1LL);
 };
 
 #endif

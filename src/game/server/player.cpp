@@ -102,7 +102,6 @@ void CPlayer::Reset()
 	m_OverrideEmoteReset = -1;
 
 	m_ShowOthers = g_Config.m_SvShowOthersDefault;
-	m_ShowAll = g_Config.m_SvShowAllDefault;
 	m_ShowDistance = vec2(SHOW_DISTANCE_DEFAULT_X, SHOW_DISTANCE_DEFAULT_Y);
 	m_SpecTeam = 1; // PvP: default to spec only team
 	m_NinjaJetpack = false;

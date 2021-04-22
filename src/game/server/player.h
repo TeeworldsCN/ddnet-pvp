@@ -180,7 +180,6 @@ public:
 	int64 m_Last_KickVote;
 	int64 m_Last_Team;
 	int m_ShowOthers;
-	bool m_ShowAll;
 	vec2 m_ShowDistance;
 	bool m_SpecTeam;
 	bool m_NinjaJetpack;

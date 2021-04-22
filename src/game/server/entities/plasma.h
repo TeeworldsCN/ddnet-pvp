@@ -25,7 +25,7 @@ public:
 
 	virtual void Reset();
 	virtual void Tick();
-	virtual void Snap(int SnappingClient);
+	virtual void Snap(int SnappingClient, bool IsOther);
 };
 
 #endif // GAME_SERVER_ENTITIES_PLASMA_H

@@ -104,7 +104,7 @@ void CCharacter::SetWeapon(int W)
 	m_LastWeapon = m_Core.m_ActiveWeapon;
 	m_QueuedWeapon = -1;
 	m_Core.m_ActiveWeapon = W;
-	GameWorld()->CreateSound(m_Pos, SOUND_WEAPON_SWITCH, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+	GameWorld()->CreateSound(m_Pos, SOUND_WEAPON_SWITCH);
 
 	if(m_Core.m_ActiveWeapon < 0 || m_Core.m_ActiveWeapon >= NUM_WEAPONS)
 		m_Core.m_ActiveWeapon = 0;
@@ -200,7 +200,7 @@ void CCharacter::HandleNinja()
 
 	if(NinjaTime % Server()->TickSpeed() == 0 && NinjaTime / Server()->TickSpeed() <= 5)
 	{
-		GameWorld()->CreateDamageInd(m_Pos, 0, NinjaTime / Server()->TickSpeed(), Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		GameWorld()->CreateDamageInd(m_Pos, 0, NinjaTime / Server()->TickSpeed());
 	}
 
 	m_Armor = clamp(10 - (NinjaTime / 15), 0, 10);
@@ -266,7 +266,7 @@ void CCharacter::HandleNinja()
 					continue;
 
 				// Hit a player, give him damage and stuffs...
-				GameWorld()->CreateSound(aEnts[i]->m_Pos, SOUND_NINJA_HIT, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+				GameWorld()->CreateSound(aEnts[i]->m_Pos, SOUND_NINJA_HIT);
 				// set his velocity to fast upward (for now)
 				if(m_NumObjectsHit < 10)
 					m_apHitObjects[m_NumObjectsHit++] = aEnts[i];
@@ -394,7 +394,7 @@ void CCharacter::FireWeapon()
 	{
 		// reset objects Hit
 		m_NumObjectsHit = 0;
-		GameWorld()->CreateSound(m_Pos, SOUND_HAMMER_FIRE, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		GameWorld()->CreateSound(m_Pos, SOUND_HAMMER_FIRE);
 
 		Antibot()->OnHammerFire(m_pPlayer->GetCID());
 
@@ -416,9 +416,9 @@ void CCharacter::FireWeapon()
 
 			// set his velocity to fast upward (for now)
 			if(length(pTarget->m_Pos - ProjStartPos) > 0.0f)
-				GameWorld()->CreateHammerHit(pTarget->m_Pos - normalize(pTarget->m_Pos - ProjStartPos) * GetProximityRadius() * 0.5f, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+				GameWorld()->CreateHammerHit(pTarget->m_Pos - normalize(pTarget->m_Pos - ProjStartPos) * GetProximityRadius() * 0.5f);
 			else
-				GameWorld()->CreateHammerHit(ProjStartPos, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+				GameWorld()->CreateHammerHit(ProjStartPos);
 
 			vec2 Dir;
 			if(length(pTarget->m_Pos - m_Pos) > 0.0f)
@@ -484,7 +484,7 @@ void CCharacter::FireWeapon()
 				Msg.AddInt(((int *)&p)[i]);
 
 			Server()->SendMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
-			GameWorld()->CreateSound(m_Pos, SOUND_GUN_FIRE, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+			GameWorld()->CreateSound(m_Pos, SOUND_GUN_FIRE);
 		}
 	}
 	break;
@@ -540,7 +540,7 @@ void CCharacter::FireWeapon()
 				LaserReach = GameServer()->TuningList()[m_TuneZone].m_LaserReach;
 
 			new CLaser(GameWorld(), m_Pos, Direction, LaserReach, m_pPlayer->GetCID(), WEAPON_SHOTGUN);
-			GameWorld()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+			GameWorld()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE);
 		}
 	}
 	break;
@@ -577,7 +577,7 @@ void CCharacter::FireWeapon()
 			Msg.AddInt(((int *)&p)[i]);
 		Server()->SendMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
 
-		GameWorld()->CreateSound(m_Pos, SOUND_GRENADE_FIRE, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		GameWorld()->CreateSound(m_Pos, SOUND_GRENADE_FIRE);
 	}
 	break;
 
@@ -590,7 +590,7 @@ void CCharacter::FireWeapon()
 			LaserReach = GameServer()->TuningList()[m_TuneZone].m_LaserReach;
 
 		new CLaser(GameWorld(), m_Pos, Direction, LaserReach, m_pPlayer->GetCID(), WEAPON_LASER);
-		GameWorld()->CreateSound(m_Pos, SOUND_LASER_FIRE, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		GameWorld()->CreateSound(m_Pos, SOUND_LASER_FIRE);
 	}
 	break;
 
@@ -603,7 +603,7 @@ void CCharacter::FireWeapon()
 		m_Ninja.m_CurrentMoveTime = g_pData->m_Weapons.m_Ninja.m_Movetime * Server()->TickSpeed() / 1000;
 		m_Ninja.m_OldVelAmount = length(m_Core.m_Vel);
 
-		GameWorld()->CreateSound(m_Pos, SOUND_NINJA_FIRE, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		GameWorld()->CreateSound(m_Pos, SOUND_NINJA_FIRE);
 	}
 	break;
 	}
@@ -679,7 +679,7 @@ void CCharacter::GiveNinja()
 	m_Core.m_ActiveWeapon = WEAPON_NINJA;
 
 	if(!m_aWeapons[WEAPON_NINJA].m_Got)
-		GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_NINJA, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_NINJA);
 }
 
 void CCharacter::RemoveNinja()
@@ -868,24 +868,23 @@ void CCharacter::TickDefered()
 		int Events = m_Core.m_TriggeredEvents;
 		int CID = m_pPlayer->GetCID();
 
-		int64 TeamMask = Teams()->TeamMask(Team(), -1, CID);
 		// Some sounds are triggered client-side for the acting player
 		// so we need to avoid duplicating them
-		int64 TeamMaskExceptSelf = Teams()->TeamMask(Team(), CID, CID);
+		int64 ExceptSelf = CmaskAllExceptOne(CID);
 		// Some are triggered client-side but only on Sixup
-		int64 TeamMaskExceptSelfIfSixup = Server()->IsSixup(CID) ? TeamMaskExceptSelf : TeamMask;
+		int64 ExceptSelfIfSixup = Server()->IsSixup(CID) ? CmaskAllExceptOne(CID) : -1LL;
 
 		if(Events & COREEVENT_GROUND_JUMP)
-			GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_JUMP, TeamMaskExceptSelf);
+			GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_JUMP, ExceptSelf);
 
 		if(Events & COREEVENT_HOOK_ATTACH_PLAYER)
-			GameWorld()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_PLAYER, TeamMaskExceptSelfIfSixup);
+			GameWorld()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_PLAYER, ExceptSelfIfSixup);
 
 		if(Events & COREEVENT_HOOK_ATTACH_GROUND)
-			GameWorld()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_GROUND, TeamMaskExceptSelf);
+			GameWorld()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_GROUND, ExceptSelf);
 
 		if(Events & COREEVENT_HOOK_HIT_NOHOOK)
-			GameWorld()->CreateSound(m_Pos, SOUND_HOOK_NOATTACH, TeamMaskExceptSelf);
+			GameWorld()->CreateSound(m_Pos, SOUND_HOOK_NOATTACH, ExceptSelf);
 	}
 
 	if(m_pPlayer->GetTeam() == TEAM_SPECTATORS)
@@ -966,7 +965,7 @@ void CCharacter::Die(int Killer, int Weapon)
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
 
 	// a nice sound
-	GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_DIE, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+	GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_DIE);
 
 	// this is to rate limit respawning to 3 secs
 	m_pPlayer->m_PreviousDieTick = m_pPlayer->m_DieTick;
@@ -978,7 +977,7 @@ void CCharacter::Die(int Killer, int Weapon)
 
 	GameWorld()->RemoveEntity(this);
 	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
-	GameWorld()->CreateDeath(m_Pos, m_pPlayer->GetCID(), Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+	GameWorld()->CreateDeath(m_Pos, m_pPlayer->GetCID());
 	Teams()->OnCharacterDeath(GetPlayer()->GetCID(), Weapon);
 }
 
@@ -1210,7 +1209,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int ID)
 	}
 }
 
-void CCharacter::Snap(int SnappingClient)
+void CCharacter::Snap(int SnappingClient, bool IsOther)
 {
 	int ID = m_pPlayer->GetCID();
 
@@ -1991,7 +1990,7 @@ void CCharacter::DDRaceTick()
 	{
 		if(m_FreezeTime % Server()->TickSpeed() == Server()->TickSpeed() - 1 || m_FreezeTime == -1)
 		{
-			GameWorld()->CreateDamageInd(m_Pos, 0, (m_FreezeTime + 1) / Server()->TickSpeed(), Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+			GameWorld()->CreateDamageInd(m_Pos, 0, (m_FreezeTime + 1) / Server()->TickSpeed());
 		}
 		if(m_FreezeTime > 0)
 			m_FreezeTime--;
@@ -2069,12 +2068,12 @@ void CCharacter::DDRacePostCoreTick()
 	// teleport gun
 	if(m_TeleGunTeleport)
 	{
-		GameWorld()->CreateDeath(m_Pos, m_pPlayer->GetCID(), Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		GameWorld()->CreateDeath(m_Pos, m_pPlayer->GetCID());
 		m_Core.m_Pos = m_TeleGunPos;
 		if(!m_IsBlueTeleGunTeleport)
 			m_Core.m_Vel = vec2(0, 0);
-		GameWorld()->CreateDeath(m_TeleGunPos, m_pPlayer->GetCID(), Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
-		GameWorld()->CreateSound(m_TeleGunPos, SOUND_WEAPON_SPAWN, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		GameWorld()->CreateDeath(m_TeleGunPos, m_pPlayer->GetCID());
+		GameWorld()->CreateSound(m_TeleGunPos, SOUND_WEAPON_SPAWN);
 		m_TeleGunTeleport = false;
 		m_IsBlueTeleGunTeleport = false;
 	}

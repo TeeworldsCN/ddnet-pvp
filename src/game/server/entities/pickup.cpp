@@ -46,7 +46,7 @@ void CPickup::Tick()
 			m_SpawnTick = -1;
 
 			if(m_Type == POWERUP_WEAPON)
-				GameWorld()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, GameServer()->m_pTeams->TeamMask(GameWorld()->Team()));
+				GameWorld()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN);
 		}
 	}
 
@@ -72,15 +72,15 @@ void CPickup::Tick()
 	{
 		CCharacter *pChr = apEnts[i];
 		bool isSoloInteract = (m_SoloSpawnTick[i] < 0) && GameServer()->m_pTeams->m_Core.GetSolo(i);
-		bool isTeamInteract = m_SpawnTick < 0 && !GameServer()->m_pTeams->m_Core.GetSolo(i);
+		bool isNormalInteract = m_SpawnTick < 0 && !GameServer()->m_pTeams->m_Core.GetSolo(i);
 
-		if(pChr && pChr->IsAlive() && (isSoloInteract || isTeamInteract))
+		if(pChr && pChr->IsAlive() && (isSoloInteract || isNormalInteract))
 		{
 			int64 Mask = 0;
 			if(isSoloInteract)
 				Mask = CmaskOne(i);
-			else if(isTeamInteract)
-				Mask = GameServer()->m_pTeams->TeamMask(pChr->Team());
+			else if(isNormalInteract)
+				Mask = -1LL;
 
 			// player picked us up, is someone was hooking us, let them go
 			int RespawnTime = -1;
@@ -156,7 +156,7 @@ void CPickup::Tick()
 
 				if(isSoloInteract)
 					m_SoloSpawnTick[i] = RespawnTick;
-				else if(isTeamInteract)
+				else if(isNormalInteract)
 					m_SpawnTick = RespawnTick;
 			}
 		}
@@ -174,9 +174,9 @@ void CPickup::TickPaused()
 	}
 }
 
-void CPickup::Snap(int SnappingClient)
+void CPickup::Snap(int SnappingClient, bool IsOther)
 {
-	if(NetworkClipped(SnappingClient))
+	if(IsOther || NetworkClipped(SnappingClient))
 		return;
 
 	CPlayer *SnappingPlayer = SnappingClient > -1 ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
