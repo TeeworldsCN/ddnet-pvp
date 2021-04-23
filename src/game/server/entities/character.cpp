@@ -1220,7 +1220,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int ID)
 	}
 }
 
-void CCharacter::Snap(int SnappingClient, bool IsOther)
+void CCharacter::Snap(int SnappingClient, int OtherMode)
 {
 	int ID = m_pPlayer->GetCID();
 

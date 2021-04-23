@@ -102,7 +102,7 @@ void CGun::Tick()
 		Fire();
 }
 
-void CGun::Snap(int SnappingClient, bool IsOther)
+void CGun::Snap(int SnappingClient, int OtherMode)
 {
 	if(IsOther || NetworkClipped(SnappingClient))
 		return;

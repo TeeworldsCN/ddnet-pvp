@@ -252,7 +252,7 @@ void CLaser::TickPaused()
 	++m_EvalTick;
 }
 
-void CLaser::Snap(int SnappingClient, bool IsOther)
+void CLaser::Snap(int SnappingClient, int OtherMode)
 {
 	if(NetworkClipped(SnappingClient))
 		return;

@@ -15,7 +15,7 @@ public:
 	virtual void Reset();
 	virtual void Tick();
 	virtual void TickPaused();
-	virtual void Snap(int SnappingClient, bool IsOther);
+	virtual void Snap(int SnappingClient, int OtherMode);
 
 private:
 	int m_Type;

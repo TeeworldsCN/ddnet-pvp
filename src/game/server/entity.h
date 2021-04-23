@@ -119,7 +119,7 @@ public:
 				snapshot of everything in the game for demo
 				recording.
 	*/
-	virtual void Snap(int SnappingClient, bool IsOther) {}
+	virtual void Snap(int SnappingClient, int OtherMode) {}
 
 	/*
 		Function: NetworkClipped

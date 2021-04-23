@@ -141,7 +141,7 @@ public:
 			snapping_client - ID of the client which snapshot
 			is being created.
 	*/
-	void Snap(int SnappingClient, bool IsOther, bool SnapEvents);
+	void Snap(int SnappingClient, int OtherMode);
 
 	/*
 		Function: tick

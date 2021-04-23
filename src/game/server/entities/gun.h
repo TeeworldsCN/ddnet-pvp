@@ -24,7 +24,7 @@ public:
 
 	virtual void Reset();
 	virtual void Tick();
-	virtual void Snap(int SnappingClient, bool IsOther);
+	virtual void Snap(int SnappingClient, int OtherMode);
 };
 
 #endif // GAME_SERVER_ENTITIES_GUN_H

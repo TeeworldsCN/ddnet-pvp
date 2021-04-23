@@ -149,7 +149,7 @@ void CDragger::Tick()
 	return;
 }
 
-void CDragger::Snap(int SnappingClient, bool IsOther)
+void CDragger::Snap(int SnappingClient, int OtherMode)
 {
 	CCharacter *Target = m_Target;
 

@@ -294,7 +294,7 @@ void CGameTeams::OnSnap(int SnappingClient)
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 			if(m_aTeamInstances[i].m_IsCreated)
 			{
-				m_aTeamInstances[i].m_pWorld->Snap(SnapAs, SnapAsTeam != i, SnapAsTeam == i || ShowOthers == 2);
+				m_aTeamInstances[i].m_pWorld->Snap(SnapAs, SnapAsTeam == i ? 0 : ShowOthers);
 				if(SnapAsTeam == i)
 					m_aTeamInstances[i].m_pController->Snap(SnapAs);
 			}
@@ -304,7 +304,7 @@ void CGameTeams::OnSnap(int SnappingClient)
 		SGameInstance Instance = GetGameInstance(SnapAsTeam);
 		if(!Instance.m_IsCreated)
 			return;
-		Instance.m_pWorld->Snap(SnapAs, false, true);
+		Instance.m_pWorld->Snap(SnapAs, 1);
 		Instance.m_pController->Snap(SnapAs);
 	}
 }

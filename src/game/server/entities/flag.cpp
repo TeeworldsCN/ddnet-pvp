@@ -31,7 +31,7 @@ void CFlag::TickPaused()
 		++m_GrabTick;
 }
 
-void CFlag::Snap(int SnappingClient, bool IsOther)
+void CFlag::Snap(int SnappingClient, int OtherMode)
 {
 	if(IsOther || NetworkClipped(SnappingClient))
 		return;

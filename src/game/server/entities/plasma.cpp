@@ -79,7 +79,7 @@ void CPlasma::Tick()
 	}
 }
 
-void CPlasma::Snap(int SnappingClient, bool IsOther)
+void CPlasma::Snap(int SnappingClient, int OtherMode)
 {
 	if(NetworkClipped(SnappingClient))
 		return;

@@ -174,7 +174,7 @@ void CPickup::TickPaused()
 	}
 }
 
-void CPickup::Snap(int SnappingClient, bool IsOther)
+void CPickup::Snap(int SnappingClient, int OtherMode)
 {
 	if(IsOther || NetworkClipped(SnappingClient))
 		return;

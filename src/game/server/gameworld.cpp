@@ -105,17 +105,17 @@ void CGameWorld::RemoveEntity(CEntity *pEnt)
 }
 
 //
-void CGameWorld::Snap(int SnappingClient, bool IsOther, bool SnapEvents)
+void CGameWorld::Snap(int SnappingClient, int OtherMode)
 {
 	for(auto *pEnt : m_apFirstEntityTypes)
 		for(; pEnt;)
 		{
 			m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
-			pEnt->Snap(SnappingClient, IsOther);
+			pEnt->Snap(SnappingClient, OtherMode);
 			pEnt = m_pNextTraverseEntity;
 		}
 
-	if(SnapEvents)
+	if(OtherMode == 2) // Enable annoying
 		m_Events.Snap(SnappingClient);
 }
 

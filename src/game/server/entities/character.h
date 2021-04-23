@@ -42,7 +42,7 @@ public:
 	virtual void Tick();
 	virtual void TickDefered();
 	virtual void TickPaused();
-	virtual void Snap(int SnappingClient, bool IsOther);
+	virtual void Snap(int SnappingClient, int OtherMode);
 
 	bool IsGrounded();
 
