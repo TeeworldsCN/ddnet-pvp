@@ -192,8 +192,15 @@ public:
 	bool m_FrozenLastTick;
 	bool m_DeepFreeze;
 	bool m_EndlessHook;
-	bool m_DDRLaser;
-	bool m_DDRShotgun;
+	bool m_LaserHitSelf;
+
+	enum
+	{
+		SHOTGUN_VANILLA = 0,
+		SHOTGUN_NORMAL_PULL = 1,
+		SHOTGUN_SHOOTER_PULL = 2,
+	};
+	int m_PullingShotgun;
 
 	enum
 	{

@@ -151,14 +151,22 @@ void CProjectile::Tick()
 
 	if(((pTargetChr && (pOwnerChar ? !(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit || m_Owner == -1 || pTargetChr == pOwnerChar)) || Collide || GameLayerClipped(CurPos)) && !IsWeaponCollide)
 	{
-		if(m_Explosive /*??*/ && (!pTargetChr || (pTargetChr && (!m_Freeze || (m_Type == WEAPON_SHOTGUN && Collide)))))
+		if(m_Explosive /*??*/ && (!pTargetChr || pTargetChr))
 		{
-			int Number = 1;
-			if(GameServer()->EmulateBug(BUG_GRENADE_DOUBLEEXPLOSION) && m_LifeSpan == -1)
+			if(m_Type == WEAPON_SHOTGUN)
 			{
-				Number = 2;
+				int Number = 1;
+				if(GameServer()->EmulateBug(BUG_GRENADE_DOUBLEEXPLOSION) && m_LifeSpan == -1)
+				{
+					Number = 2;
+				}
+				for(int i = 0; i < Number; i++)
+				{
+					GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1);
+					GameWorld()->CreateSound(ColPos, m_SoundImpact);
+				}
 			}
-			for(int i = 0; i < Number; i++)
+			else if(m_Type == WEAPON_GRENADE)
 			{
 				GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1);
 				GameWorld()->CreateSound(ColPos, m_SoundImpact);
@@ -235,7 +243,7 @@ void CProjectile::Tick()
 			GameWorld()->DestroyEntity(this);
 			return;
 		}
-		else
+		else if(m_Type == WEAPON_SHOTGUN)
 		{
 			if(!m_Freeze)
 			{
@@ -244,6 +252,11 @@ void CProjectile::Tick()
 				GameWorld()->DestroyEntity(this);
 				return;
 			}
+		}
+		else
+		{
+			GameWorld()->DestroyEntity(this);
+			return;
 		}
 	}
 	if(m_LifeSpan == -1)

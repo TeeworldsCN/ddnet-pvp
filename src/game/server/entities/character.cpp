@@ -502,7 +502,7 @@ void CCharacter::FireWeapon()
 
 	case WEAPON_SHOTGUN:
 	{
-		if(!m_DDRShotgun)
+		if(!m_PullingShotgun)
 		{
 			int ShotSpread = 2;
 
@@ -1074,7 +1074,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 
 	if(Dmg > 2)
 		GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG);
-	else
+	else if(Dmg > 0)
 		GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT);
 
 	if(Dmg)
@@ -2232,8 +2232,8 @@ void CCharacter::DDRaceInit()
 	m_Hit = g_Config.m_SvHit ? HIT_ALL : DISABLE_HIT_GRENADE | DISABLE_HIT_HAMMER | DISABLE_HIT_LASER | DISABLE_HIT_SHOTGUN;
 	m_SuperJump = false;
 	m_Jetpack = false;
-	m_DDRLaser = false;
-	m_DDRShotgun = false;
+	m_LaserHitSelf = false;
+	m_PullingShotgun = false;
 	m_Core.m_Jumps = 2;
 
 	int Team = Teams()->m_Core.Team(m_Core.m_Id);
