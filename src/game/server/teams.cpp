@@ -279,27 +279,33 @@ void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 
 void CGameTeams::OnSnap(int SnappingClient)
 {
-	int ClientTeam = m_Core.Team(SnappingClient);
-	int ShowOthers = GetPlayer(SnappingClient)->m_ShowOthers;
+	CPlayer *pPlayer = GetPlayer(SnappingClient);
+	int ShowOthers = pPlayer->m_ShowOthers;
+
+	int SnapAs = SnappingClient;
+	if((pPlayer->GetTeam() == TEAM_SPECTATORS || pPlayer->IsPaused()) && pPlayer->m_SpectatorID != SPEC_FREEVIEW)
+		SnapAs = pPlayer->m_SpectatorID;
+
+	int SnapAsTeam = m_Core.Team(SnapAs);
 
 	// Spectator
-
 	if(ShowOthers)
 	{
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 			if(m_aTeamInstances[i].m_IsCreated)
 			{
-				m_aTeamInstances[i].m_pWorld->Snap(SnappingClient, ClientTeam != i, ClientTeam == i || ShowOthers == 2);
-				m_aTeamInstances[i].m_pController->Snap(SnappingClient);
+				m_aTeamInstances[i].m_pWorld->Snap(SnapAs, SnapAsTeam != i, SnapAsTeam == i || ShowOthers == 2);
+				if(SnapAsTeam == i)
+					m_aTeamInstances[i].m_pController->Snap(SnapAs);
 			}
 	}
 	else
 	{
-		SGameInstance Instance = GetPlayerGameInstance(SnappingClient);
+		SGameInstance Instance = GetGameInstance(SnapAsTeam);
 		if(!Instance.m_IsCreated)
 			return;
-		Instance.m_pWorld->Snap(SnappingClient, false, true);
-		Instance.m_pController->Snap(SnappingClient);
+		Instance.m_pWorld->Snap(SnapAs, false, true);
+		Instance.m_pController->Snap(SnapAs);
 	}
 }
 

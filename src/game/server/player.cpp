@@ -293,6 +293,11 @@ void CPlayer::Snap(int SnappingClient)
 	if(SnappingClient > -1 && !Server()->Translate(id, SnappingClient))
 		return;
 
+	CPlayer *pSnappingPlayer = GameServer()->m_apPlayers[SnappingClient];
+	int SnapAs = SnappingClient;
+	if((pSnappingPlayer->m_Team == TEAM_SPECTATORS || pSnappingPlayer->IsPaused()) && pSnappingPlayer->m_SpectatorID > SPEC_FREEVIEW)
+		SnapAs = pSnappingPlayer->m_SpectatorID; // Snap as spectating player.
+
 	CNetObj_ClientInfo *pClientInfo = static_cast<CNetObj_ClientInfo *>(Server()->SnapNewItem(NETOBJTYPE_CLIENTINFO, id, sizeof(CNetObj_ClientInfo)));
 	if(!pClientInfo)
 		return;
@@ -324,7 +329,7 @@ void CPlayer::Snap(int SnappingClient)
 		if(m_ClientID == SnappingClient && m_Paused == PAUSE_PAUSED && ClientVersion < VERSION_DDNET_OLD)
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 
-		if(GameServer()->GetDDRaceTeam(SnappingClient) != GameServer()->GetDDRaceTeam(id) && GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers != 1)
+		if(GameServer()->GetDDRaceTeam(SnapAs) != GameServer()->GetDDRaceTeam(id) && GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers != 1)
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 	}
 	else
