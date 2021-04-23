@@ -115,7 +115,7 @@ void CGameWorld::Snap(int SnappingClient, int OtherMode)
 			pEnt = m_pNextTraverseEntity;
 		}
 
-	if(OtherMode == 2) // Enable annoying
+	if(OtherMode != 1) // Enable all for 0 and enable distracting for 2
 		m_Events.Snap(SnappingClient);
 }
 

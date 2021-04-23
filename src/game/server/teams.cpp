@@ -304,7 +304,7 @@ void CGameTeams::OnSnap(int SnappingClient)
 		SGameInstance Instance = GetGameInstance(SnapAsTeam);
 		if(!Instance.m_IsCreated)
 			return;
-		Instance.m_pWorld->Snap(SnapAs, 1);
+		Instance.m_pWorld->Snap(SnapAs, 0);
 		Instance.m_pController->Snap(SnapAs);
 	}
 }
