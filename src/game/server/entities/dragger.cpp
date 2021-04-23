@@ -162,7 +162,7 @@ void CDragger::Snap(int SnappingClient, int OtherMode)
 		SoloID = -1;
 	}
 
-	if(IsOther)
+	if(OtherMode)
 		return;
 
 	int pos = 0;

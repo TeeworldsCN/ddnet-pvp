@@ -104,7 +104,7 @@ void CGun::Tick()
 
 void CGun::Snap(int SnappingClient, int OtherMode)
 {
-	if(IsOther || NetworkClipped(SnappingClient))
+	if(OtherMode || NetworkClipped(SnappingClient))
 		return;
 
 	int Tick = (Server()->Tick() % Server()->TickSpeed()) % 11;

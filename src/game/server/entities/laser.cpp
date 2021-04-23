@@ -265,5 +265,5 @@ void CLaser::Snap(int SnappingClient, int OtherMode)
 	pObj->m_Y = (int)m_Pos.y;
 	pObj->m_FromX = (int)m_From.x;
 	pObj->m_FromY = (int)m_From.y;
-	pObj->m_StartTick = IsOther ? m_EvalTick - 4 : m_EvalTick; // HACK: Send thin laser for other team.
+	pObj->m_StartTick = OtherMode ? m_EvalTick - 4 : m_EvalTick; // HACK: Send thin laser for other team.
 }

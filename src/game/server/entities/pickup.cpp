@@ -176,7 +176,7 @@ void CPickup::TickPaused()
 
 void CPickup::Snap(int SnappingClient, int OtherMode)
 {
-	if(IsOther || NetworkClipped(SnappingClient))
+	if(OtherMode || NetworkClipped(SnappingClient))
 		return;
 
 	CPlayer *SnappingPlayer = SnappingClient > -1 ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
