@@ -30,7 +30,7 @@ public:
 	};
 
 private:
-	int m_ResponsibleTeam;
+	int m_ResponsibleTeam; // TODO: couple with controller instead of using Team?
 	CEventHandler m_Events;
 	void Reset();
 	void RemoveEntities();

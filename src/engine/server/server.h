@@ -226,7 +226,7 @@ public:
 
 	int m_RunServer;
 
-	int m_MapReload;
+	bool m_MapReload;
 	bool m_ReloadedWhenEmpty;
 	int m_RconClientID;
 	int m_RconAuthLevel;
@@ -364,6 +364,7 @@ public:
 	void PumpNetwork(bool PacketWaiting);
 
 	char *GetMapName() const;
+	void ChangeMap(const char *pMap);
 	int LoadMap(const char *pMapName);
 
 	void SaveDemo(int ClientID, float Time);

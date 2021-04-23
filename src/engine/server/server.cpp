@@ -33,9 +33,9 @@
 #include <mastersrv/mastersrv.h>
 
 // DDRace
+#include <cstring>
 #include <engine/shared/linereader.h>
 #include <game/extrainfo.h>
-#include <cstring>
 #include <vector>
 #include <zlib.h>
 
@@ -306,7 +306,7 @@ CServer::CServer() :
 		m_aCurrentMapSize[i] = 0;
 	}
 
-	m_MapReload = 0;
+	m_MapReload = false;
 	m_ReloadedWhenEmpty = false;
 
 	m_RconClientID = IServer::RCON_CID_SERV;
@@ -2264,6 +2264,12 @@ char *CServer::GetMapName() const
 	return pMapShortName;
 }
 
+void CServer::ChangeMap(const char *pMap)
+{
+	str_copy(g_Config.m_SvMap, pMap, sizeof(g_Config.m_SvMap));
+	m_MapReload = str_comp(g_Config.m_SvMap, m_aCurrentMap) != 0;
+}
+
 int CServer::LoadMap(const char *pMapName)
 {
 	char aBuf[512];
@@ -2477,9 +2483,9 @@ int CServer::Run()
 			int NewTicks = 0;
 
 			// load new map TODO: don't poll this
-			if(str_comp(g_Config.m_SvMap, m_aCurrentMap) != 0 || m_MapReload)
+			if(m_MapReload || m_CurrentGameTick >= 0x6FFFFFFF) //	force reload to make sure the ticks stay within a valid range
 			{
-				m_MapReload = 0;
+				m_MapReload = false;
 
 				// load map
 				if(LoadMap(g_Config.m_SvMap))
@@ -3152,7 +3158,7 @@ void CServer::ConStopRecord(IConsole::IResult *pResult, void *pUser)
 
 void CServer::ConMapReload(IConsole::IResult *pResult, void *pUser)
 {
-	((CServer *)pUser)->m_MapReload = 1;
+	((CServer *)pUser)->m_MapReload = true;
 }
 
 void CServer::ConLogout(IConsole::IResult *pResult, void *pUser)

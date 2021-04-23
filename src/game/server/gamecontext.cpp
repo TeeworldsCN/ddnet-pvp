@@ -876,20 +876,6 @@ void CGameContext::OnTick()
 		}
 	}
 
-	// if(m_SqlRandomMapResult != nullptr && m_SqlRandomMapResult->m_Completed)
-	// {
-	// 	if(m_SqlRandomMapResult->m_Success)
-	// 	{
-	// 		if(PlayerExists(m_SqlRandomMapResult->m_ClientID) && m_SqlRandomMapResult->m_aMessage[0] != '\0')
-	// 			SendChatTarget(m_SqlRandomMapResult->m_ClientID, m_SqlRandomMapResult->m_aMessage);
-	// 		if(m_SqlRandomMapResult->m_Map[0] != '\0')
-	// 			str_copy(g_Config.m_SvMap, m_SqlRandomMapResult->m_Map, sizeof(g_Config.m_SvMap));
-	// 		else
-	// 			m_LastMapVote = 0;
-	// 	}
-	// 	m_SqlRandomMapResult = nullptr;
-	// }
-
 #ifdef CONF_DEBUG
 	if(g_Config.m_DbgDummies)
 	{
@@ -2459,7 +2445,8 @@ void CGameContext::ConPause(IConsole::IResult *pResult, void *pUserData)
 
 void CGameContext::ConChangeMap(IConsole::IResult *pResult, void *pUserData)
 {
-	str_copy(g_Config.m_SvMap, pResult->NumArguments() ? pResult->GetString(0) : "", sizeof(g_Config.m_SvMap));
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	pSelf->Server()->ChangeMap(pResult->NumArguments() ? pResult->GetString(0) : "");
 }
 
 // void CGameContext::ConRandomMap(IConsole::IResult *pResult, void *pUserData)

@@ -23,8 +23,6 @@
 
 IGameController::IGameController()
 {
-	m_ResponsibleTeam = -1;
-
 	m_pGameServer = nullptr;
 	m_pConfig = nullptr;
 	m_pServer = nullptr;
@@ -576,15 +574,7 @@ void IGameController::Tick()
 
 void IGameController::Snap(int SnappingClient)
 {
-	if(m_ResponsibleTeam < 0)
-		return;
-
-	// TODO: Think about what to do for SnappingClient -1 (server demo)
 	if(SnappingClient < 0)
-		return;
-
-	int DDRTeam = GameServer()->GetPlayerDDRTeam(SnappingClient);
-	if(DDRTeam != m_ResponsibleTeam)
 		return;
 
 	CNetObj_GameInfo *pGameInfoObj = (CNetObj_GameInfo *)Server()->SnapNewItem(NETOBJTYPE_GAMEINFO, 0, sizeof(CNetObj_GameInfo));
@@ -746,7 +736,6 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 
 void IGameController::InitController(int Team, class CGameContext *pGameServer, class CGameWorld *pWorld)
 {
-	m_ResponsibleTeam = Team;
 	m_pGameServer = pGameServer;
 	m_pConfig = m_pGameServer->Config();
 	m_pServer = m_pGameServer->Server();

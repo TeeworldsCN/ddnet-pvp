@@ -30,8 +30,6 @@ protected:
 	IServer *Server() const { return m_pServer; }
 	CGameWorld *GameWorld() const { return m_pWorld; }
 
-	int m_ResponsibleTeam;
-
 	void DoActivityCheck();
 
 	struct CSpawnEval
