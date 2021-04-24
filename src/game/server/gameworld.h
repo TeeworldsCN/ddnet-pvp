@@ -76,6 +76,19 @@ public:
 	int FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, int Type);
 
 	/*
+		Function: closest_CEntity
+			Finds the closest CEntity of a type to a specific point.
+		Arguments:
+			pos - The center position.
+			radius - How far off the CEntity is allowed to be
+			type - Type of the entities to find.
+			notthis - Entity to ignore
+		Returns:
+			Returns a pointer to the closest CEntity or NULL if no CEntity is close enough.
+	*/
+	CEntity *ClosestEntity(vec2 Pos, float Radius, int Type, CEntity *pNotThis);
+
+	/*
 		Function: InterserctCharacters
 			Finds the CCharacters that intersects the line. // made for types lasers=1 and doors=0
 

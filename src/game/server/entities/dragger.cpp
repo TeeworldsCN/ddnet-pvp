@@ -191,7 +191,6 @@ void CDragger::Snap(int SnappingClient, int OtherMode)
 
 		int TargetCID = Target->GetPlayer()->GetCID();
 
-		// TODO: what if spec solo
 		if(TargetCID != SnappingClient && Teams()->m_Core.GetSolo(TargetCID))
 			continue;
 

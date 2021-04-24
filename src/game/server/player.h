@@ -30,7 +30,7 @@ class CPlayer
 	MACRO_ALLOC_POOL_ID()
 
 public:
-	CPlayer(CGameContext *pGameServer, int ClientID, int Team);
+	CPlayer(CGameContext *pGameServer, int ClientID, bool AsSpec);
 	~CPlayer();
 
 	void Reset();
@@ -73,9 +73,16 @@ public:
 	int m_aActLatency[MAX_CLIENTS];
 
 	// used for spectator mode
-	int m_SpectatorID;
+	int GetSpectatorID() const { return m_SpectatorID; }
+	bool SetSpectatorID(int SpecMode, int SpectatorID);
+	bool m_DeadSpecMode;
+	bool DeadCanFollow(CPlayer *pPlayer) const;
+	void UpdateDeadSpecMode();
 
-	bool m_IsReady;
+	bool m_IsReadyToEnter;
+	bool m_IsReadyToPlay;
+
+	bool m_RespawnDisabled;
 
 	//
 	int m_Vote;
@@ -102,11 +109,13 @@ public:
 	int m_DieTick;
 	int m_PreviousDieTick;
 	int m_Score;
+	int m_ScoreStartTick;
 	int m_JoinTick;
 	bool m_ForceBalanced;
 	int m_LastActionTick;
 	int m_TeamChangeTick;
 	bool m_SentSemicolonTip;
+	int m_InactivityTickCounter;
 	struct
 	{
 		int m_TargetX;
@@ -212,6 +221,20 @@ public:
 	bool m_FirstPacket;
 	bool m_NotEligibleForFinish;
 	int64 m_EligibleForFinishCheck;
+
+	// used for spectator mode
+	enum
+	{
+		SPECMODE_FREEVIEW,
+		SPECMODE_PLAYER,
+		SPECMODE_FLAGRED, // SIXUP only
+		SPECMODE_FLAGBLUE, // SIXUP only
+		NUM_SPECMODES
+	};
+	int m_SpecMode;
+	int m_SpectatorID;
+	class CFlag *m_pSpecFlag;
+	bool m_ActiveSpecSwitch;
 };
 
 #endif

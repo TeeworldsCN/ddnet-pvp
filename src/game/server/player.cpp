@@ -7,17 +7,18 @@
 #include "gamecontext.h"
 #include <engine/server.h>
 #include <game/gamecore.h>
+#include <game/server/entities/flag.h>
 #include <game/version.h>
 
 MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS)
 
 IServer *CPlayer::Server() const { return m_pGameServer->Server(); }
 
-CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
+CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, bool AsSpec)
 {
 	m_pGameServer = pGameServer;
 	m_ClientID = ClientID;
-	m_Team = Controller()->ClampTeam(Team);
+	m_Team = AsSpec ? TEAM_SPECTATORS : Controller()->GetStartTeam();
 	m_NumInputs = 0;
 	Reset();
 	GameServer()->Antibot()->OnPlayerInit(m_ClientID);
@@ -34,6 +35,7 @@ CPlayer::~CPlayer()
 void CPlayer::Reset()
 {
 	m_DieTick = Server()->Tick();
+	m_ScoreStartTick = Server()->Tick();
 	m_PreviousDieTick = m_DieTick;
 	m_JoinTick = Server()->Tick();
 	delete m_pCharacter;
@@ -42,6 +44,12 @@ void CPlayer::Reset()
 	m_LastActionTick = Server()->Tick();
 	m_TeamChangeTick = Server()->Tick();
 	m_LastInvited = 0;
+	m_InactivityTickCounter = 0;
+
+	m_IsReadyToEnter = false;
+	m_IsReadyToPlay = false;
+
+	m_DeadSpecMode = false;
 
 	int *pIdMap = Server()->GetIdMap(m_ClientID);
 	for(int i = 1; i < VANILLA_MAX_CLIENTS; i++)
@@ -153,6 +161,87 @@ static int PlayerFlags_SixToSeven(int Flags)
 	return Seven;
 }
 
+bool CPlayer::SetSpectatorID(int SpecMode, int SpectatorID)
+{
+	if((SpecMode == m_SpecMode && SpecMode != SPECMODE_PLAYER) ||
+		(m_SpecMode == SPECMODE_PLAYER && SpecMode == SPECMODE_PLAYER && (SpectatorID == -1 || m_SpectatorID == SpectatorID || m_ClientID == SpectatorID)))
+	{
+		return false;
+	}
+
+	if(m_Team == TEAM_SPECTATORS)
+	{
+		// check for freeview or if wanted player is playing
+		if(SpecMode != SPECMODE_PLAYER || (SpecMode == SPECMODE_PLAYER && GameServer()->IsClientPlayer(SpectatorID)))
+		{
+			if(SpecMode == SPECMODE_FLAGRED || SpecMode == SPECMODE_FLAGBLUE)
+			{
+				CFlag *pFlag = (CFlag *)GameWorld()->FindFirst(CGameWorld::ENTTYPE_FLAG);
+				while(pFlag)
+				{
+					if((pFlag->GetTeam() == TEAM_RED && SpecMode == SPECMODE_FLAGRED) || (pFlag->GetTeam() == TEAM_BLUE && SpecMode == SPECMODE_FLAGBLUE))
+					{
+						m_pSpecFlag = pFlag;
+						if(pFlag->GetCarrier())
+							m_SpectatorID = pFlag->GetCarrier()->GetPlayer()->GetCID();
+						else
+							m_SpectatorID = -1;
+						break;
+					}
+					pFlag = (CFlag *)pFlag->TypeNext();
+				}
+				if(!m_pSpecFlag)
+					return false;
+				m_SpecMode = SpecMode;
+				return true;
+			}
+			m_pSpecFlag = 0;
+			m_SpecMode = SpecMode;
+			m_SpectatorID = SpectatorID;
+			return true;
+		}
+	}
+	else if(m_DeadSpecMode)
+	{
+		// check if wanted player can be followed
+		if(SpecMode == SPECMODE_PLAYER && GameServer()->m_apPlayers[SpectatorID] && DeadCanFollow(GameServer()->m_apPlayers[SpectatorID]))
+		{
+			m_SpecMode = SpecMode;
+			m_pSpecFlag = 0;
+			m_SpectatorID = SpectatorID;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool CPlayer::DeadCanFollow(CPlayer *pPlayer) const
+{
+	// check if wanted player is in the same team and alive
+	return (!pPlayer->m_RespawnDisabled || (pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive())) && pPlayer->GetTeam() == m_Team;
+}
+
+void CPlayer::UpdateDeadSpecMode()
+{
+	// check if actual spectator id is valid
+	if(m_SpectatorID != -1 && GameServer()->m_apPlayers[m_SpectatorID] && DeadCanFollow(GameServer()->m_apPlayers[m_SpectatorID]))
+		return;
+
+	// find player to follow
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if(GameServer()->m_apPlayers[i] && DeadCanFollow(GameServer()->m_apPlayers[i]))
+		{
+			m_SpectatorID = i;
+			return;
+		}
+	}
+
+	// no one available to follow -> turn spectator mode off
+	m_DeadSpecMode = false;
+}
+
 void CPlayer::Tick()
 {
 #ifdef CONF_DEBUG
@@ -209,10 +298,19 @@ void CPlayer::Tick()
 
 	if(GameWorld() && !GameWorld()->m_Paused)
 	{
-		int EarliestRespawnTick = m_PreviousDieTick + Server()->TickSpeed() * 3;
-		int RespawnTick = maximum(m_DieTick, EarliestRespawnTick) + 2;
-		if(!m_pCharacter && RespawnTick <= Server()->Tick())
-			m_Spawning = true;
+		if(!m_pCharacter && m_Team == TEAM_SPECTATORS && m_SpecMode == SPEC_FREEVIEW)
+			m_ViewPos -= vec2(clamp(m_ViewPos.x - m_LatestActivity.m_TargetX, -500.0f, 500.0f), clamp(m_ViewPos.y - m_LatestActivity.m_TargetY, -400.0f, 400.0f));
+
+		if(!m_pCharacter && m_DieTick + Server()->TickSpeed() * 3 <= Server()->Tick() && !m_DeadSpecMode)
+			Respawn();
+
+		if(!m_pCharacter && m_Team == TEAM_SPECTATORS && m_pSpecFlag)
+		{
+			if(m_pSpecFlag->GetCarrier())
+				m_SpectatorID = m_pSpecFlag->GetCarrier()->GetPlayer()->GetCID();
+			else
+				m_SpectatorID = -1;
+		}
 
 		if(m_pCharacter)
 		{
@@ -271,7 +369,7 @@ void CPlayer::PostTick()
 	{
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 		{
-			if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS)
+			if(GameServer()->IsClientPlayer(i))
 				m_aActLatency[i] = GameServer()->m_apPlayers[i]->m_Latency.m_Min;
 		}
 	}
@@ -339,6 +437,12 @@ void CPlayer::Snap(int SnappingClient)
 			return;
 
 		pPlayerInfo->m_PlayerFlags = PlayerFlags_SixToSeven(m_PlayerFlags);
+		if(SnappingClient != -1 && (m_Team == TEAM_SPECTATORS || m_DeadSpecMode) && (SnappingClient == m_SpectatorID))
+			pPlayerInfo->m_PlayerFlags |= protocol7::PLAYERFLAG_WATCHING;
+		if(m_RespawnDisabled && (!GetCharacter() || !GetCharacter()->IsAlive()))
+			pPlayerInfo->m_PlayerFlags |= protocol7::PLAYERFLAG_DEAD;
+		if(m_IsReadyToPlay)
+			pPlayerInfo->m_PlayerFlags |= protocol7::PLAYERFLAG_READY;
 		if(Server()->ClientAuthed(m_ClientID))
 			pPlayerInfo->m_PlayerFlags |= protocol7::PLAYERFLAG_ADMIN;
 
@@ -537,6 +641,45 @@ void CPlayer::OnPredictedEarlyInput(CNetObj_PlayerInput *NewInput)
 
 	if(m_pCharacter && !m_Paused)
 		m_pCharacter->OnDirectInput(NewInput);
+
+	if(!m_pCharacter && m_Team != TEAM_SPECTATORS && (NewInput->m_Fire & 1))
+		Respawn();
+
+	if(!m_pCharacter && m_Team == TEAM_SPECTATORS && (NewInput->m_Fire & 1))
+	{
+		if(!m_ActiveSpecSwitch)
+		{
+			m_ActiveSpecSwitch = true;
+			if(m_SpecMode == SPEC_FREEVIEW)
+			{
+				CCharacter *pChar = (CCharacter *)GameWorld()->ClosestEntity(m_ViewPos, 6.0f * 32, CGameWorld::ENTTYPE_CHARACTER, 0);
+				CFlag *pFlag = (CFlag *)GameWorld()->ClosestEntity(m_ViewPos, 6.0f * 32, CGameWorld::ENTTYPE_FLAG, 0);
+				if(pChar || pFlag)
+				{
+					if(!pChar || (pFlag && pChar && distance(m_ViewPos, pFlag->GetPos()) < distance(m_ViewPos, pChar->GetPos())))
+					{
+						m_SpecMode = pFlag->GetTeam() == TEAM_RED ? SPECMODE_FLAGRED : SPECMODE_FLAGBLUE;
+						m_pSpecFlag = pFlag;
+						m_SpectatorID = -1;
+					}
+					else
+					{
+						m_SpecMode = SPECMODE_PLAYER;
+						m_pSpecFlag = 0;
+						m_SpectatorID = pChar->GetPlayer()->GetCID();
+					}
+				}
+			}
+			else
+			{
+				m_SpecMode = SPEC_FREEVIEW;
+				m_pSpecFlag = 0;
+				m_SpectatorID = -1;
+			}
+		}
+	}
+	else if(m_ActiveSpecSwitch)
+		m_ActiveSpecSwitch = false;
 }
 
 int CPlayer::GetClientVersion() const
@@ -564,10 +707,20 @@ void CPlayer::KillCharacter(int Weapon)
 
 void CPlayer::Respawn()
 {
-	if(m_Team != TEAM_SPECTATORS)
+	if(m_RespawnDisabled && m_Team != TEAM_SPECTATORS)
 	{
-		m_Spawning = true;
+		// enable spectate mode for dead players
+		m_DeadSpecMode = true;
+		m_IsReadyToPlay = true;
+		m_SpecMode = SPECMODE_PLAYER;
+		UpdateDeadSpecMode();
+		return;
 	}
+
+	m_DeadSpecMode = false;
+
+	if(m_Team != TEAM_SPECTATORS)
+		m_Spawning = true;
 }
 
 CCharacter *CPlayer::ForceSpawn(vec2 Pos)
@@ -663,9 +816,6 @@ void CPlayer::TryRespawn()
 	m_pCharacter = new(m_ClientID) CCharacter(GameWorld());
 	m_pCharacter->Spawn(this, SpawnPos);
 	GameWorld()->CreatePlayerSpawn(SpawnPos);
-
-	if(g_Config.m_SvTeam == 3)
-		m_pCharacter->SetSolo(true);
 }
 
 bool CPlayer::AfkTimer(int NewTargetX, int NewTargetY)

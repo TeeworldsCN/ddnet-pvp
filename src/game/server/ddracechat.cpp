@@ -324,7 +324,7 @@ void CGameContext::ConLockTeam(IConsole::IResult *pResult, void *pUserData)
 	if(!CheckClientID(pResult->m_ClientID))
 		return;
 
-	if(g_Config.m_SvTeam == 0 || g_Config.m_SvTeam == 3)
+	if(g_Config.m_SvTeam == 0)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "lock",
 			"Teams are disabled");
@@ -373,7 +373,7 @@ void CGameContext::ConUnlockTeam(IConsole::IResult *pResult, void *pUserData)
 	if(!CheckClientID(pResult->m_ClientID))
 		return;
 
-	if(g_Config.m_SvTeam == 0 || g_Config.m_SvTeam == 3)
+	if(g_Config.m_SvTeam == 0)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "unlock",
 			"Teams are disabled");
@@ -409,7 +409,7 @@ void CGameContext::ConInviteTeam(IConsole::IResult *pResult, void *pUserData)
 
 	const char *pName = pResult->GetString(0);
 
-	if(g_Config.m_SvTeam == 0 || g_Config.m_SvTeam == 3)
+	if(g_Config.m_SvTeam == 0)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			"Teams are disabled");
@@ -488,7 +488,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 			"You are running a vote please try again after the vote is done!");
 		return;
 	}
-	else if(g_Config.m_SvTeam == 0 || g_Config.m_SvTeam == 3)
+	else if(g_Config.m_SvTeam == 0)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			"Rooms are disabled");
@@ -511,6 +511,11 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 				"You can\'t change rooms that fast!");
+		}
+		else if(!pSelf->m_pTeams->CanSwitchTeam(pPlayer->GetCID()))
+		{
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
+				"You can\'t change rooms at this time.");
 		}
 		else if(Team > 0 && Team < MAX_CLIENTS && pSelf->m_pTeams->TeamLocked(Team) && !pSelf->m_pTeams->IsInvited(Team, pResult->m_ClientID))
 		{

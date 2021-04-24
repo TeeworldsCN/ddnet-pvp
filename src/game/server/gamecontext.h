@@ -47,6 +47,21 @@ enum
 	NUM_TUNEZONES = 256
 };
 
+enum
+{
+	GAMEMSG_TEAM_SWAP = 0,
+	GAMEMSG_SPEC_INVALIDID,
+	GAMEMSG_TEAM_SHUFFLE,
+	GAMEMSG_TEAM_BALANCE,
+	GAMEMSG_CTF_DROP,
+	GAMEMSG_CTF_RETURN,
+	GAMEMSG_TEAM_ALL,
+	GAMEMSG_TEAM_BALANCE_VICTIM,
+	GAMEMSG_CTF_GRAB,
+	GAMEMSG_CTF_CAPTURE,
+	GAMEMSG_GAME_PAUSED
+};
+
 class CConfig;
 class CHeap;
 class CPlayer;
@@ -251,8 +266,10 @@ public:
 	virtual void OnClientEngineJoin(int ClientID, bool Sixup);
 	virtual void OnClientEngineDrop(int ClientID, const char *pReason);
 
-	virtual bool IsClientReady(int ClientID) const;
+	virtual bool IsClientReadyToEnter(int ClientID) const;
+	virtual bool IsClientReadyToPlay(int ClientID) const;
 	virtual bool IsClientPlayer(int ClientID) const;
+	virtual bool IsClientActivePlayer(int ClientID) const;
 	virtual int PersistentClientDataSize() const { return sizeof(CPersistentClientData); }
 
 	virtual CUuid GameUuid() const;

@@ -290,8 +290,10 @@ public:
 	virtual void OnClientPredictedInput(int ClientID, void *pInput) = 0;
 	virtual void OnClientPredictedEarlyInput(int ClientID, void *pInput) = 0;
 
-	virtual bool IsClientReady(int ClientID) const = 0;
+	virtual bool IsClientReadyToEnter(int ClientID) const = 0;
+	virtual bool IsClientReadyToPlay(int ClientID) const = 0;
 	virtual bool IsClientPlayer(int ClientID) const = 0;
+	virtual bool IsClientActivePlayer(int ClientID) const = 0;
 
 	virtual int PersistentClientDataSize() const = 0;
 

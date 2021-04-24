@@ -973,7 +973,12 @@ void CCharacter::Die(int Killer, int Weapon)
 	Msg.m_Victim = m_pPlayer->GetCID();
 	Msg.m_Weapon = Weapon;
 	Msg.m_ModeSpecial = ModeSpecial;
-	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
+
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if(GameServer()->m_apPlayers[i] && (GameServer()->GetPlayerDDRTeam(i) == GameWorld()->Team() || GameServer()->m_apPlayers[i]->m_ShowOthers == 2))
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
+	}
 
 	// a nice sound
 	GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_DIE);
@@ -1457,7 +1462,7 @@ void CCharacter::HandleTiles(int Index)
 	if(tcp)
 		m_TeleCheckpoint = tcp;
 
-	GameServer()->GameInstance(Team()).m_pController->HandleCharacterTiles(this, Index);
+	GameServer()->GameInstance(Team()).m_pController->OnCharacterInTile(this, Index);
 	// freeze
 	if(((m_TileIndex == TILE_FREEZE) || (m_TileFIndex == TILE_FREEZE)) && !m_Super && !m_DeepFreeze)
 	{
@@ -1778,7 +1783,7 @@ void CCharacter::HandleTiles(int Index)
 
 		m_StartTime -= (min * 60 + sec) * Server()->TickSpeed();
 
-		if((g_Config.m_SvTeam == 3 || Team != TEAM_FLOCK) && Team != TEAM_SUPER)
+		if(Team != TEAM_FLOCK && Team != TEAM_SUPER)
 		{
 			for(int i = 0; i < MAX_CLIENTS; i++)
 			{
@@ -1804,7 +1809,7 @@ void CCharacter::HandleTiles(int Index)
 		if(m_StartTime > Server()->Tick())
 			m_StartTime = Server()->Tick();
 
-		if((g_Config.m_SvTeam == 3 || Team != TEAM_FLOCK) && Team != TEAM_SUPER)
+		if(Team != TEAM_FLOCK && Team != TEAM_SUPER)
 		{
 			for(int i = 0; i < MAX_CLIENTS; i++)
 			{
@@ -2022,18 +2027,6 @@ void CCharacter::DDRaceTick()
 	}
 
 	HandleTuneLayer(); // need this before coretick
-
-	// look for save position for rescue feature
-	// if(g_Config.m_SvRescue || ((g_Config.m_SvTeam == 3 || Team() > TEAM_FLOCK) && Team() >= TEAM_FLOCK && Team() < TEAM_SUPER))
-	// {
-	// 	int index = GameServer()->Collision()->GetPureMapIndex(m_Pos);
-	// 	int tile = GameServer()->Collision()->GetTileIndex(index);
-	// 	int ftile = GameServer()->Collision()->GetFTileIndex(index);
-	// 	if(IsGrounded() && tile != TILE_FREEZE && tile != TILE_DFREEZE && ftile != TILE_FREEZE && ftile != TILE_DFREEZE && !m_DeepFreeze)
-	// 	{
-	// 		SetRescue();
-	// 	}
-	// }
 
 	m_Core.m_Id = GetPlayer()->GetCID();
 }

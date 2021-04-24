@@ -109,6 +109,12 @@ public:
 		return m_aInvited[Team] & 1LL << ClientID;
 	}
 
+	int CanSwitchTeam(int ClientID)
+	{
+		SGameInstance Instance = GetPlayerGameInstance(ClientID);
+		return Instance.m_IsCreated && !Instance.m_pWorld->m_Paused;
+	}
+
 	// Game Instances
 	SGameInstance GetGameInstance(int Team);
 	SGameInstance GetPlayerGameInstance(int ClientID);

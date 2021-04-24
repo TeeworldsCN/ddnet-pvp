@@ -1495,7 +1495,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		}
 		else if(Msg == NETMSG_ENTERGAME)
 		{
-			if((pPacket->m_Flags & NET_CHUNKFLAG_VITAL) != 0 && m_aClients[ClientID].m_State == CClient::STATE_READY && GameServer()->IsClientReady(ClientID))
+			if((pPacket->m_Flags & NET_CHUNKFLAG_VITAL) != 0 && m_aClients[ClientID].m_State == CClient::STATE_READY && GameServer()->IsClientReadyToEnter(ClientID))
 			{
 				char aAddrStr[NETADDR_MAXSTRSIZE];
 				net_addr_str(m_NetServer.ClientAddr(ClientID), aAddrStr, sizeof(aAddrStr), true);
@@ -2717,13 +2717,6 @@ void CServer::ConTestingCommands(CConsole::IResult *pResult, void *pUser)
 	((CConsole *)pUser)->Print(CConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
 }
 
-void CServer::ConRescue(CConsole::IResult *pResult, void *pUser)
-{
-	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "Value: %d", g_Config.m_SvRescue);
-	((CConsole *)pUser)->Print(CConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
-}
-
 void CServer::ConKick(IConsole::IResult *pResult, void *pUser)
 {
 	if(pResult->NumArguments() > 1)
@@ -3622,7 +3615,6 @@ int main(int argc, const char **argv) // ignore_convention
 		pConsole->ParseArguments(argc - 1, &argv[1]); // ignore_convention
 
 	pConsole->Register("sv_test_cmds", "", CFGFLAG_SERVER, CServer::ConTestingCommands, pConsole, "Turns testing commands aka cheats on/off (setting only works in initial config)");
-	pConsole->Register("sv_rescue", "", CFGFLAG_SERVER, CServer::ConRescue, pConsole, "Allow /rescue command so players can teleport themselves out of freeze (setting only works in initial config)");
 
 	pEngine->InitLogfile();
 

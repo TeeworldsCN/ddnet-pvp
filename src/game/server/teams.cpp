@@ -87,7 +87,7 @@ void CGameTeams::SetForceCharacterTeam(int ClientID, int Team)
 {
 	int OldTeam = m_Core.Team(ClientID);
 
-	if(Team != OldTeam && (OldTeam != TEAM_FLOCK || g_Config.m_SvTeam == 3) && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
+	if(Team != OldTeam && (OldTeam != TEAM_FLOCK) && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
 	{
 		bool NoElseInOldTeam = Count(OldTeam) <= 1;
 		if(NoElseInOldTeam)
@@ -149,9 +149,6 @@ void CGameTeams::ChangeTeamState(int Team, int State)
 
 void CGameTeams::SendTeamsState(int ClientID)
 {
-	if(g_Config.m_SvTeam == 3)
-		return;
-
 	if(!m_pGameContext->m_apPlayers[ClientID] || m_pGameContext->m_apPlayers[ClientID]->GetClientVersion() <= VERSION_DDRACE)
 		return;
 
@@ -182,12 +179,6 @@ void CGameTeams::OnCharacterDeath(int ClientID, int Weapon)
 	m_Core.SetSolo(ClientID, false);
 
 	int Team = m_Core.Team(ClientID);
-
-	if(g_Config.m_SvTeam == 3)
-	{
-		ChangeTeamState(Team, CGameTeams::TEAMSTATE_OPEN);
-		ResetSwitchers(Team);
-	}
 
 	SetForceCharacterTeam(ClientID, Team);
 }
@@ -294,9 +285,9 @@ void CGameTeams::OnSnap(int SnappingClient)
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 			if(m_aTeamInstances[i].m_IsCreated)
 			{
-				m_aTeamInstances[i].m_pWorld->Snap(SnapAs, SnapAsTeam == i ? 0 : ShowOthers);
+				m_aTeamInstances[i].m_pWorld->Snap(SnappingClient, SnapAsTeam == i ? 0 : ShowOthers);
 				if(SnapAsTeam == i)
-					m_aTeamInstances[i].m_pController->Snap(SnapAs);
+					m_aTeamInstances[i].m_pController->Snap(SnappingClient);
 			}
 	}
 	else
@@ -304,8 +295,8 @@ void CGameTeams::OnSnap(int SnappingClient)
 		SGameInstance Instance = GetGameInstance(SnapAsTeam);
 		if(!Instance.m_IsCreated)
 			return;
-		Instance.m_pWorld->Snap(SnapAs, 0);
-		Instance.m_pController->Snap(SnapAs);
+		Instance.m_pWorld->Snap(SnappingClient, 0);
+		Instance.m_pController->Snap(SnappingClient);
 	}
 }
 
