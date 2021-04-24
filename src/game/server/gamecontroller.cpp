@@ -1440,8 +1440,10 @@ int IGameController::GetStartTeam()
 	int Team = TEAM_RED;
 	if(IsTeamplay())
 	{
+		#ifdef CONF_DEBUG
 		if(!Config()->m_DbgStress) // this will force the auto balancer to work overtime aswell
 			Team = m_aTeamSize[TEAM_RED] > m_aTeamSize[TEAM_BLUE] ? TEAM_BLUE : TEAM_RED;
+		#endif // CONF_DEBUG
 	}
 
 	// check if there're enough player slots left
