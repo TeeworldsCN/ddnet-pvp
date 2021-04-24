@@ -212,7 +212,7 @@ void IGameController::DoTeamBalance()
 	// gather stats
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS)
+		if(IsPlayerInRoom(i) && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS)
 		{
 			aPlayerScore[i] = GameServer()->m_apPlayers[i]->m_Score * Server()->TickSpeed() * 60.0f /
 					  (Server()->Tick() - GameServer()->m_apPlayers[i]->m_ScoreStartTick);
@@ -230,7 +230,7 @@ void IGameController::DoTeamBalance()
 		float ScoreDiff = aTeamScore[BiggerTeam];
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
-			if(!GameServer()->m_apPlayers[i] || !CanBeMovedOnBalance(i))
+			if(!IsPlayerInRoom(i) || !CanBeMovedOnBalance(i))
 				continue;
 
 			// remember the player whom would cause lowest score-difference
@@ -249,13 +249,13 @@ void IGameController::DoTeamBalance()
 			DoTeamChange(pPlayer, BiggerTeam ^ 1);
 			pPlayer->m_LastActionTick = Temp;
 			pPlayer->Respawn();
-			// TODO: Controller, fix 0.7 messages
-			// GameServer()->SendGameMsg(GAMEMSG_TEAM_BALANCE_VICTIM, pPlayer->GetTeam(), pPlayer->GetCID());
+			int Team = pPlayer->GetTeam();
+			SendGameMsg(GAMEMSG_TEAM_BALANCE_VICTIM, pPlayer->GetCID(), &Team);
 		}
 	} while(--NumBalance);
 
 	m_UnbalancedTick = TBALANCE_OK;
-	// GameServer()->SendGameMsg(GAMEMSG_TEAM_BALANCE, -1);
+	SendGameMsg(GAMEMSG_TEAM_BALANCE, -1);
 }
 
 // event
@@ -280,7 +280,7 @@ int IGameController::OnCharacterDeath(CCharacter *pVictim, CPlayer *pKiller, int
 	if(IsSurvival())
 	{
 		for(int i = 0; i < MAX_CLIENTS; ++i)
-			if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->m_DeadSpecMode)
+			if(IsPlayerInRoom(i) && GameServer()->m_apPlayers[i]->m_DeadSpecMode)
 				GameServer()->m_apPlayers[i]->UpdateDeadSpecMode();
 	}
 
@@ -325,9 +325,9 @@ void IGameController::OnCharacterInTile(CCharacter *pChr, int MapIndex)
 	}
 }
 
-void IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
+void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 {
-	if(Index < 0)
+	if(Index < 0 || OnEntity(Index, Pos, Layer, Flags, Number))
 		return;
 
 	int Type = -1;
@@ -538,6 +538,11 @@ void IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 	}
 }
 
+bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
+{
+	return false;
+}
+
 void IGameController::OnPlayerJoin(CPlayer *pPlayer)
 {
 }
@@ -566,6 +571,11 @@ void IGameController::OnReset()
 }
 
 // game
+bool IGameController::GetFlagState(SFlagState *pState)
+{
+	return false;
+}
+
 bool IGameController::DoWincheckMatch()
 {
 	if(IsTeamplay())
@@ -615,6 +625,11 @@ bool IGameController::DoWincheckMatch()
 				m_SuddenDeath = 1;
 		}
 	}
+	return false;
+}
+
+bool IGameController::DoWincheckRound()
+{
 	return false;
 }
 
@@ -926,6 +941,25 @@ void IGameController::Snap(int SnappingClient)
 			GAMEINFOFLAG_PREDICT_DDRACE_TILES;
 		pGameInfoEx->m_Flags2 = 0;
 		pGameInfoEx->m_Version = GAMEINFO_CURVERSION;
+
+		CNetObj_GameData *pGameDataObj = (CNetObj_GameData *)Server()->SnapNewItem(NETOBJTYPE_GAMEDATA, 0, sizeof(CNetObj_GameData));
+		if(!pGameDataObj)
+			return;
+
+		pGameDataObj->m_TeamscoreRed = m_aTeamscore[TEAM_RED];
+		pGameDataObj->m_TeamscoreBlue = m_aTeamscore[TEAM_BLUE];
+
+		SFlagState FlagState;
+		if(GetFlagState(&FlagState))
+		{
+			pGameDataObj->m_FlagCarrierRed = FlagState.m_RedFlagCarrier;
+			pGameDataObj->m_FlagCarrierBlue = FlagState.m_BlueFlagCarrier;
+		}
+		else
+		{
+			pGameDataObj->m_FlagCarrierRed = 0;
+			pGameDataObj->m_FlagCarrierBlue = 0;
+		}
 	}
 	else
 	{
@@ -946,6 +980,45 @@ void IGameController::Snap(int SnappingClient)
 
 			pGameDataTeam->m_TeamscoreRed = m_aTeamscore[TEAM_RED];
 			pGameDataTeam->m_TeamscoreBlue = m_aTeamscore[TEAM_BLUE];
+		}
+
+		SFlagState FlagState;
+		if(GetFlagState(&FlagState))
+		{
+			protocol7::CNetObj_GameDataFlag *pGameDataFlag = static_cast<protocol7::CNetObj_GameDataFlag *>(Server()->SnapNewItem(protocol7::NETOBJTYPE_GAMEDATAFLAG, 0, sizeof(protocol7::CNetObj_GameDataFlag)));
+			if(!pGameDataFlag)
+				return;
+
+			pGameDataFlag->m_FlagDropTickRed = FlagState.m_RedFlagDroppedTick;
+			switch(FlagState.m_RedFlagCarrier)
+			{
+			case FLAG_ATSTAND:
+				pGameDataFlag->m_FlagCarrierRed = protocol7::FLAG_ATSTAND;
+				break;
+			case FLAG_TAKEN:
+				pGameDataFlag->m_FlagCarrierRed = protocol7::FLAG_TAKEN;
+				break;
+			case FLAG_MISSING:
+				pGameDataFlag->m_FlagCarrierRed = protocol7::FLAG_MISSING;
+				break;
+			default:
+				pGameDataFlag->m_FlagCarrierRed = FlagState.m_RedFlagCarrier;
+			}
+			pGameDataFlag->m_FlagDropTickBlue = FlagState.m_BlueFlagDroppedTick;
+			switch(FlagState.m_BlueFlagCarrier)
+			{
+			case FLAG_ATSTAND:
+				pGameDataFlag->m_FlagCarrierBlue = protocol7::FLAG_ATSTAND;
+				break;
+			case FLAG_TAKEN:
+				pGameDataFlag->m_FlagCarrierBlue = protocol7::FLAG_TAKEN;
+				break;
+			case FLAG_MISSING:
+				pGameDataFlag->m_FlagCarrierBlue = protocol7::FLAG_MISSING;
+				break;
+			default:
+				pGameDataFlag->m_FlagCarrierBlue = FlagState.m_BlueFlagCarrier;
+			}
 		}
 
 		// demo recording
@@ -1077,7 +1150,7 @@ void IGameController::CheckGameInfo()
 	if(GameInfoChanged)
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 		{
-			if(!GameServer()->m_apPlayers[i] || !Server()->ClientIngame(i) || !GameServer()->GetPlayerDDRTeam(i) != GameWorld()->Team())
+			if(!IsPlayerInRoom(i) || !Server()->ClientIngame(i) || !GameServer()->GetPlayerDDRTeam(i) != GameWorld()->Team())
 				continue;
 			UpdateGameInfo(i);
 		}
@@ -1132,91 +1205,113 @@ void IGameController::UpdateGameInfo(int ClientID)
 
 void IGameController::SendGameMsg(int GameMsgID, int ClientID, int *i1, int *i2, int *i3)
 {
-	if(Server()->IsSixup(ClientID))
+	char aBuf[256] = {0};
+	int Start = ClientID;
+	int Limit = ClientID + 1;
+	if(ClientID < 0)
 	{
-		CMsgPacker Msg(protocol7::NETMSGTYPE_SV_GAMEMSG);
-		Msg.AddInt(GameMsgID);
-		if(i1)
-			Msg.AddInt(*i1);
-		if(i2)
-			Msg.AddInt(*i2);
-		if(i3)
-			Msg.AddInt(*i3);
-		Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
+		Start = 0;
+		Limit = MAX_CLIENTS;
 	}
-	else
+
+	for(int CID = Start; CID < Limit; ++CID)
 	{
-		char aBuf[256];
-		switch(GameMsgID)
-		{
-		case GAMEMSG_TEAM_SWAP:
-			GameServer()->SendChatTarget(ClientID, "Teams were swapped");
-			break;
-		case GAMEMSG_SPEC_INVALIDID:
-			GameServer()->SendChatTarget(ClientID, "Invalid spectator id used");
-			break;
-		case GAMEMSG_TEAM_SHUFFLE:
-			GameServer()->SendChatTarget(ClientID, "Teams were shuffled");
-			break;
-		case GAMEMSG_TEAM_BALANCE:
-			GameServer()->SendChatTarget(ClientID, "Teams have been balanced");
-			break;
-		case GAMEMSG_CTF_DROP:
-			GameWorld()->CreateSoundGlobal(SOUND_CTF_DROP, ClientID);
-			break;
-		case GAMEMSG_CTF_RETURN:
-			GameWorld()->CreateSoundGlobal(SOUND_CTF_RETURN, ClientID);
-			break;
-		case GAMEMSG_TEAM_ALL:
-		{
-			if(!i1)
-				break;
+		if(!GameServer()->IsPlayerValid(CID) || GameServer()->GetPlayerDDRTeam(CID) != GameWorld()->Team())
+			continue;
 
-			str_format(aBuf, sizeof(aBuf), "All players were moved to the %s", GetTeamName(*i1));
-			GameServer()->SendChatTarget(ClientID, aBuf);
-			break;
+		if(Server()->IsSixup(CID))
+		{
+			CMsgPacker Msg(protocol7::NETMSGTYPE_SV_GAMEMSG);
+			Msg.AddInt(GameMsgID);
+			if(i1)
+				Msg.AddInt(*i1);
+			if(i2)
+				Msg.AddInt(*i2);
+			if(i3)
+				Msg.AddInt(*i3);
+			Server()->SendMsg(&Msg, MSGFLAG_VITAL, CID);
 		}
-		case GAMEMSG_TEAM_BALANCE_VICTIM:
+		else
 		{
-			if(!i1)
-				break;
-
-			str_format(aBuf, sizeof(aBuf), "You were moved to the %s due to team balancing", GetTeamName(*i1));
-			GameServer()->SendBroadcast(aBuf, ClientID);
-			break;
-		}
-		case GAMEMSG_CTF_GRAB:
-			if(!i1)
-				break;
-
-			if(GameServer()->m_apPlayers[ClientID]->GetTeam() == *i1)
-				GameWorld()->CreateSoundGlobal(SOUND_CTF_GRAB_PL, ClientID);
-			else
-				GameWorld()->CreateSoundGlobal(SOUND_CTF_GRAB_EN, ClientID);
-			break;
-		case GAMEMSG_CTF_CAPTURE:
-		{
-			if(!i1 || !i2 || !i3)
-				break;
-
-			float CaptureTime = *i3 / (float)Server()->TickSpeed();
-			if(CaptureTime <= 60)
+			switch(GameMsgID)
 			{
-				str_format(aBuf, sizeof(aBuf), "The %s flag was captured by '%s' (%d.%s%d seconds)", *i1 ? "blue" : "red", Server()->ClientName(*i2), (int)CaptureTime % 60, ((int)(CaptureTime * 100) % 100) < 10 ? "0" : "", (int)(CaptureTime * 100) % 100);
-			}
-			else
-			{
-				str_format(aBuf, sizeof(aBuf), "The %s flag was captured by '%s'", *i1 ? "blue" : "red", Server()->ClientName(*i2));
-			}
-			GameServer()->SendChatTarget(ClientID, aBuf);
-			break;
-		}
-		case GAMEMSG_GAME_PAUSED:
-			if(!i1)
+			case GAMEMSG_TEAM_SWAP:
+				GameServer()->SendChatTarget(CID, "Teams were swapped");
 				break;
-			str_format(aBuf, sizeof(aBuf), "'%s' initiated a pause", Server()->ClientName(*i1));
-			GameServer()->SendChatTarget(ClientID, aBuf);
-			break;
+			case GAMEMSG_SPEC_INVALIDID:
+				GameServer()->SendChatTarget(CID, "You can't spectate this player");
+				break;
+			case GAMEMSG_TEAM_SHUFFLE:
+				GameServer()->SendChatTarget(CID, "Teams were shuffled");
+				break;
+			case GAMEMSG_TEAM_BALANCE:
+				GameServer()->SendChatTarget(CID, "Teams have been balanced");
+				break;
+			case GAMEMSG_CTF_DROP:
+				GameWorld()->CreateSoundGlobal(SOUND_CTF_DROP, CID);
+				break;
+			case GAMEMSG_CTF_RETURN:
+				GameWorld()->CreateSoundGlobal(SOUND_CTF_RETURN, CID);
+				break;
+			case GAMEMSG_TEAM_ALL:
+			{
+				if(!i1)
+					break;
+
+				if(!aBuf[0])
+					str_format(aBuf, sizeof(aBuf), "All players were moved to the %s", GetTeamName(*i1));
+				GameServer()->SendChatTarget(CID, aBuf);
+				break;
+			}
+			case GAMEMSG_TEAM_BALANCE_VICTIM:
+			{
+				if(!i1)
+					break;
+
+				if(!aBuf[0])
+					str_format(aBuf, sizeof(aBuf), "You were moved to the %s due to team balancing", GetTeamName(*i1));
+				GameServer()->SendBroadcast(aBuf, CID);
+				break;
+			}
+			case GAMEMSG_CTF_GRAB:
+				if(!i1)
+					break;
+
+				if(GameServer()->m_apPlayers[CID]->GetTeam() == *i1)
+					GameWorld()->CreateSoundGlobal(SOUND_CTF_GRAB_PL, CID);
+				else
+					GameWorld()->CreateSoundGlobal(SOUND_CTF_GRAB_EN, CID);
+				break;
+			case GAMEMSG_CTF_CAPTURE:
+			{
+				if(!i1 || !i2 || !i3)
+					break;
+
+				if(!aBuf[0])
+				{
+					float CaptureTime = *i3 / (float)Server()->TickSpeed();
+					if(CaptureTime <= 60)
+					{
+						str_format(aBuf, sizeof(aBuf), "The %s flag was captured by '%s' (%d.%s%d seconds)", *i1 ? "blue" : "red", Server()->ClientName(*i2), (int)CaptureTime % 60, ((int)(CaptureTime * 100) % 100) < 10 ? "0" : "", (int)(CaptureTime * 100) % 100);
+					}
+					else
+					{
+						str_format(aBuf, sizeof(aBuf), "The %s flag was captured by '%s'", *i1 ? "blue" : "red", Server()->ClientName(*i2));
+					}
+				}
+				GameServer()->SendChatTarget(CID, aBuf);
+				GameWorld()->CreateSoundGlobal(SOUND_CTF_CAPTURE, CID);
+				break;
+			}
+			case GAMEMSG_GAME_PAUSED:
+				if(!i1)
+					break;
+
+				if(!aBuf[0])
+					str_format(aBuf, sizeof(aBuf), "'%s' initiated a pause", Server()->ClientName(*i1));
+				GameServer()->SendChatTarget(CID, aBuf);
+				break;
+			}
 		}
 	}
 }
@@ -1349,7 +1444,7 @@ bool IGameController::CanJoinTeam(int Team, int NotThisID) const
 		return true;
 
 	// check if there're enough player slots left
-	int TeamMod = GameServer()->m_apPlayers[NotThisID] && GameServer()->m_apPlayers[NotThisID]->GetTeam() != TEAM_SPECTATORS ? -1 : 0;
+	int TeamMod = IsPlayerInRoom(NotThisID) && GameServer()->m_apPlayers[NotThisID]->GetTeam() != TEAM_SPECTATORS ? -1 : 0;
 	return TeamMod + m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] < Config()->m_SvMaxClients - Config()->m_SvSpectatorSlots;
 }
 
@@ -1364,69 +1459,68 @@ int IGameController::ClampTeam(int Team) const
 
 void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 {
-	// TODO: new code
-	// Team = ClampTeam(Team);
-	// if(Team == pPlayer->GetTeam())
-	// 	return;
-
-	// int OldTeam = pPlayer->GetTeam();
-	// pPlayer->SetTeam(Team);
-
-	// int ClientID = pPlayer->GetCID();
-
-	// // notify clients
-	// CNetMsg_Sv_Team Msg;
-	// Msg.m_ClientID = ClientID;
-	// Msg.m_Team = Team;
-	// Msg.m_Silent = DoChatMsg ? 0 : 1;
-	// Msg.m_CooldownTick = pPlayer->m_TeamChangeTick;
-	// Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
-
-	// char aBuf[128];
-	// str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d->%d", ClientID, Server()->ClientName(ClientID), OldTeam, Team);
-	// GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
-
-	// // update effected game settings
-	// if(OldTeam != TEAM_SPECTATORS)
-	// {
-	// 	--m_aTeamSize[OldTeam];
-	// 	m_UnbalancedTick = TBALANCE_CHECK;
-	// }
-	// if(Team != TEAM_SPECTATORS)
-	// {
-	// 	++m_aTeamSize[Team];
-	// 	m_UnbalancedTick = TBALANCE_CHECK;
-	// 	if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
-	// 		SetGameState(IGS_WARMUP_GAME, 0);
-	// 	pPlayer->m_IsReadyToPlay = !IsPlayerReadyMode();
-	// 	if(m_GameFlags&GAMEFLAG_SURVIVAL)
-	// 		pPlayer->m_RespawnDisabled = GetStartRespawnState();
-	// }
-	// OnPlayerInfoChange(pPlayer);
-	// GameServer()->OnClientTeamChange(ClientID);
-	// CheckReadyStates();
-
-	// // reset inactivity counter when joining the game
-	// if(OldTeam == TEAM_SPECTATORS)
-	// 	pPlayer->m_InactivityTickCounter = 0;
-
 	Team = ClampTeam(Team);
 	if(Team == pPlayer->GetTeam())
 		return;
 
+	int OldTeam = pPlayer->GetTeam();
 	pPlayer->SetTeam(Team);
+
 	int ClientID = pPlayer->GetCID();
 
-	char aBuf[128];
-	DoChatMsg = false;
-	if(DoChatMsg)
-	{
-		str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(ClientID), GetTeamName(Team));
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
-	}
+	// notify 0.7 clients
+	protocol7::CNetMsg_Sv_Team Msg;
+	Msg.m_ClientID = ClientID;
+	Msg.m_Team = Team;
+	Msg.m_Silent = DoChatMsg ? 0 : 1;
+	Msg.m_CooldownTick = pPlayer->m_TeamChangeTick;
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
 
-	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' m_Team=%d", ClientID, Server()->ClientName(ClientID), Team);
+	char aBuf[128];
+	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d->%d", ClientID, Server()->ClientName(ClientID), OldTeam, Team);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+
+	// update effected game settings
+	if(OldTeam != TEAM_SPECTATORS)
+	{
+		--m_aTeamSize[OldTeam];
+		m_UnbalancedTick = TBALANCE_CHECK;
+	}
+	if(Team != TEAM_SPECTATORS)
+	{
+		++m_aTeamSize[Team];
+		m_UnbalancedTick = TBALANCE_CHECK;
+		if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
+			SetGameState(IGS_WARMUP_GAME, 0);
+		pPlayer->m_IsReadyToPlay = !IsPlayerReadyMode();
+		if(IsSurvival())
+			pPlayer->m_RespawnDisabled = GetStartRespawnState();
+	}
+	// OnPlayerInfoChange(pPlayer);
+	// GameServer()->OnClientTeamChange(ClientID);
+	CheckReadyStates();
+
+	// reset inactivity counter when joining the game
+	if(OldTeam == TEAM_SPECTATORS)
+		pPlayer->m_InactivityTickCounter = 0;
+
+	// Team = ClampTeam(Team);
+	// if(Team == pPlayer->GetTeam())
+	// 	return;
+
+	// pPlayer->SetTeam(Team);
+	// int ClientID = pPlayer->GetCID();
+
+	// char aBuf[128];
+	// DoChatMsg = false;
+	// if(DoChatMsg)
+	// {
+	// 	str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(ClientID), GetTeamName(Team));
+	// 	GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+	// }
+
+	// str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' m_Team=%d", ClientID, Server()->ClientName(ClientID), Team);
+	// GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
 	// OnPlayerInfoChange(pPlayer);
 }
@@ -1440,10 +1534,10 @@ int IGameController::GetStartTeam()
 	int Team = TEAM_RED;
 	if(IsTeamplay())
 	{
-		#ifdef CONF_DEBUG
+#ifdef CONF_DEBUG
 		if(!Config()->m_DbgStress) // this will force the auto balancer to work overtime aswell
 			Team = m_aTeamSize[TEAM_RED] > m_aTeamSize[TEAM_BLUE] ? TEAM_BLUE : TEAM_RED;
-		#endif // CONF_DEBUG
+#endif // CONF_DEBUG
 	}
 
 	// check if there're enough player slots left
@@ -1530,6 +1624,11 @@ const char *IGameController::GetTeamName(int Team)
 int IGameController::GetPlayerTeam(int ClientID) const
 {
 	return GameServer()->GetPlayerDDRTeam(ClientID);
+}
+
+bool IGameController::IsPlayerInRoom(int ClientID) const
+{
+	return GameServer()->IsPlayerValid(ClientID) && GameServer()->GetPlayerDDRTeam(ClientID) == GameWorld()->Team();
 }
 
 void IGameController::InitController(int Team, class CGameContext *pGameServer, class CGameWorld *pWorld)

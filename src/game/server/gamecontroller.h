@@ -5,6 +5,7 @@
 
 #include <base/vmath.h>
 #include <engine/map.h>
+#include <game/generated/protocol.h>
 
 #include <map>
 #include <vector>
@@ -58,7 +59,7 @@ class IGameController
 	int m_GameStateTimer;
 
 	virtual bool DoWincheckMatch(); // returns true when the match is over
-	virtual void DoWincheckRound(){};
+	virtual bool DoWincheckRound(); // returns true when the round is over
 	bool HasEnoughPlayers() const { return (IsTeamplay() && m_aTeamSize[TEAM_RED] > 0 && m_aTeamSize[TEAM_BLUE] > 0) || (!IsTeamplay() && m_aTeamSize[TEAM_RED] > 1); }
 	void ResetGame();
 	void SetGameState(EGameState GameState, int Timer = 0);
@@ -102,6 +103,14 @@ protected:
 	int m_SuddenDeath;
 	int m_aTeamscore[2];
 
+	struct SFlagState
+	{
+		int m_RedFlagDroppedTick;
+		int m_RedFlagCarrier;
+		int m_BlueFlagDroppedTick;
+		int m_BlueFlagCarrier;
+	};
+	virtual bool GetFlagState(SFlagState *pState);
 	void EndMatch() { SetGameState(IGS_END_MATCH, TIMER_END); }
 	void EndRound() { SetGameState(IGS_END_ROUND, TIMER_END / 2); }
 
@@ -124,7 +133,6 @@ protected:
 	} m_GameInfo;
 
 	void UpdateGameInfo(int ClientID);
-	void SendGameMsg(int GameMsgID, int ClientID, int *i1 = nullptr, int *i2 = nullptr, int *i3 = nullptr);
 
 public:
 	IGameController();
@@ -164,7 +172,8 @@ public:
 			index - Entity index.
 			pos - Where the entity is located in the world.
 	*/
-	virtual void OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
+	virtual void OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
+	virtual bool OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
 
 	virtual void OnPlayerJoin(class CPlayer *pPlayer);
 	virtual void OnPlayerLeave(class CPlayer *pPlayer);
@@ -203,6 +212,7 @@ public:
 	bool IsTeamChangeAllowed() const;
 	bool IsTeamplay() const { return m_GameFlags & IGF_TEAMS; }
 	bool IsSurvival() const { return m_GameFlags & IGF_SURVIVAL; }
+	void SendGameMsg(int GameMsgID, int ClientID, int *i1 = nullptr, int *i2 = nullptr, int *i3 = nullptr);
 
 	const char *GetGameType() const { return m_pGameType; }
 	int GetGameState() const { return m_GameState; }
@@ -228,6 +238,7 @@ public:
 
 	// DDRace
 	int GetPlayerTeam(int ClientID) const;
+	bool IsPlayerInRoom(int ClientID) const;
 	void InitController(int Team, class CGameContext *pGameServer, class CGameWorld *pWorld);
 };
 

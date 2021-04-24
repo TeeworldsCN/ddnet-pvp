@@ -266,6 +266,7 @@ public:
 	virtual void OnClientEngineJoin(int ClientID, bool Sixup);
 	virtual void OnClientEngineDrop(int ClientID, const char *pReason);
 
+	virtual bool IsPlayerValid(int ClientID) const;
 	virtual bool IsClientReadyToEnter(int ClientID) const;
 	virtual bool IsClientReadyToPlay(int ClientID) const;
 	virtual bool IsClientPlayer(int ClientID) const;
@@ -343,11 +344,6 @@ private:
 	static void ConRules(IConsole::IResult *pResult, void *pUserData);
 	static void ConKill(IConsole::IResult *pResult, void *pUserData);
 	static void ConTogglePause(IConsole::IResult *pResult, void *pUserData);
-	static void ConTogglePauseVoted(IConsole::IResult *pResult, void *pUserData);
-	static void ConToggleSpec(IConsole::IResult *pResult, void *pUserData);
-	static void ConToggleSpecVoted(IConsole::IResult *pResult, void *pUserData);
-	static void ConForcePause(IConsole::IResult *pResult, void *pUserData);
-
 	static void ConUTF8(IConsole::IResult *pResult, void *pUserData);
 	static void ConDND(IConsole::IResult *pResult, void *pUserData);
 	static void ConTimeout(IConsole::IResult *pResult, void *pUserData);

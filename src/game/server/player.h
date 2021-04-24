@@ -59,6 +59,7 @@ public:
 	CCharacter *GetCharacter();
 
 	void SpectatePlayerName(const char *pName);
+	bool IsSpectating() { return m_Team == TEAM_SPECTATORS || m_Paused; }
 
 	//---------------------------------------------------------
 	// this is used for snapping so we know how we can clip the view for the player
@@ -140,8 +141,20 @@ private:
 
 	int DDRTeam() const { return m_pGameServer->GetPlayerDDRTeam(m_ClientID); }
 	CGameContext *GameServer() const { return m_pGameServer; }
-	CGameWorld *GameWorld() const { return m_pGameServer->GameInstance(DDRTeam()).m_pWorld; }
-	IGameController *Controller() const { return m_pGameServer->GameInstance(DDRTeam()).m_pController; }
+	CGameWorld *GameWorld() const
+	{
+		SGameInstance Instance = m_pGameServer->GameInstance(DDRTeam());
+		if(!Instance.m_IsCreated)
+			return nullptr;
+		return Instance.m_pWorld;
+	}
+	IGameController *Controller() const
+	{
+		SGameInstance Instance = m_pGameServer->GameInstance(DDRTeam());
+		if(!Instance.m_IsCreated)
+			return nullptr;
+		return Instance.m_pController;
+	}
 	IServer *Server() const;
 
 	//
@@ -150,7 +163,6 @@ private:
 	int m_Team;
 
 	int m_Paused;
-	int64 m_ForcePauseTime;
 	int64 m_LastPause;
 
 	int m_DefEmote;
@@ -159,13 +171,6 @@ private:
 	bool m_Halloween;
 
 public:
-	enum
-	{
-		PAUSE_NONE = 0,
-		PAUSE_PAUSED,
-		PAUSE_SPEC
-	};
-
 	enum
 	{
 		TIMERTYPE_DEFAULT = -1,
@@ -181,9 +186,8 @@ public:
 	char m_TimeoutCode[64];
 
 	void ProcessPause();
-	int Pause(int State, bool Force);
-	int ForcePause(int Time);
-	int IsPaused();
+	int Pause(bool Paused, bool Force);
+	bool IsPaused();
 
 	bool IsPlaying();
 	int64 m_Last_KickVote;

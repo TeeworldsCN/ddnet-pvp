@@ -2026,8 +2026,16 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   gamecontext.h
   gamecontroller.cpp
   gamecontroller.h
-  gamemodes/DDRace.cpp
-  gamemodes/DDRace.h
+  gamemodes/ctf.cpp
+  gamemodes/ctf.h
+  gamemodes/dm.cpp
+  gamemodes/dm.h
+  gamemodes/lms.cpp
+  gamemodes/lms.h
+  gamemodes/lts.cpp
+  gamemodes/lts.h
+  gamemodes/tdm.cpp
+  gamemodes/tdm.h
   gameworld.cpp
   gameworld.h
   player.cpp

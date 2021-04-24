@@ -6,7 +6,11 @@
 #include "entities/character.h"
 #include "player.h"
 
-#include "gamemodes/DDRace.h"
+#include "gamemodes/ctf.h"
+#include "gamemodes/dm.h"
+#include "gamemodes/lms.h"
+#include "gamemodes/lts.h"
+#include "gamemodes/tdm.h"
 
 CGameTeams::CGameTeams(CGameContext *pGameContext) :
 	m_pGameContext(pGameContext)
@@ -223,10 +227,10 @@ void CGameTeams::CreateGameInstance(int Team)
 	dbg_msg("team", "creating game controller %d", Team);
 	CGameWorld *pWorld = new CGameWorld(Team, m_pGameContext);
 	m_aTeamInstances[Team].m_pWorld = pWorld;
-	m_aTeamInstances[Team].m_pController = new CGameControllerDDRace();
+	m_aTeamInstances[Team].m_pController = new CGameControllerLTS();
 	m_aTeamInstances[Team].m_pController->InitController(Team, m_pGameContext, pWorld);
 	for(auto &Ent : m_Entities)
-		m_aTeamInstances[Team].m_pController->OnEntity(Ent.Index, Ent.Pos, Ent.Layer, Ent.Flags, Ent.Number);
+		m_aTeamInstances[Team].m_pController->OnInternalEntity(Ent.Index, Ent.Pos, Ent.Layer, Ent.Flags, Ent.Number);
 	m_aTeamInstances[Team].m_IsCreated = true;
 }
 
@@ -265,7 +269,7 @@ void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 	m_Entities.push_back(Ent);
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 		if(m_aTeamInstances[i].m_IsCreated)
-			m_aTeamInstances[i].m_pController->OnEntity(Index, Pos, Layer, Flags, Number);
+			m_aTeamInstances[i].m_pController->OnInternalEntity(Index, Pos, Layer, Flags, Number);
 }
 
 void CGameTeams::OnSnap(int SnappingClient)
@@ -274,7 +278,7 @@ void CGameTeams::OnSnap(int SnappingClient)
 	int ShowOthers = pPlayer->m_ShowOthers;
 
 	int SnapAs = SnappingClient;
-	if((pPlayer->GetTeam() == TEAM_SPECTATORS || pPlayer->IsPaused()) && pPlayer->m_SpectatorID != SPEC_FREEVIEW)
+	if(pPlayer->IsSpectating() && pPlayer->m_SpectatorID != SPEC_FREEVIEW)
 		SnapAs = pPlayer->m_SpectatorID;
 
 	int SnapAsTeam = m_Core.Team(SnapAs);

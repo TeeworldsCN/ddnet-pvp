@@ -2012,10 +2012,9 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			pPlayer->m_LastSetSpectatorMode = Server()->Tick();
 			pPlayer->UpdatePlaytime();
-			if(pMsg->m_SpectatorID >= 0 && (!m_apPlayers[pMsg->m_SpectatorID] || m_apPlayers[pMsg->m_SpectatorID]->GetTeam() == TEAM_SPECTATORS))
-				SendChatTarget(ClientID, "Invalid spectator id used");
-			else
-				pPlayer->m_SpectatorID = pMsg->m_SpectatorID;
+			SGameInstance Instance = PlayerGameInstance(ClientID);
+			if(!pPlayer->SetSpectatorID(CPlayer::SPECMODE_PLAYER, pMsg->m_SpectatorID) && Instance.m_IsCreated)
+				Instance.m_pController->SendGameMsg(GAMEMSG_SPEC_INVALIDID, ClientID);
 		}
 		else if(MsgID == NETMSGTYPE_CL_CHANGEINFO)
 		{
@@ -2511,7 +2510,7 @@ void CGameContext::ConSetTeam(IConsole::IResult *pResult, void *pUserData)
 	str_format(aBuf, sizeof(aBuf), "moved client %d to team %d", ClientID, Team);
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 
-	pSelf->m_apPlayers[ClientID]->Pause(CPlayer::PAUSE_NONE, false); // reset /spec and /pause to allow rejoin
+	pSelf->m_apPlayers[ClientID]->Pause(false, false); // reset /spec and /pause to allow rejoin
 	pSelf->m_apPlayers[ClientID]->m_TeamChangeTick = pSelf->Server()->Tick() + pSelf->Server()->TickSpeed() * Delay * 60;
 
 	SGameInstance Instance = pSelf->PlayerGameInstance(ClientID);
@@ -2519,7 +2518,7 @@ void CGameContext::ConSetTeam(IConsole::IResult *pResult, void *pUserData)
 		Instance.m_pController->DoTeamChange(pSelf->m_apPlayers[ClientID], Team);
 
 	if(Team == TEAM_SPECTATORS)
-		pSelf->m_apPlayers[ClientID]->Pause(CPlayer::PAUSE_NONE, true);
+		pSelf->m_apPlayers[ClientID]->Pause(false, true);
 }
 
 void CGameContext::ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
@@ -3392,6 +3391,11 @@ void CGameContext::OnPreSnap() {}
 void CGameContext::OnPostSnap()
 {
 	m_pTeams->OnPostSnap();
+}
+
+bool CGameContext::IsPlayerValid(int ClientID) const
+{
+	return m_apPlayers[ClientID];
 }
 
 bool CGameContext::IsClientReadyToEnter(int ClientID) const

@@ -2,7 +2,6 @@
 #include "gamecontext.h"
 #include <engine/shared/config.h>
 #include <game/server/entities/character.h>
-#include <game/server/gamemodes/DDRace.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
 #include <game/version.h>
@@ -351,21 +350,6 @@ void CGameContext::ConKill(IConsole::IResult *pResult, void *pUserData)
 	pPlayer->m_LastKill = pSelf->Server()->Tick();
 	pPlayer->KillCharacter(WEAPON_SELF);
 	pPlayer->m_RespawnTick = pSelf->Server()->Tick() + pSelf->Server()->TickSpeed() * g_Config.m_SvSuicidePenalty;
-}
-
-void CGameContext::ConForcePause(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->GetVictim();
-	int Seconds = 0;
-	if(pResult->NumArguments() > 1)
-		Seconds = clamp(pResult->GetInteger(1), 0, 360);
-
-	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
-	if(!pPlayer)
-		return;
-
-	pPlayer->ForcePause(Seconds);
 }
 
 bool CGameContext::TryVoteMute(const NETADDR *pAddr, int Secs)
