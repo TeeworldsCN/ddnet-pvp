@@ -300,7 +300,7 @@ void CPlayer::Tick()
 		Server()->ResetNetErrorString(m_ClientID);
 	}
 
-	if(GameWorld() && !GameWorld()->m_Paused)
+	if(GameServer()->PlayerGameInstance(m_ClientID).m_Init)
 	{
 		if(!m_pCharacter && IsSpectating() && m_SpecMode == SPEC_FREEVIEW)
 			m_ViewPos -= vec2(clamp(m_ViewPos.x - m_LatestActivity.m_TargetX, -500.0f, 500.0f), clamp(m_ViewPos.y - m_LatestActivity.m_TargetY, -400.0f, 400.0f));
@@ -822,7 +822,7 @@ void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
 
-	if(!Controller() || !Controller()->CanSpawn(m_Team, &SpawnPos))
+	if(!GameServer()->PlayerGameInstance(m_ClientID).m_Init || !Controller() || !Controller()->CanSpawn(m_Team, &SpawnPos))
 		return;
 
 	m_Spawning = false;

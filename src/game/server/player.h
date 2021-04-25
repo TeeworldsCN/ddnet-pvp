@@ -145,14 +145,14 @@ private:
 	CGameWorld *GameWorld() const
 	{
 		SGameInstance Instance = m_pGameServer->GameInstance(DDRTeam());
-		if(!Instance.m_IsCreated)
+		if(!Instance.m_Init)
 			return nullptr;
 		return Instance.m_pWorld;
 	}
 	IGameController *Controller() const
 	{
 		SGameInstance Instance = m_pGameServer->GameInstance(DDRTeam());
-		if(!Instance.m_IsCreated)
+		if(!Instance.m_Init)
 			return nullptr;
 		return Instance.m_pController;
 	}

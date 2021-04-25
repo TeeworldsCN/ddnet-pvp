@@ -103,6 +103,8 @@ void CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State)
 			// unlock team when last player leaves
 			SetTeamLock(OldTeam, false);
 			ResetRoundState(OldTeam);
+			if(GetPlayer(ClientID))
+				GetPlayer(ClientID)->KillCharacter(); // The last one leaving, kill characther first
 			DestroyGameInstance(OldTeam);
 		}
 	}
@@ -225,9 +227,9 @@ void CGameTeams::CreateGameInstance(int Team, int Asker)
 	m_aTeamInstances[Team].m_pWorld = pWorld;
 	m_aTeamInstances[Team].m_pController = new CGameControllerDM();
 	m_aTeamInstances[Team].m_pController->InitController(Team, m_pGameContext, pWorld);
-	for(auto &Ent : m_Entities)
-		m_aTeamInstances[Team].m_pController->OnInternalEntity(Ent.Index, Ent.Pos, Ent.Layer, Ent.Flags, Ent.Number);
 	m_aTeamInstances[Team].m_IsCreated = true;
+	m_aTeamInstances[Team].m_Init = false;
+	m_aTeamInstances[Team].m_Entities = 0;
 
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "game controller %d is created", Team);
@@ -244,9 +246,11 @@ void CGameTeams::DestroyGameInstance(int Team)
 
 	delete m_aTeamInstances[Team].m_pController;
 	delete m_aTeamInstances[Team].m_pWorld;
+	m_aTeamInstances[Team].m_Init = false;
 	m_aTeamInstances[Team].m_IsCreated = false;
 	m_aTeamInstances[Team].m_pController = nullptr;
 	m_aTeamInstances[Team].m_pWorld = nullptr;
+	m_aTeamInstances[Team].m_Entities = 0;
 
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "game controller %d is deleted", Team);
@@ -261,8 +265,6 @@ void CGameTeams::OnPlayerConnect(CPlayer *pPlayer)
 
 	if(m_aTeamInstances[m_Core.Team(ClientID)].m_IsCreated)
 		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerJoin(pPlayer);
-
-	pPlayer->Respawn();
 
 	if(!Server()->ClientPrevIngame(ClientID))
 	{
@@ -311,13 +313,67 @@ void CGameTeams::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)
 
 void CGameTeams::OnTick()
 {
+	bool NeedToProcessEntities = false;
 	for(int i = 0; i < MAX_CLIENTS; ++i)
-		if(m_aTeamInstances[i].m_IsCreated)
+	{
+		if(m_aTeamInstances[i].m_Init)
 		{
 			m_aTeamInstances[i].m_pWorld->m_Core.m_Tuning[0] = *GameServer()->Tuning();
 			m_aTeamInstances[i].m_pWorld->Tick();
 			m_aTeamInstances[i].m_pController->Tick();
 		}
+
+		if(m_aTeamInstances[i].m_IsCreated && !m_aTeamInstances[i].m_Init)
+			NeedToProcessEntities = true;
+	}
+
+	if(NeedToProcessEntities)
+	{
+		int NumProcessed = 0;
+		while(1)
+		{
+			int NumCreated = 0;
+			int NumInit = 0;
+			for(int i = 0; i < MAX_CLIENTS; ++i)
+			{
+				if(m_aTeamInstances[i].m_IsCreated && !m_aTeamInstances[i].m_Init)
+				{
+					if(m_aTeamInstances[i].m_Entities < m_Entities.size())
+					{
+						auto E = m_Entities[m_aTeamInstances[i].m_Entities];
+						m_aTeamInstances[i].m_pController->OnInternalEntity(E.Index, E.Pos, E.Layer, E.Flags, E.Number);
+						m_aTeamInstances[i].m_Entities++;
+						NumProcessed++;
+					}
+
+					if(m_aTeamInstances[i].m_Entities == m_Entities.size())
+						m_aTeamInstances[i].m_Init = true;
+				}
+				if(m_aTeamInstances[i].m_IsCreated)
+					NumCreated++;
+				if(m_aTeamInstances[i].m_Init)
+					NumInit++;
+				if(NumProcessed >= ENTITIES_PER_TICK)
+					break;
+			}
+			if(NumCreated == NumInit)
+				break;
+		}
+	}
+
+	// // Join one player per tick
+	// if(m_Joins.size() > 0)
+	// {
+	// 	int ClientID = m_Joins.back();
+	// 	int Team = m_Core.Team(ClientID);
+	// 	if(!GameServer()->IsPlayerValid(ClientID))
+	// 		m_Joins.pop_back();
+	// 	else if(m_aTeamInstances[Team].m_Init)
+	// 	{
+	// 		m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID]);
+	// 		m_Joins.pop_back();
+	// 	}
+	// }
 }
 
 void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
@@ -329,9 +385,6 @@ void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 	Ent.Flags = Flags;
 	Ent.Number = Number;
 	m_Entities.push_back(Ent);
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-		if(m_aTeamInstances[i].m_IsCreated)
-			m_aTeamInstances[i].m_pController->OnInternalEntity(Index, Pos, Layer, Flags, Number);
 }
 
 void CGameTeams::OnSnap(int SnappingClient)
@@ -349,7 +402,7 @@ void CGameTeams::OnSnap(int SnappingClient)
 	if(ShowOthers)
 	{
 		for(int i = 0; i < MAX_CLIENTS; ++i)
-			if(m_aTeamInstances[i].m_IsCreated)
+			if(m_aTeamInstances[i].m_Init)
 			{
 				m_aTeamInstances[i].m_pWorld->Snap(SnappingClient, SnapAsTeam == i ? 0 : ShowOthers);
 				if(SnapAsTeam == i)
@@ -359,7 +412,7 @@ void CGameTeams::OnSnap(int SnappingClient)
 	else
 	{
 		SGameInstance Instance = GetGameInstance(SnapAsTeam);
-		if(!Instance.m_IsCreated)
+		if(!Instance.m_Init)
 			return;
 		Instance.m_pWorld->Snap(SnappingClient, 0);
 		Instance.m_pController->Snap(SnappingClient);
@@ -369,6 +422,6 @@ void CGameTeams::OnSnap(int SnappingClient)
 void CGameTeams::OnPostSnap()
 {
 	for(int i = 0; i < MAX_CLIENTS; ++i)
-		if(m_aTeamInstances[i].m_IsCreated)
+		if(m_aTeamInstances[i].m_Init)
 			m_aTeamInstances[i].m_pWorld->OnPostSnap();
 }

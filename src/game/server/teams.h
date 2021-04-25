@@ -11,9 +11,16 @@
 
 struct SGameInstance
 {
+	bool m_Init;
 	bool m_IsCreated;
+	int m_Entities;
 	IGameController *m_pController;
 	CGameWorld *m_pWorld;
+};
+
+enum
+{
+	ENTITIES_PER_TICK = 25,
 };
 
 class CGameTeams
@@ -25,6 +32,7 @@ class CGameTeams
 
 	class CGameContext *m_pGameContext;
 
+	// progressive
 	struct SEntity
 	{
 		int Index;
@@ -33,8 +41,8 @@ class CGameTeams
 		int Flags;
 		int Number;
 	};
-
 	std::vector<SEntity> m_Entities;
+	std::vector<int> m_Joins;
 
 public:
 	enum
@@ -118,7 +126,7 @@ public:
 	int CanSwitchTeam(int ClientID)
 	{
 		SGameInstance Instance = GetPlayerGameInstance(ClientID);
-		return Instance.m_IsCreated && !Instance.m_pWorld->m_Paused;
+		return Instance.m_Init && !Instance.m_pWorld->m_Paused;
 	}
 
 	// Game Instances

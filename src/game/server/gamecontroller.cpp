@@ -596,6 +596,8 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer)
 
 	// update game info
 	UpdateGameInfo(ClientID);
+
+	OnPlayerJoin(pPlayer);
 }
 
 void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer)
@@ -616,6 +618,8 @@ void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer)
 	}
 
 	CheckReadyStates(ClientID);
+
+	OnPlayerLeave(pPlayer);
 }
 
 void IGameController::OnReset()

@@ -2011,7 +2011,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			pPlayer->m_LastSetSpectatorMode = Server()->Tick();
 			pPlayer->UpdatePlaytime();
 			SGameInstance Instance = PlayerGameInstance(ClientID);
-			if(!pPlayer->SetSpectatorID(CPlayer::SPECMODE_PLAYER, pMsg->m_SpectatorID) && Instance.m_IsCreated)
+			if(!pPlayer->SetSpectatorID(CPlayer::SPECMODE_PLAYER, pMsg->m_SpectatorID) && Instance.m_Init)
 				Instance.m_pController->SendGameMsg(GAMEMSG_SPEC_INVALIDID, ClientID);
 		}
 		else if(MsgID == NETMSGTYPE_CL_CHANGEINFO)
@@ -2415,7 +2415,7 @@ void CGameContext::ConPause(IConsole::IResult *pResult, void *pUserData)
 	const int TeamArg = 2;
 	SGameInstance Instance = pResult->NumArguments() >= TeamArg ? pSelf->GameInstance(pResult->GetInteger(TeamArg - 1)) : pSelf->PlayerGameInstance(pResult->m_ClientID);
 
-	if(!Instance.m_IsCreated)
+	if(!Instance.m_Init)
 		return;
 
 	if(pResult->NumArguments())
@@ -2512,7 +2512,7 @@ void CGameContext::ConSetTeam(IConsole::IResult *pResult, void *pUserData)
 	pSelf->m_apPlayers[ClientID]->m_TeamChangeTick = pSelf->Server()->Tick() + pSelf->Server()->TickSpeed() * Delay * 60;
 
 	SGameInstance Instance = pSelf->PlayerGameInstance(ClientID);
-	if(Instance.m_IsCreated)
+	if(Instance.m_Init)
 		Instance.m_pController->DoTeamChange(pSelf->m_apPlayers[ClientID], Team);
 
 	if(Team == TEAM_SPECTATORS)
@@ -2528,7 +2528,7 @@ void CGameContext::ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
 	const int TeamArg = 2;
 	SGameInstance Instance = pResult->NumArguments() >= TeamArg ? pSelf->GameInstance(pResult->GetInteger(TeamArg - 1)) : pSelf->PlayerGameInstance(pResult->m_ClientID);
 
-	if(!Instance.m_IsCreated)
+	if(!Instance.m_Init)
 		return;
 
 	int Team = clamp(pResult->GetInteger(0), -1, 1);
