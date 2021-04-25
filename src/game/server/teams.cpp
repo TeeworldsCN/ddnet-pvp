@@ -170,22 +170,6 @@ void CGameTeams::SendTeamsState(int ClientID)
 	Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
 }
 
-// void CGameTeams::OnCharacterSpawn(int ClientID)
-// {
-// 	m_Core.SetSolo(ClientID, false);
-// 	// int Team = m_Core.Team(ClientID);
-
-// 	// if(m_Core.Team(ClientID) >= TEAM_SUPER || !m_aTeamLocked[Team])
-// 	// 	SetForcePlayerTeam(ClientID, Team);
-// }
-
-// void CGameTeams::OnCharacterDeath(int ClientID, int Weapon)
-// {
-// 	m_Core.SetSolo(ClientID, false);
-// 	// int Team = m_Core.Team(ClientID);
-// 	// SetForcePlayerTeam(ClientID, Team);
-// }
-
 void CGameTeams::SetTeamLock(int Team, bool Lock)
 {
 	if(Team > TEAM_FLOCK && Team < TEAM_SUPER)
