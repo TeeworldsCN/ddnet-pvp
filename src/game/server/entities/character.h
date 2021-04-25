@@ -79,7 +79,7 @@ public:
 
 	int NeededFaketuning() { return m_NeededFaketuning; }
 	bool IsAlive() const { return m_Alive; }
-	bool IsPaused() const { return m_Paused; }
+	bool IsDisabled() const { return m_Disabled; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 
 private:
@@ -87,7 +87,7 @@ private:
 	class CPlayer *m_pPlayer;
 
 	bool m_Alive;
-	bool m_Paused;
+	bool m_Disabled;
 	int m_NeededFaketuning;
 
 	// weapon info
@@ -173,7 +173,7 @@ private:
 
 public:
 	void FillAntibot(CAntibotCharacterData *pData);
-	void Pause(bool Pause);
+	void SetDisable(bool Pause);
 	bool Freeze(int Time);
 	bool Freeze();
 	bool UnFreeze();
@@ -208,7 +208,8 @@ public:
 		DISABLE_HIT_HAMMER = 1,
 		DISABLE_HIT_SHOTGUN = 2,
 		DISABLE_HIT_GRENADE = 4,
-		DISABLE_HIT_LASER = 8
+		DISABLE_HIT_LASER = 8,
+		DISABLE_HIT_GUN = 16
 	};
 	int m_Hit;
 	int m_TuneZone;

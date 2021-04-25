@@ -34,6 +34,7 @@ public:
 	~CPlayer();
 
 	void Reset();
+	void GameReset();
 
 	void TryRespawn();
 	void Respawn();
@@ -162,7 +163,7 @@ private:
 	int m_ClientID;
 	int m_Team;
 
-	int m_Paused;
+	bool m_Paused;
 	int64 m_LastPause;
 
 	int m_DefEmote;

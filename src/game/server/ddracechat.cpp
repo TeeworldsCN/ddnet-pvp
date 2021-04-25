@@ -467,7 +467,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 			str_format(aBuf, sizeof(aBuf), "This room already has the maximum allowed size of %d players", g_Config.m_SvTeamMaxSize);
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", aBuf);
 		}
-		else if(const char *pError = pSelf->m_pTeams->SetCharacterTeam(pPlayer->GetCID(), Team))
+		else if(const char *pError = pSelf->m_pTeams->SetPlayerTeam(pPlayer->GetCID(), Team))
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", pError);
 		}
@@ -642,7 +642,7 @@ void CGameContext::ConShowOthers(IConsole::IResult *pResult, void *pUserData)
 				pPlayer->m_ShowOthers = !pPlayer->m_ShowOthers;
 		}
 
-		pPlayer->m_SpecTeam = pPlayer->m_ShowOthers != 1;
+		pPlayer->m_SpecTeam = pPlayer->m_ShowOthers > 0;
 	}
 	else
 		pSelf->Console()->Print(

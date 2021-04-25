@@ -130,7 +130,7 @@ void CGameContext::ConSuper(IConsole::IResult *pResult, void *pUserData)
 		pChr->Core()->m_Super = true;
 		pChr->UnFreeze();
 		pChr->m_TeamBeforeSuper = pChr->Team();
-		pChr->Teams()->SetCharacterTeam(pResult->m_ClientID, TEAM_SUPER);
+		pChr->Teams()->SetPlayerTeam(pResult->m_ClientID, TEAM_SUPER);
 		pChr->m_DDRaceState = DDRACE_CHEAT;
 	}
 }
@@ -145,8 +145,8 @@ void CGameContext::ConUnSuper(IConsole::IResult *pResult, void *pUserData)
 	{
 		pChr->m_Super = false;
 		pChr->Core()->m_Super = false;
-		pChr->Teams()->SetForceCharacterTeam(pResult->m_ClientID,
-			pChr->m_TeamBeforeSuper);
+		pChr->Teams()->SetForcePlayerTeam(pResult->m_ClientID,
+			pChr->m_TeamBeforeSuper, 0);
 	}
 }
 

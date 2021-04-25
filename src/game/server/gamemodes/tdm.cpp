@@ -15,10 +15,16 @@ CGameControllerTDM::CGameControllerTDM() :
 }
 
 // event
+void CGameControllerTDM::OnCharacterSpawn(CCharacter *pChr)
+{
+	pChr->IncreaseHealth(10);
+
+	pChr->GiveWeapon(WEAPON_HAMMER, -1);
+	pChr->GiveWeapon(WEAPON_GUN, 10);
+}
+
 int CGameControllerTDM::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)
 {
-	IGameController::OnCharacterDeath(pVictim, pKiller, Weapon);
-
 	if(pKiller && Weapon != WEAPON_GAME)
 	{
 		// do team scoring
@@ -30,5 +36,5 @@ int CGameControllerTDM::OnCharacterDeath(class CCharacter *pVictim, class CPlaye
 
 	pVictim->GetPlayer()->m_RespawnTick = maximum(pVictim->GetPlayer()->m_RespawnTick, Server()->Tick() + Server()->TickSpeed() * Config()->m_SvRespawnDelayTDM);
 
-	return 0;
+	return DEATH_NORMAL;
 }

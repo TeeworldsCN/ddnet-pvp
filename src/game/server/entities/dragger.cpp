@@ -29,7 +29,7 @@ CDragger::CDragger(CGameWorld *pGameWorld, vec2 Pos, float Strength, bool NW, in
 
 void CDragger::Move()
 {
-	if(m_Target && (!m_Target->IsAlive() || (m_Target->IsAlive() && (m_Target->m_Super || m_Target->IsPaused() || (m_Layer == LAYER_SWITCH && m_Number && !GameServer()->Collision()->m_pSwitchers[m_Number].m_Status[m_Target->Team()])))))
+	if(m_Target && (!m_Target->IsAlive() || (m_Target->IsAlive() && (m_Target->m_Super || m_Target->IsDisabled() || (m_Layer == LAYER_SWITCH && m_Number && !GameServer()->Collision()->m_pSwitchers[m_Number].m_Status[m_Target->Team()])))))
 		m_Target = 0;
 
 	mem_zero(m_SoloEnts, sizeof(m_SoloEnts));

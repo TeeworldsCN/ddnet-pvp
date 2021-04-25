@@ -3,7 +3,6 @@
 #include <engine/shared/config.h>
 #include <game/mapitems.h>
 #include <game/server/teams.h>
-#include <game/version.h>
 
 #include <game/generated/protocol.h>
 
@@ -258,22 +257,74 @@ void IGameController::DoTeamBalance()
 	SendGameMsg(GAMEMSG_TEAM_BALANCE, -1);
 }
 
-// event
+// virtual events
+void IGameController::OnPlayerJoin(CPlayer *pPlayer)
+{
+}
+
+void IGameController::OnPlayerLeave(CPlayer *pPlayer)
+{
+}
+
 int IGameController::OnCharacterDeath(CCharacter *pVictim, CPlayer *pKiller, int Weapon)
 {
-	// do scoreing
-	if(!pKiller || Weapon == WEAPON_GAME)
-		return 0;
-	if(pKiller == pVictim->GetPlayer())
-		pVictim->GetPlayer()->m_Score--; // suicide or world
-	else
+	return DEATH_NORMAL;
+}
+
+void IGameController::OnCharacterSpawn(CCharacter *pChr)
+{
+}
+
+bool IGameController::OnCharacterTile(CCharacter *pChr, int MapIndex)
+{
+	return false;
+}
+
+bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
+{
+	return false;
+}
+
+void IGameController::OnFlagReset(CFlag *pFlag)
+{
+}
+
+// virtual states
+bool IGameController::CanKill(int ClientID) const
+{
+	return true;
+}
+
+bool IGameController::IsDisruptiveLeave(int ClientID) const
+{
+	return false;
+}
+
+// event
+int IGameController::OnInternalCharacterDeath(CCharacter *pVictim, CPlayer *pKiller, int Weapon)
+{
+	int DeathFlag = OnCharacterDeath(pVictim, pKiller, Weapon);
+
+	if(!(DeathFlag & DEATH_KEEP_SOLO))
+		GameServer()->m_pTeams->m_Core.SetSolo(pVictim->GetPlayer()->GetCID(), false);
+
+	if(!(DeathFlag & DEATH_SKIP_SCORE))
 	{
-		if(IsTeamplay() && pVictim->GetPlayer()->GetTeam() == pKiller->GetTeam())
-			pKiller->m_Score--; // teamkill
+		// do scoreing
+		if(!pKiller || Weapon == WEAPON_GAME)
+			return 0;
+		if(pKiller == pVictim->GetPlayer())
+			pVictim->GetPlayer()->m_Score--; // suicide or world
 		else
-			pKiller->m_Score++; // normal kill
+		{
+			if(IsTeamplay() && pVictim->GetPlayer()->GetTeam() == pKiller->GetTeam())
+				pKiller->m_Score--; // teamkill
+			else
+				pKiller->m_Score++; // normal kill
+		}
 	}
-	if(Weapon == WEAPON_SELF)
+
+	if(!(DeathFlag & DEATH_NO_SUICIDE_PANATY) && Weapon == WEAPON_SELF)
 		pVictim->GetPlayer()->m_RespawnTick = Server()->Tick() + Server()->TickSpeed() * 3.0f;
 
 	// update spectator modes for dead players in survival
@@ -284,28 +335,19 @@ int IGameController::OnCharacterDeath(CCharacter *pVictim, CPlayer *pKiller, int
 				GameServer()->m_apPlayers[i]->UpdateDeadSpecMode();
 	}
 
-	return 0;
+	return DeathFlag & (DEATH_VICTIM_HAS_FLAG | DEATH_KILLER_HAS_FLAG);
 }
 
-void IGameController::OnCharacterSpawn(CCharacter *pChr)
+void IGameController::OnInternalCharacterSpawn(CCharacter *pChr)
 {
-	// default health
-	pChr->IncreaseHealth(10);
-
-	// give default weapons
-	pChr->GiveWeapon(WEAPON_HAMMER, -1);
-	pChr->GiveWeapon(WEAPON_GUN, 10);
-
-	// TODO: move pTeam calls
-	GameServer()->m_pTeams->OnCharacterSpawn(pChr->GetPlayer()->GetCID());
+	OnCharacterSpawn(pChr);
 }
 
-void IGameController::OnFlagReturn(CFlag *pFlag)
+bool IGameController::OnInternalCharacterTile(CCharacter *pChr, int MapIndex)
 {
-}
+	if(OnCharacterTile(pChr, MapIndex))
+		return true;
 
-void IGameController::OnCharacterInTile(CCharacter *pChr, int MapIndex)
-{
 	CPlayer *pPlayer = pChr->GetPlayer();
 	int ClientID = pPlayer->GetCID();
 
@@ -323,6 +365,8 @@ void IGameController::OnCharacterInTile(CCharacter *pChr, int MapIndex)
 		GameServer()->SendChatTarget(ClientID, "You are now out of the solo part");
 		pChr->SetSolo(false);
 	}
+
+	return false;
 }
 
 void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
@@ -538,17 +582,40 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 	}
 }
 
-bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
+void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer)
 {
-	return false;
+	int ClientID = pPlayer->GetCID();
+
+	if(pPlayer->GetTeam() != TEAM_SPECTATORS)
+		pPlayer->SetTeam(GetStartTeam());
+	pPlayer->Respawn();
+
+	char aBuf[128];
+	str_format(aBuf, sizeof(aBuf), "ddrteam_join player='%d:%s' team=%d ddrteam='%d'", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam(), GameWorld()->Team());
+	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+
+	// update game info
+	UpdateGameInfo(ClientID);
 }
 
-void IGameController::OnPlayerJoin(CPlayer *pPlayer)
+void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer)
 {
-}
+	int ClientID = pPlayer->GetCID();
+	if(Server()->ClientIngame(ClientID))
+	{
+		char aBuf[128];
+		str_format(aBuf, sizeof(aBuf), "ddrteam_leave player='%d:%s' ddrteam='%d'", ClientID, Server()->ClientName(ClientID), GameWorld()->Team());
+		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+	}
 
-void IGameController::OnPlayerLeave(CPlayer *pPlayer)
-{
+	if(pPlayer->GetTeam() != TEAM_SPECTATORS)
+	{
+		--m_aTeamSize[pPlayer->GetTeam()];
+		dbg_msg("game", "team size decreased to %d, team='%d', ddrteam='%d'", m_aTeamSize[pPlayer->GetTeam()], pPlayer->GetTeam(), GameWorld()->Team());
+		m_UnbalancedTick = TBALANCE_CHECK;
+	}
+
+	CheckReadyStates(ClientID);
 }
 
 void IGameController::OnReset()
@@ -630,7 +697,7 @@ bool IGameController::DoWincheckMatch()
 
 bool IGameController::DoWincheckRound()
 {
-	return false;
+	return true;
 }
 
 void IGameController::ResetGame()
@@ -805,7 +872,7 @@ void IGameController::StartMatch()
 	// TODO: fix demo
 	// Server()->DemoRecorder_HandleAutoStart();
 	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "start match type='%s' teamplay='%d'", m_pGameType, m_GameFlags & IGF_TEAMS);
+	str_format(aBuf, sizeof(aBuf), "start match type='%s' teamplay='%d' ddrteam='%d'", m_pGameType, m_GameFlags & IGF_TEAMS, GameWorld()->Team());
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 }
 
@@ -831,6 +898,15 @@ void IGameController::SwapTeamscore()
 	m_aTeamscore[TEAM_RED] = m_aTeamscore[TEAM_BLUE];
 	m_aTeamscore[TEAM_BLUE] = Score;
 }
+
+// for compatibility of 0.7's round ends and infinite warmup
+// void IGameController::FakeClientBroadcast(int SnappingClient)
+// {
+// 	if(Server()->IsSixup(SnappingClient))
+// 		return;
+
+// 	if(Server()->IsSixup())
+// }
 
 void IGameController::Snap(int SnappingClient)
 {
@@ -891,7 +967,7 @@ void IGameController::Snap(int SnappingClient)
 		if(isSixUp)
 			GameStateFlags |= protocol7::GAMESTATEFLAG_ROUNDOVER;
 		else
-			GameStateFlags |= GAMESTATEFLAG_GAMEOVER | GAMESTATEFLAG_PAUSED;
+			GameStateFlags |= 0;
 
 		GameStateEndTick = Server()->Tick() - m_GameStartTick - TIMER_END / 2 * Server()->TickSpeed() + m_GameStateTimer;
 		break;
@@ -904,10 +980,17 @@ void IGameController::Snap(int SnappingClient)
 		GameStateEndTick = Server()->Tick() - m_GameStartTick - TIMER_END * Server()->TickSpeed() + m_GameStateTimer;
 		break;
 	case IGS_GAME_RUNNING:
-		GameServer()->SendBroadcast("", SnappingClient, false); // clear broadcast
+		if(!isSixUp)
+			GameServer()->SendBroadcast("", SnappingClient, false); // clear broadcast
 		// not effected
 		break;
 	}
+
+	if(m_SuddenDeath)
+		if(isSixUp)
+			GameStateFlags |= protocol7::GAMESTATEFLAG_SUDDENDEATH;
+		else
+			GameStateFlags |= GAMESTATEFLAG_SUDDENDEATH;
 
 	if(!isSixUp)
 	{
@@ -963,18 +1046,17 @@ void IGameController::Snap(int SnappingClient)
 	}
 	else
 	{
-		protocol7::CNetObj_GameData *pGameData = static_cast<protocol7::CNetObj_GameData *>(Server()->SnapNewItem(protocol7::NETOBJTYPE_GAMEDATA, 0, sizeof(protocol7::CNetObj_GameData)));
+		protocol7::CNetObj_GameData *pGameData = static_cast<protocol7::CNetObj_GameData *>(Server()->SnapNewItem(-protocol7::NETOBJTYPE_GAMEDATA, 0, sizeof(protocol7::CNetObj_GameData)));
 		if(!pGameData)
 			return;
 
 		pGameData->m_GameStartTick = m_GameStartTick;
-
-		if(m_SuddenDeath)
-			pGameData->m_GameStateFlags |= GAMESTATEFLAG_SUDDENDEATH;
+		pGameData->m_GameStateFlags = GameStateFlags;
+		pGameData->m_GameStateEndTick = GameStateEndTick;
 
 		if(IsTeamplay())
 		{
-			protocol7::CNetObj_GameDataTeam *pGameDataTeam = static_cast<protocol7::CNetObj_GameDataTeam *>(Server()->SnapNewItem(protocol7::NETOBJTYPE_GAMEDATATEAM, 0, sizeof(protocol7::CNetObj_GameDataTeam)));
+			protocol7::CNetObj_GameDataTeam *pGameDataTeam = static_cast<protocol7::CNetObj_GameDataTeam *>(Server()->SnapNewItem(-protocol7::NETOBJTYPE_GAMEDATATEAM, 0, sizeof(protocol7::CNetObj_GameDataTeam)));
 			if(!pGameDataTeam)
 				return;
 
@@ -985,7 +1067,7 @@ void IGameController::Snap(int SnappingClient)
 		SFlagState FlagState;
 		if(GetFlagState(&FlagState))
 		{
-			protocol7::CNetObj_GameDataFlag *pGameDataFlag = static_cast<protocol7::CNetObj_GameDataFlag *>(Server()->SnapNewItem(protocol7::NETOBJTYPE_GAMEDATAFLAG, 0, sizeof(protocol7::CNetObj_GameDataFlag)));
+			protocol7::CNetObj_GameDataFlag *pGameDataFlag = static_cast<protocol7::CNetObj_GameDataFlag *>(Server()->SnapNewItem(-protocol7::NETOBJTYPE_GAMEDATAFLAG, 0, sizeof(protocol7::CNetObj_GameDataFlag)));
 			if(!pGameDataFlag)
 				return;
 
@@ -1025,7 +1107,7 @@ void IGameController::Snap(int SnappingClient)
 		// TODO: fix demo
 		if(SnappingClient < 0)
 		{
-			protocol7::CNetObj_De_GameInfo *pGameInfo = static_cast<protocol7::CNetObj_De_GameInfo *>(Server()->SnapNewItem(protocol7::NETOBJTYPE_DE_GAMEINFO, 0, sizeof(protocol7::CNetObj_De_GameInfo)));
+			protocol7::CNetObj_De_GameInfo *pGameInfo = static_cast<protocol7::CNetObj_De_GameInfo *>(Server()->SnapNewItem(-protocol7::NETOBJTYPE_DE_GAMEINFO, 0, sizeof(protocol7::CNetObj_De_GameInfo)));
 			if(!pGameInfo)
 				return;
 
@@ -1124,12 +1206,10 @@ void IGameController::Tick()
 	// check for inactive players
 	DoActivityCheck();
 
-	// win check
 	if((m_GameState == IGS_GAME_RUNNING || m_GameState == IGS_GAME_PAUSED) && !GameWorld()->m_ResetRequested)
 	{
-		if(IsSurvival())
-			DoWincheckRound();
-		else
+		// win check
+		if(DoWincheckRound())
 			DoWincheckMatch();
 	}
 }
@@ -1484,11 +1564,13 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 	if(OldTeam != TEAM_SPECTATORS)
 	{
 		--m_aTeamSize[OldTeam];
+		dbg_msg("game", "team size decreased to %d, team='%d', ddrteam='%d'", m_aTeamSize[OldTeam], Team, GameWorld()->Team());
 		m_UnbalancedTick = TBALANCE_CHECK;
 	}
 	if(Team != TEAM_SPECTATORS)
 	{
 		++m_aTeamSize[Team];
+		dbg_msg("game", "team size increased to %d, team='%d', ddrteam='%d'", m_aTeamSize[Team], Team, GameWorld()->Team());
 		m_UnbalancedTick = TBALANCE_CHECK;
 		if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
 			SetGameState(IGS_WARMUP_GAME, 0);
@@ -1545,6 +1627,7 @@ int IGameController::GetStartTeam()
 	if(m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] < Config()->m_SvMaxClients - Config()->m_SvSpectatorSlots)
 	{
 		++m_aTeamSize[Team];
+		dbg_msg("game", "team size increased to %d, team='%d', ddrteam='%d'", m_aTeamSize[Team], Team, GameWorld()->Team());
 		m_UnbalancedTick = TBALANCE_CHECK;
 		if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
 			SetGameState(IGS_WARMUP_GAME, 0);

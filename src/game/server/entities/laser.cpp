@@ -25,6 +25,16 @@ CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEner
 	m_TeleportCancelled = false;
 	m_IsBlueTeleport = false;
 	m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
+	m_Hit = 0;
+	if(m_Owner >= 0)
+	{
+		CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
+		if(pOwnerChar)
+		{
+			m_Hit = m_Hit;
+			m_IsSolo = Teams()->m_Core.GetSolo(m_Owner);
+		}
+	}
 	GameWorld()->InsertEntity(this);
 	DoBounce();
 }
@@ -36,12 +46,12 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	CCharacter *pHit;
 	bool pDontHitSelf = ((pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (m_Bounces == 0 && !m_WasTele));
 
-	if(pOwnerChar ? (!(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_LASER) && m_Type == WEAPON_LASER) || (!(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_SHOTGUN) && m_Type == WEAPON_SHOTGUN) : g_Config.m_SvHit)
-		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : 0, m_Owner);
+	if((!(m_Hit & CCharacter::DISABLE_HIT_LASER) && m_Type == WEAPON_LASER) || (!(m_Hit & CCharacter::DISABLE_HIT_SHOTGUN) && m_Type == WEAPON_SHOTGUN))
+		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : nullptr, m_Owner);
 	else
-		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : 0, m_Owner, pOwnerChar);
+		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : nullptr, m_Owner, pOwnerChar);
 
-	if(!pHit || (pHit == pOwnerChar && pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (pHit != pOwnerChar && pOwnerChar ? (pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_LASER && m_Type == WEAPON_LASER) || (pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_SHOTGUN && m_Type == WEAPON_SHOTGUN) : !g_Config.m_SvHit))
+	if(!pHit || (pHit == pOwnerChar && pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (pHit != pOwnerChar && (m_Hit & CCharacter::DISABLE_HIT_LASER && m_Type == WEAPON_LASER) || (m_Hit & CCharacter::DISABLE_HIT_SHOTGUN && m_Type == WEAPON_SHOTGUN)))
 		return false;
 	m_From = From;
 	m_Pos = At;
@@ -169,7 +179,7 @@ void CLaser::DoBounce()
 		bool pDontHitSelf = (pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (m_Bounces == 0 && !m_WasTele);
 		vec2 At;
 		CCharacter *pHit;
-		if(pOwnerChar ? (!(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_LASER) && m_Type == WEAPON_LASER) : g_Config.m_SvHit)
+		if(!(m_Hit & CCharacter::DISABLE_HIT_LASER) && m_Type == WEAPON_LASER)
 			pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : 0, m_Owner);
 		else
 			pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : 0, m_Owner, pOwnerChar);
@@ -227,13 +237,18 @@ void CLaser::Reset()
 
 void CLaser::Tick()
 {
-	if(g_Config.m_SvDestroyLasersOnDeath && m_Owner >= 0)
+	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
+	CPlayer *pOwnerPlayer = GameServer()->m_apPlayers[m_Owner];
+	if((!pOwnerChar || !pOwnerChar->IsAlive()) && m_Owner >= 0 && (m_IsSolo || g_Config.m_SvDestroyLasersOnDeath))
 	{
-		CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-		if(!(pOwnerChar && pOwnerChar->IsAlive()))
-		{
-			Reset();
-		}
+		Reset();
+		return;
+	}
+
+	if(!pOwnerPlayer || GameServer()->GetDDRaceTeam(m_Owner) != GameWorld()->Team())
+	{
+		Reset(); // owner has gone to another reality.
+		return;
 	}
 
 	float Delay;

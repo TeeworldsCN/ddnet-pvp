@@ -18,7 +18,7 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, bool AsSpec)
 {
 	m_pGameServer = pGameServer;
 	m_ClientID = ClientID;
-	m_Team = AsSpec ? TEAM_SPECTATORS : Controller()->GetStartTeam();
+	m_Team = AsSpec ? TEAM_SPECTATORS : TEAM_RED; // controller will decide player's team again.
 	m_NumInputs = 0;
 	Reset();
 	GameServer()->Antibot()->OnPlayerInit(m_ClientID);
@@ -34,22 +34,13 @@ CPlayer::~CPlayer()
 
 void CPlayer::Reset()
 {
-	m_DieTick = Server()->Tick();
-	m_ScoreStartTick = Server()->Tick();
-	m_PreviousDieTick = m_DieTick;
+	GameReset();
+
 	m_JoinTick = Server()->Tick();
 	delete m_pCharacter;
 	m_pCharacter = 0;
-	m_SpectatorID = SPEC_FREEVIEW;
-	m_LastActionTick = Server()->Tick();
-	m_TeamChangeTick = Server()->Tick();
-	m_LastInvited = 0;
-	m_InactivityTickCounter = 0;
 
 	m_IsReadyToEnter = false;
-	m_IsReadyToPlay = false;
-
-	m_DeadSpecMode = false;
 
 	int *pIdMap = Server()->GetIdMap(m_ClientID);
 	for(int i = 1; i < VANILLA_MAX_CLIENTS; i++)
@@ -118,7 +109,6 @@ void CPlayer::Reset()
 	m_DND = false;
 
 	m_LastPause = 0;
-	m_Score = 0;
 
 	// Variable initialized:
 	m_Last_Team = 0;
@@ -139,6 +129,20 @@ void CPlayer::Reset()
 	m_EligibleForFinishCheck = 0;
 }
 
+void CPlayer::GameReset()
+{
+	m_DieTick = Server()->Tick();
+	m_ScoreStartTick = Server()->Tick();
+	m_PreviousDieTick = m_DieTick;
+	m_SpectatorID = SPEC_FREEVIEW;
+	m_LastActionTick = Server()->Tick();
+	m_TeamChangeTick = Server()->Tick();
+	m_LastInvited = 0;
+	m_InactivityTickCounter = 0;
+	m_IsReadyToPlay = false;
+	m_DeadSpecMode = false;
+	m_Score = 0;
+}
 static int PlayerFlags_SevenToSix(int Flags)
 {
 	int Six = 0;
@@ -326,7 +330,7 @@ void CPlayer::Tick()
 				if(!m_Paused)
 					m_ViewPos = m_pCharacter->m_Pos;
 			}
-			else if(!m_pCharacter->IsPaused())
+			else if(!m_pCharacter->IsDisabled())
 			{
 				delete m_pCharacter;
 				m_pCharacter = 0;
@@ -362,7 +366,7 @@ void CPlayer::Tick()
 		m_OverrideEmoteReset = -1;
 	}
 
-	if(m_Halloween && m_pCharacter && !m_pCharacter->IsPaused())
+	if(m_Halloween && m_pCharacter && !m_pCharacter->IsDisabled())
 	{
 		if(1200 - ((Server()->Tick() - m_pCharacter->GetLastAction()) % (1200)) < 5)
 		{
@@ -440,7 +444,7 @@ void CPlayer::Snap(int SnappingClient)
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 		}
 
-		if(GameServer()->GetDDRaceTeam(SnapAs) != GameServer()->GetDDRaceTeam(id) && GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers)
+		if(GameServer()->GetDDRaceTeam(SnapAs) != GameServer()->GetDDRaceTeam(id) && !GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers)
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 	}
 	else
@@ -509,21 +513,12 @@ void CPlayer::Snap(int SnappingClient)
 	if(m_Paused)
 		pDDNetPlayer->m_Flags |= EXPLAYERFLAG_PAUSED;
 
-	if(SnappingClient >= 0 && Server()->IsSixup(SnappingClient) && m_pCharacter && m_pCharacter->m_DDRaceState == DDRACE_STARTED &&
-		GameServer()->m_apPlayers[SnappingClient]->m_TimerType == TIMERTYPE_SIXUP)
-	{
-		protocol7::CNetObj_PlayerInfoRace *pRaceInfo = static_cast<protocol7::CNetObj_PlayerInfoRace *>(Server()->SnapNewItem(-protocol7::NETOBJTYPE_PLAYERINFORACE, id, sizeof(protocol7::CNetObj_PlayerInfoRace)));
-		if(!pRaceInfo)
-			return;
-		pRaceInfo->m_RaceStartTick = m_pCharacter->m_StartTime;
-	}
-
-	bool ShowSpec = m_pCharacter && m_pCharacter->IsPaused();
+	bool ShowSpec = m_pCharacter && m_pCharacter->IsDisabled();
 
 	if(SnappingClient >= 0)
 	{
 		CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-		ShowSpec = ShowSpec && (GameServer()->GetDDRaceTeam(id) == GameServer()->GetDDRaceTeam(SnappingClient) || pSnapPlayer->m_ShowOthers == 1 || pSnapPlayer->IsSpectating());
+		ShowSpec = ShowSpec && (GameServer()->GetDDRaceTeam(id) == GameServer()->GetDDRaceTeam(SnappingClient) || pSnapPlayer->m_ShowOthers || pSnapPlayer->IsSpectating());
 	}
 
 	if(ShowSpec)
@@ -833,6 +828,7 @@ void CPlayer::TryRespawn()
 	m_Spawning = false;
 	m_pCharacter = new(m_ClientID) CCharacter(GameWorld());
 	m_pCharacter->Spawn(this, SpawnPos);
+	m_ViewPos = SpawnPos;
 	GameWorld()->CreatePlayerSpawn(SpawnPos);
 }
 
@@ -956,17 +952,6 @@ int CPlayer::Pause(bool Paused, bool Force)
 	char aBuf[128];
 	if(Paused != m_Paused)
 	{
-		if(m_pCharacter->IsPaused()) // First condition might be unnecessary
-		{
-			if(!Force && m_LastPause && m_LastPause + (int64)g_Config.m_SvSpecFrequency * Server()->TickSpeed() > Server()->Tick())
-			{
-				GameServer()->SendChatTarget(m_ClientID, "Can't /pause that quickly.");
-				return m_Paused; // Do not update state. Do not collect $200
-			}
-			m_pCharacter->Pause(false);
-			GameWorld()->CreatePlayerSpawn(m_pCharacter->m_Pos);
-		}
-
 		// Update state
 		m_Paused = Paused;
 		m_LastPause = Server()->Tick();

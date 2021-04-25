@@ -69,18 +69,24 @@ public:
 		return m_pGameContext->Server();
 	}
 
-	void OnCharacterSpawn(int ClientID);
-	void OnCharacterDeath(int ClientID, int Weapon);
+	// void OnCharacterSpawn(int ClientID);
+	// void OnCharacterDeath(int ClientID, int Weapon);
 
 	// returns nullptr if successful, error string if failed
-	const char *SetCharacterTeam(int ClientID, int Team);
+	const char *SetPlayerTeam(int ClientID, int Team);
 
 	void ChangeTeamState(int Team, int State);
 
 	int Count(int Team) const;
 
 	// need to be very careful using this method. SERIOUSLY...
-	void SetForceCharacterTeam(int ClientID, int Team);
+	enum
+	{
+		TEAM_REASON_NORMAL = 0,
+		TEAM_REASON_CONNECT = 1,
+		TEAM_REASON_DISCONNECT = 2
+	};
+	void SetForcePlayerTeam(int ClientID, int Team, int Reason);
 
 	void Reset();
 	void ResetRoundState(int Team);
@@ -118,8 +124,10 @@ public:
 	// Game Instances
 	SGameInstance GetGameInstance(int Team);
 	SGameInstance GetPlayerGameInstance(int ClientID);
-	void CreateGameInstance(int Team);
+	void CreateGameInstance(int Team, int Asker);
 	void DestroyGameInstance(int Team);
+	void OnPlayerConnect(CPlayer *pPlayer);
+	void OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason);
 	void OnTick();
 	void OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
 	void OnSnap(int SnappingClient);

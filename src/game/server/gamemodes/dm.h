@@ -8,6 +8,9 @@ class CGameControllerDM : public IGameController
 {
 public:
 	CGameControllerDM();
+
+	// event
+	virtual void OnCharacterSpawn(class CCharacter *pChr) override;
 };
 
 #endif

@@ -74,7 +74,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	GameWorld()->InsertEntity(this);
 	m_Alive = true;
 
-	GameServer()->GameInstance(Team()).m_pController->OnCharacterSpawn(this);
+	GameServer()->GameInstance(Team()).m_pController->OnInternalCharacterSpawn(this);
 
 	DDRaceInit();
 
@@ -777,7 +777,7 @@ void CCharacter::Tick()
 		m_pPlayer->m_ForceBalanced = false;
 	}*/
 
-	if(m_Paused)
+	if(m_Disabled)
 		return;
 
 	// set emote
@@ -959,7 +959,7 @@ void CCharacter::Die(int Killer, int Weapon)
 	if(Server()->IsRecording(m_pPlayer->GetCID()))
 		Server()->StopRecord(m_pPlayer->GetCID());
 
-	int ModeSpecial = GameServer()->GameInstance(Team()).m_pController->OnCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
+	int ModeSpecial = GameServer()->GameInstance(Team()).m_pController->OnInternalCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "kill killer='%d:%s' victim='%d:%s' weapon=%d special=%d",
@@ -994,7 +994,7 @@ void CCharacter::Die(int Killer, int Weapon)
 	GameWorld()->RemoveEntity(this);
 	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 	GameWorld()->CreateDeath(m_Pos, m_pPlayer->GetCID());
-	Teams()->OnCharacterDeath(GetPlayer()->GetCID(), Weapon);
+	// Teams()->OnCharacterDeath(GetPlayer()->GetCID(), Weapon);
 }
 
 bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
@@ -1198,6 +1198,14 @@ void CCharacter::SnapCharacter(int SnappingClient, int ID)
 		pCharacter->m_Health = Health;
 		pCharacter->m_Armor = Armor;
 		pCharacter->m_PlayerFlags = GetPlayer()->m_PlayerFlags;
+
+		// HACK: no shaking during pause / round end
+		if(GameWorld()->m_Paused)
+		{
+			pCharacter->m_VelX = 0;
+			pCharacter->m_VelY = 0;
+			pCharacter->m_AttackTick = 0;
+		}
 	}
 	else
 	{
@@ -1235,7 +1243,7 @@ void CCharacter::Snap(int SnappingClient, int OtherMode)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	if(m_Paused)
+	if(m_Disabled)
 		return;
 
 	SnapCharacter(SnappingClient, ID);
@@ -1462,7 +1470,7 @@ void CCharacter::HandleTiles(int Index)
 	if(tcp)
 		m_TeleCheckpoint = tcp;
 
-	GameServer()->GameInstance(Team()).m_pController->OnCharacterInTile(this, Index);
+	GameServer()->GameInstance(Team()).m_pController->OnInternalCharacterTile(this, Index);
 	// freeze
 	if(((m_TileIndex == TILE_FREEZE) || (m_TileFIndex == TILE_FREEZE)) && !m_Super && !m_DeepFreeze)
 	{
@@ -2190,10 +2198,11 @@ void CCharacter::SetEndlessHook(bool Enable)
 	m_Core.m_EndlessHook = Enable;
 }
 
-void CCharacter::Pause(bool Pause)
+// pvp: keeping this for potential mods
+void CCharacter::SetDisable(bool Disable)
 {
-	m_Paused = Pause;
-	if(Pause)
+	m_Disabled = Disable;
+	if(Disable)
 	{
 		GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 		GameWorld()->RemoveEntity(this);
@@ -2214,7 +2223,7 @@ void CCharacter::Pause(bool Pause)
 
 void CCharacter::DDRaceInit()
 {
-	m_Paused = false;
+	m_Disabled = false;
 	m_DDRaceState = DDRACE_NONE;
 	m_PrevPos = m_Pos;
 	m_LastBroadcast = 0;
@@ -2250,7 +2259,7 @@ void CCharacter::DDRaceInit()
 
 	if(g_Config.m_SvTeam == 2 && Team == TEAM_FLOCK)
 	{
-		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "Please join a team before you start");
+		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "Please join a room to play");
 		m_LastStartWarning = Server()->Tick();
 	}
 }

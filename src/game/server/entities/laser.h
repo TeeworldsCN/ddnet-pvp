@@ -31,6 +31,8 @@ private:
 
 	// DDRace
 
+	int m_Hit;
+	bool m_IsSolo;
 	vec2 m_PrevPos;
 	int m_Type;
 	int m_TuneZone;

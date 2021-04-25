@@ -39,6 +39,17 @@ CProjectile::CProjectile(
 	m_StartTick = Server()->Tick();
 	m_Explosive = Explosive;
 
+	m_Hit = 0;
+	if(m_Owner >= 0)
+	{
+		CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
+		if(pOwnerChar)
+		{
+			m_Hit = pOwnerChar->m_Hit;
+			m_IsSolo = Teams()->m_Core.GetSolo(m_Owner);
+		}
+	}
+
 	m_Layer = Layer;
 	m_Number = Number;
 	m_Freeze = Freeze;
@@ -118,14 +129,20 @@ void CProjectile::Tick()
 	vec2 ColPos;
 	vec2 NewPos;
 	int Collide = GameServer()->Collision()->IntersectLine(PrevPos, CurPos, &ColPos, &NewPos);
-	CCharacter *pOwnerChar = 0;
+	CCharacter *pOwnerChar = nullptr;
+	CPlayer *pOwnerPlayer = nullptr;
 
 	if(m_Owner >= 0)
+	{
 		pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
+		pOwnerPlayer = GameServer()->m_apPlayers[m_Owner];
+	}
 
 	CCharacter *pTargetChr = 0;
 
-	if(pOwnerChar ? !(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit)
+	if((m_Type == WEAPON_GRENADE && !(m_Hit & CCharacter::DISABLE_HIT_GRENADE)) ||
+		(m_Type == WEAPON_SHOTGUN && !(m_Hit & CCharacter::DISABLE_HIT_SHOTGUN)) ||
+		(m_Type == WEAPON_GUN && !(m_Hit & CCharacter::DISABLE_HIT_GUN)))
 		pTargetChr = GameWorld()->IntersectCharacter(PrevPos, ColPos, m_Freeze ? 1.0f : 6.0f, ColPos, pOwnerChar, m_Owner);
 
 	if(m_LifeSpan > -1)
@@ -133,22 +150,26 @@ void CProjectile::Tick()
 
 	bool IsWeaponCollide = false;
 	if(
-		pOwnerChar &&
+		pOwnerPlayer &&
 		pTargetChr &&
-		pOwnerChar->IsAlive() &&
-		pTargetChr->IsAlive() &&
-		!pTargetChr->CanCollide(m_Owner))
+		pTargetChr->IsAlive())
 	{
 		IsWeaponCollide = true;
 	}
 
-	if((!pOwnerChar || !pOwnerChar->IsAlive()) && m_Owner >= 0 && (m_Type != WEAPON_GRENADE || g_Config.m_SvDestroyBulletsOnDeath))
+	if((!pOwnerChar || !pOwnerChar->IsAlive()) && m_Owner >= 0 && (m_IsSolo || g_Config.m_SvDestroyBulletsOnDeath))
 	{
 		GameWorld()->DestroyEntity(this);
 		return;
 	}
 
-	if(((pTargetChr && (pOwnerChar ? !(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit || m_Owner == -1 || pTargetChr == pOwnerChar)) || Collide || GameLayerClipped(CurPos)) && !IsWeaponCollide)
+	if(!pOwnerPlayer || GameServer()->GetDDRaceTeam(m_Owner) != GameWorld()->Team())
+	{
+		GameWorld()->DestroyEntity(this); // owner has gone to another reality, disown the projectile
+		return;
+	}
+
+	if(((pTargetChr && (!(m_Hit & CCharacter::DISABLE_HIT_GRENADE) || m_Owner < 0 || pTargetChr == pOwnerChar)) || Collide || GameLayerClipped(CurPos)) && !IsWeaponCollide)
 	{
 		if(m_Explosive /*??*/ && (!pTargetChr || pTargetChr))
 		{
@@ -161,13 +182,13 @@ void CProjectile::Tick()
 				}
 				for(int i = 0; i < Number; i++)
 				{
-					GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1);
+					GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner < 0);
 					GameWorld()->CreateSound(ColPos, m_SoundImpact);
 				}
 			}
 			else if(m_Type == WEAPON_GRENADE)
 			{
-				GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1);
+				GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner < 0);
 				GameWorld()->CreateSound(ColPos, m_SoundImpact);
 			}
 		}
@@ -265,7 +286,7 @@ void CProjectile::Tick()
 			if(m_Owner >= 0)
 				pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 
-			GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner == -1);
+			GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner < 0);
 			GameWorld()->CreateSound(ColPos, m_SoundImpact);
 		}
 		GameWorld()->DestroyEntity(this);
@@ -308,6 +329,10 @@ void CProjectile::Snap(int SnappingClient, int OtherMode)
 	if(NetworkClipped(SnappingClient, GetPos(Ct)))
 		return;
 
+	// don't snap projectiles that is disowned for other mode
+	if(m_Owner == -2 && OtherMode)
+		return;
+
 	int Tick = (Server()->Tick() % Server()->TickSpeed()) % ((m_Explosive) ? 6 : 20);
 	if(m_Layer == LAYER_SWITCH && m_Number > 0 && !GameServer()->Collision()->m_pSwitchers[m_Number].m_Status[GameWorld()->Team()] && (!Tick))
 		return;
@@ -315,7 +340,7 @@ void CProjectile::Snap(int SnappingClient, int OtherMode)
 	int SnappingClientVersion = SnappingClient >= 0 ? GameServer()->GetClientVersion(SnappingClient) : CLIENT_VERSIONNR;
 
 	CNetObj_DDNetProjectile DDNetProjectile;
-	if(SnappingClientVersion >= VERSION_DDNET_ANTIPING_PROJECTILE && FillExtraInfo(&DDNetProjectile))
+	if(SnappingClientVersion >= VERSION_DDNET_ANTIPING_PROJECTILE && FillExtraInfo(&DDNetProjectile, SnappingClient))
 	{
 		int Type = SnappingClientVersion < VERSION_DDNET_MSG_LEGACY ? (int)NETOBJTYPE_PROJECTILE : NETOBJTYPE_DDNETPROJECTILE;
 		void *pProj = Server()->SnapNewItem(Type, GetID(), sizeof(DDNetProjectile));
@@ -343,7 +368,7 @@ void CProjectile::SetBouncing(int Value)
 	m_Bouncing = Value;
 }
 
-bool CProjectile::FillExtraInfo(CNetObj_DDNetProjectile *pProj)
+bool CProjectile::FillExtraInfo(CNetObj_DDNetProjectile *pProj, int SnappingClient)
 {
 	const int MaxPos = 0x7fffffff / 100;
 	if(abs((int)m_Pos.y) + 1 >= MaxPos || abs((int)m_Pos.x) + 1 >= MaxPos)

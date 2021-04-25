@@ -244,7 +244,7 @@ CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, v
 		if(pThisOnly && p != pThisOnly)
 			continue;
 
-		if(CollideWith != -1 && !p->CanCollide(CollideWith))
+		if(CollideWith >= 0 && !p->CanCollide(CollideWith))
 			continue;
 
 		vec2 IntersectPos;
@@ -387,7 +387,7 @@ void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage,
 			ForceDir = normalize(Diff);
 		l = 1 - clamp((l - InnerRadius) / (Radius - InnerRadius), 0.0f, 1.0f);
 		float Strength;
-		if(Owner == -1 || !GameServer()->m_apPlayers[Owner] || !GameServer()->m_apPlayers[Owner]->m_TuneZone)
+		if(Owner < 0 || !GameServer()->m_apPlayers[Owner] || !GameServer()->m_apPlayers[Owner]->m_TuneZone)
 			Strength = GameServer()->Tuning()->m_ExplosionStrength;
 		else
 			Strength = GameServer()->TuningList()[GameServer()->m_apPlayers[Owner]->m_TuneZone].m_ExplosionStrength;
@@ -400,7 +400,7 @@ void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage,
 
 		if((GameServer()->GetPlayerChar(Owner) ? !(GameServer()->GetPlayerChar(Owner)->m_Hit & CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit) || Owner == apEnts[i]->GetPlayer()->GetCID())
 		{
-			if(Owner != -1 && apEnts[i]->IsAlive() && !apEnts[i]->CanCollide(Owner))
+			if(Owner >= 0 && apEnts[i]->IsAlive() && !apEnts[i]->CanCollide(Owner))
 				continue;
 
 			apEnts[i]->TakeDamage(ForceDir * Knockback * 2, (int)Dmg, Owner, Weapon);

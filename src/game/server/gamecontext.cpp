@@ -1011,20 +1011,19 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 
 void CGameContext::OnClientEnter(int ClientID)
 {
-	// TODO: Controller, move connection stuff out of controller, and add OnPlayerJoin()
-	// m_pController->OnPlayerConnect(m_apPlayers[ClientID]);
+	m_pTeams->OnPlayerConnect(m_apPlayers[ClientID]);
 
 	if(Server()->IsSixup(ClientID))
 	{
-		{
-			protocol7::CNetMsg_Sv_GameInfo Msg;
-			Msg.m_GameFlags = protocol7::GAMEFLAG_RACE;
-			Msg.m_MatchCurrent = 1;
-			Msg.m_MatchNum = 0;
-			Msg.m_ScoreLimit = 0;
-			Msg.m_TimeLimit = 0;
-			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
-		}
+		// {
+		// 	protocol7::CNetMsg_Sv_GameInfo Msg;
+		// 	Msg.m_GameFlags = protocol7::GAMEFLAG_RACE;
+		// 	Msg.m_MatchCurrent = 1;
+		// 	Msg.m_MatchNum = 0;
+		// 	Msg.m_ScoreLimit = 0;
+		// 	Msg.m_TimeLimit = 0;
+		// 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
+		// }
 
 		// /team is essential
 		{
@@ -1196,7 +1195,7 @@ void CGameContext::OnClientConnected(int ClientID, void *pData)
 	}
 
 	// Check whether to join as spectator
-	const bool AsSpec = (Spec || g_Config.m_SvTournamentMode) ? true : false;
+	const bool AsSpec = (Spec || g_Config.m_SvTournamentMode || g_Config.m_SvTeam == 2) ? true : false;
 
 	if(!m_apPlayers[ClientID])
 		m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, AsSpec);
@@ -1229,8 +1228,7 @@ void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 {
 	AbortVoteKickOnDisconnect(ClientID);
 
-	// TODO: Controller connection stuff
-	// m_pController->OnPlayerDisconnect(m_apPlayers[ClientID], pReason);
+	m_pTeams->OnPlayerDisconnect(m_apPlayers[ClientID], pReason);
 	delete m_apPlayers[ClientID];
 	m_apPlayers[ClientID] = 0;
 

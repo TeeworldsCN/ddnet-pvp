@@ -2,6 +2,7 @@
 #include "teams.h"
 #include "teehistorian.h"
 #include <engine/shared/config.h>
+#include <game/version.h>
 
 #include "entities/character.h"
 #include "player.h"
@@ -35,7 +36,7 @@ void CGameTeams::Reset()
 		m_aTeamLocked[i] = false;
 		m_aInvited[i] = 0;
 	}
-	CreateGameInstance(0);
+	CreateGameInstance(0, -1);
 }
 
 void CGameTeams::ResetRoundState(int Team)
@@ -57,7 +58,7 @@ void CGameTeams::ResetSwitchers(int Team)
 	}
 }
 
-const char *CGameTeams::SetCharacterTeam(int ClientID, int Team)
+const char *CGameTeams::SetPlayerTeam(int ClientID, int Team)
 {
 	if(ClientID < 0 || ClientID >= MAX_CLIENTS)
 		return "Invalid client ID";
@@ -81,20 +82,21 @@ const char *CGameTeams::SetCharacterTeam(int ClientID, int Team)
 
 	CPlayer *pPlayer = GetPlayer(ClientID);
 	// clear score when joining a new room
-	pPlayer->m_Score = 0;
+	pPlayer->GameReset();
 
-	SetForceCharacterTeam(ClientID, Team);
+	SetForcePlayerTeam(ClientID, Team, TEAM_REASON_NORMAL);
 	return nullptr;
 }
 
-void CGameTeams::SetForceCharacterTeam(int ClientID, int Team)
+void CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State)
 {
 	int OldTeam = m_Core.Team(ClientID);
 
-	if(Team != OldTeam && (OldTeam != TEAM_FLOCK) && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
+	if(Team != OldTeam && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
 	{
-		bool NoElseInOldTeam = Count(OldTeam) <= 1;
-		if(NoElseInOldTeam)
+		if(State == TEAM_REASON_NORMAL && m_aTeamInstances[OldTeam].m_IsCreated)
+			m_aTeamInstances[OldTeam].m_pController->OnInternalPlayerLeave(GameServer()->m_apPlayers[ClientID]);
+		if(Count(OldTeam) <= 1 && OldTeam != TEAM_FLOCK)
 		{
 			m_aTeamState[OldTeam] = TEAMSTATE_EMPTY;
 
@@ -102,7 +104,6 @@ void CGameTeams::SetForceCharacterTeam(int ClientID, int Team)
 			SetTeamLock(OldTeam, false);
 			ResetRoundState(OldTeam);
 			DestroyGameInstance(OldTeam);
-			// do not reset SaveTeamResult, because it should be logged into teehistorian even if the team leaves
 		}
 	}
 
@@ -110,6 +111,9 @@ void CGameTeams::SetForceCharacterTeam(int ClientID, int Team)
 
 	if(OldTeam != Team)
 	{
+		if(State != TEAM_REASON_DISCONNECT && m_aTeamInstances[Team].m_IsCreated)
+			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID]);
+
 		for(int LoopClientID = 0; LoopClientID < MAX_CLIENTS; ++LoopClientID)
 			if(GetPlayer(LoopClientID))
 				SendTeamsState(LoopClientID);
@@ -128,7 +132,7 @@ void CGameTeams::SetForceCharacterTeam(int ClientID, int Team)
 	if(TeamOldState == TEAMSTATE_EMPTY && m_aTeamState[Team] != TEAMSTATE_EMPTY)
 	{
 		if(!m_aTeamInstances[Team].m_IsCreated)
-			CreateGameInstance(Team);
+			CreateGameInstance(Team, ClientID);
 	}
 }
 
@@ -164,28 +168,21 @@ void CGameTeams::SendTeamsState(int ClientID)
 	Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
 }
 
-void CGameTeams::OnCharacterSpawn(int ClientID)
-{
-	m_Core.SetSolo(ClientID, false);
-	int Team = m_Core.Team(ClientID);
+// void CGameTeams::OnCharacterSpawn(int ClientID)
+// {
+// 	m_Core.SetSolo(ClientID, false);
+// 	// int Team = m_Core.Team(ClientID);
 
-	if(m_Core.Team(ClientID) >= TEAM_SUPER || !m_aTeamLocked[Team])
-	{
-		if(g_Config.m_SvTeam != 3)
-			SetForceCharacterTeam(ClientID, Team);
-		else
-			SetForceCharacterTeam(ClientID, ClientID); // initialize team
-	}
-}
+// 	// if(m_Core.Team(ClientID) >= TEAM_SUPER || !m_aTeamLocked[Team])
+// 	// 	SetForcePlayerTeam(ClientID, Team);
+// }
 
-void CGameTeams::OnCharacterDeath(int ClientID, int Weapon)
-{
-	m_Core.SetSolo(ClientID, false);
-
-	int Team = m_Core.Team(ClientID);
-
-	SetForceCharacterTeam(ClientID, Team);
-}
+// void CGameTeams::OnCharacterDeath(int ClientID, int Weapon)
+// {
+// 	m_Core.SetSolo(ClientID, false);
+// 	// int Team = m_Core.Team(ClientID);
+// 	// SetForcePlayerTeam(ClientID, Team);
+// }
 
 void CGameTeams::SetTeamLock(int Team, bool Lock)
 {
@@ -219,19 +216,25 @@ SGameInstance CGameTeams::GetPlayerGameInstance(int ClientID)
 	return m_aTeamInstances[m_Core.Team(ClientID)];
 }
 
-void CGameTeams::CreateGameInstance(int Team)
+void CGameTeams::CreateGameInstance(int Team, int Asker)
 {
 	if(m_aTeamInstances[Team].m_IsCreated)
 		DestroyGameInstance(Team);
 
-	dbg_msg("team", "creating game controller %d", Team);
 	CGameWorld *pWorld = new CGameWorld(Team, m_pGameContext);
 	m_aTeamInstances[Team].m_pWorld = pWorld;
-	m_aTeamInstances[Team].m_pController = new CGameControllerLTS();
+	m_aTeamInstances[Team].m_pController = new CGameControllerDM();
 	m_aTeamInstances[Team].m_pController->InitController(Team, m_pGameContext, pWorld);
 	for(auto &Ent : m_Entities)
 		m_aTeamInstances[Team].m_pController->OnInternalEntity(Ent.Index, Ent.Pos, Ent.Layer, Ent.Flags, Ent.Number);
 	m_aTeamInstances[Team].m_IsCreated = true;
+
+	char aBuf[128];
+	str_format(aBuf, sizeof(aBuf), "game controller %d is created", Team);
+	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "team", aBuf);
+
+	if(Asker >= 0 && Asker < MAX_CLIENTS)
+		m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[Asker]);
 }
 
 void CGameTeams::DestroyGameInstance(int Team)
@@ -239,12 +242,71 @@ void CGameTeams::DestroyGameInstance(int Team)
 	if(!m_aTeamInstances[Team].m_IsCreated)
 		return;
 
-	dbg_msg("team", "deleting game controller %d", Team);
 	delete m_aTeamInstances[Team].m_pController;
 	delete m_aTeamInstances[Team].m_pWorld;
 	m_aTeamInstances[Team].m_IsCreated = false;
 	m_aTeamInstances[Team].m_pController = nullptr;
 	m_aTeamInstances[Team].m_pWorld = nullptr;
+
+	char aBuf[128];
+	str_format(aBuf, sizeof(aBuf), "game controller %d is deleted", Team);
+	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "team", aBuf);
+}
+
+void CGameTeams::OnPlayerConnect(CPlayer *pPlayer)
+{
+	int ClientID = pPlayer->GetCID();
+
+	SetForcePlayerTeam(ClientID, 0, TEAM_REASON_CONNECT);
+
+	if(m_aTeamInstances[m_Core.Team(ClientID)].m_IsCreated)
+		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerJoin(pPlayer);
+
+	pPlayer->Respawn();
+
+	if(!Server()->ClientPrevIngame(ClientID))
+	{
+		char aBuf[512];
+		str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam());
+		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+
+		str_format(aBuf, sizeof(aBuf), "'%s' entered", Server()->ClientName(ClientID));
+		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CGameContext::CHAT_SIX);
+
+		GameServer()->SendChatTarget(ClientID, "DDNet PvP Mod. Version: " GAME_VERSION);
+		GameServer()->SendChatTarget(ClientID, "say /info for detail and make sure to read our /rules");
+	}
+}
+void CGameTeams::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)
+{
+	int ClientID = pPlayer->GetCID();
+	bool WasModerator = pPlayer->m_Moderating && Server()->ClientIngame(ClientID);
+
+	if(m_aTeamInstances[m_Core.Team(ClientID)].m_IsCreated)
+		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerLeave(pPlayer);
+
+	pPlayer->OnDisconnect();
+	if(Server()->ClientIngame(ClientID))
+	{
+		char aBuf[512];
+		if(pReason && *pReason)
+			str_format(aBuf, sizeof(aBuf), "'%s' has left the game (%s)", Server()->ClientName(ClientID), pReason);
+		else
+			str_format(aBuf, sizeof(aBuf), "'%s' has left the game", Server()->ClientName(ClientID));
+		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CGameContext::CHAT_SIX);
+
+		if(pReason && *pReason)
+			str_format(aBuf, sizeof(aBuf), "reason: (%s)", pReason);
+		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CGameContext::CHAT_SIXUP);
+
+		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", ClientID, Server()->ClientName(ClientID));
+		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
+	}
+
+	if(!GameServer()->PlayerModerating() && WasModerator)
+		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, "Server kick/spec votes are no longer actively moderated.");
+
+	GameServer()->m_pTeams->SetForcePlayerTeam(ClientID, TEAM_FLOCK, TEAM_REASON_DISCONNECT);
 }
 
 void CGameTeams::OnTick()

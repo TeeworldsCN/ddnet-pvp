@@ -114,6 +114,18 @@ protected:
 	void EndMatch() { SetGameState(IGS_END_MATCH, TIMER_END); }
 	void EndRound() { SetGameState(IGS_END_ROUND, TIMER_END / 2); }
 
+	enum
+	{
+		DEATH_NORMAL = 0,
+		DEATH_VICTIM_HAS_FLAG = 1,
+		DEATH_KILLER_HAS_FLAG = 2,
+		DEATH_SKIP_SCORE = 4,
+		DEATH_NO_SUICIDE_PANATY = 8,
+
+		// be careful when using this
+		DEATH_KEEP_SOLO = 16
+	};
+
 	// internal game flag (for sixup)
 	enum
 	{
@@ -134,19 +146,34 @@ protected:
 
 	void UpdateGameInfo(int ClientID);
 
-public:
-	IGameController();
-	virtual ~IGameController();
-
 	// event
+	/*
+		Function: OnPlayerJoin
+			Called when a player joins the game controlled by this controller.
+			This is called before the player's character is spawned.
+
+		Arguments:
+			pPlayer - The CPlayer that is joining.
+	*/
+	virtual void OnPlayerJoin(class CPlayer *pPlayer);
+
+	/*
+		Function: OnPlayerLeave
+			Called when a player leaves the game controlled by this controller.
+			This is called before the player's character is killed.
+
+		Arguments:
+			pPlayer - The CPlayer that is leaving.
+	*/
+	virtual void OnPlayerLeave(class CPlayer *pPlayer);
 	/*
 		Function: OnCharacterDeath
 			Called when a CCharacter in the world dies.
 
 		Arguments:
-			victim - The CCharacter that died.
-			killer - The player that killed it.
-			weapon - What weapon that killed it. Can be -1 for undefined
+			pVictim - The CCharacter that died.
+			pKiller - The player that killed it.
+			Weapon - What weapon that killed it. Can be -1 for undefined
 				weapon when switching team or player suicides.
 	*/
 	virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
@@ -155,13 +182,24 @@ public:
 			Called when a CCharacter spawns into the game world.
 
 		Arguments:
-			chr - The CCharacter that was spawned.
+			pChr - The CCharacter that was spawned.
 	*/
 	virtual void OnCharacterSpawn(class CCharacter *pChr);
 
-	virtual void OnFlagReturn(class CFlag *pFlag);
+	/*
+		Function: OnCharacterTile
+			Called when a CCharacter intersects with a tile.
 
-	virtual void OnCharacterInTile(class CCharacter *pChr, int MapIndex);
+		Arguments:
+			pChr - The CCharacter that is touching the tile.
+			MapIndex - Use GameServer()->Collison() to find more
+				information about the tile.
+
+		Return:
+			bool - any internal handling of the tile will be skipped
+				if set to true.
+	*/
+	virtual bool OnCharacterTile(class CCharacter *pChr, int MapIndex);
 
 	/*
 		Function: OnEntity
@@ -171,12 +209,33 @@ public:
 		Arguments:
 			index - Entity index.
 			pos - Where the entity is located in the world.
+
+		Return:
+			bool - any internal entity will be skipped if set to true.
 	*/
-	virtual void OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
 	virtual bool OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
 
-	virtual void OnPlayerJoin(class CPlayer *pPlayer);
-	virtual void OnPlayerLeave(class CPlayer *pPlayer);
+public:
+	IGameController();
+	virtual ~IGameController();
+
+	// events
+	/*
+		Function: OnFlagReset
+			Called when a CFlag resets it's position its stand.
+
+		Arguments:
+			pFlag - The CFlag that was reset.
+	*/
+	virtual void OnFlagReset(class CFlag *pFlag);
+
+	// internal events
+	void OnInternalPlayerJoin(class CPlayer *pPlayer);
+	void OnInternalPlayerLeave(class CPlayer *pPlayer);
+	int OnInternalCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
+	void OnInternalCharacterSpawn(class CCharacter *pChr);
+	bool OnInternalCharacterTile(class CCharacter *pChr, int MapIndex);
+	void OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
 
 	void OnReset();
 
@@ -202,6 +261,32 @@ public:
 	virtual void Snap(int SnappingClient);
 	virtual void Tick();
 
+	/*
+		Function: CanKill
+			Whether the player can use kill command.
+
+		Arguments:
+			ClientID - player's cid
+
+		Return:
+			bool - player can use kill command if set to true.
+	*/
+	virtual bool CanKill(int ClientID) const;
+
+	/*
+		Function: IsDisruptiveLeave
+			Whether the player is disrupting the game by leaving
+		
+		Arguments:
+			ClientID = player's cid
+		
+		return:
+			bool - player can't switch room if set to true
+				also, disconnected players' characters will not be
+				killed until this check returns false.
+	*/
+	virtual bool IsDisruptiveLeave(int ClientID) const;
+
 	// info
 	void CheckGameInfo();
 	bool IsFriendlyFire(int ClientID1, int ClientID2) const;
@@ -215,7 +300,7 @@ public:
 	void SendGameMsg(int GameMsgID, int ClientID, int *i1 = nullptr, int *i2 = nullptr, int *i3 = nullptr);
 
 	const char *GetGameType() const { return m_pGameType; }
-	int GetGameState() const { return m_GameState; }
+	int IsEndRound() const { return m_GameState == IGS_END_ROUND; }
 
 	//spawn
 	bool CanSpawn(int Team, vec2 *pPos) const;

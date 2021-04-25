@@ -17,9 +17,11 @@ CGameControllerLMS::CGameControllerLMS() :
 // event
 void CGameControllerLMS::OnCharacterSpawn(CCharacter *pChr)
 {
-	IGameController::OnCharacterSpawn(pChr);
+	pChr->IncreaseHealth(10);
 
 	// give start equipment
+	pChr->GiveWeapon(WEAPON_HAMMER, -1);
+	pChr->GiveWeapon(WEAPON_GUN, 10);
 	pChr->GiveWeapon(WEAPON_SHOTGUN, 10);
 	pChr->GiveWeapon(WEAPON_GRENADE, 10);
 	pChr->GiveWeapon(WEAPON_LASER, 5);

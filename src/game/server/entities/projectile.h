@@ -44,14 +44,15 @@ private:
 	bool m_Explosive;
 
 	// DDRace
-
+	int m_Hit;
+	bool m_IsSolo;
 	int m_Bouncing;
 	bool m_Freeze;
 	int m_TuneZone;
 
 public:
 	void SetBouncing(int Value);
-	bool FillExtraInfo(CNetObj_DDNetProjectile *pProj);
+	bool FillExtraInfo(CNetObj_DDNetProjectile *pProj, int SnappingClient);
 };
 
 #endif
