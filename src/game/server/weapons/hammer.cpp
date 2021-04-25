@@ -63,5 +63,13 @@ void CHammer::Fire(vec2 Direction)
 
 	// if we Hit anything, we have to wait for the reload
 	if(Hits)
-		m_ReloadTimer = Server()->TickSpeed() / 3;
+	{
+		float FireDelay;
+		int TuneZone = Character()->m_TuneZone;
+		if(!TuneZone)
+			FireDelay = GameServer()->Tuning()->m_HammerHitFireDelay;
+		else
+			FireDelay = GameServer()->TuningList()[TuneZone].m_HammerHitFireDelay;
+		m_ReloadTimer = FireDelay * Server()->TickSpeed() / 1000;
+	}
 }
