@@ -472,14 +472,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", pError);
 		}
 		else
-		{
-			char aBuf[512];
-			str_format(aBuf, sizeof(aBuf), "%s joined room %d",
-				pSelf->Server()->ClientName(pPlayer->GetCID()),
-				Team);
-			pSelf->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 			pPlayer->m_Last_Team = pSelf->Server()->Tick();
-		}
 	}
 	else
 	{

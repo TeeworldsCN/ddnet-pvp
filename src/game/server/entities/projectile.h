@@ -52,7 +52,7 @@ private:
 
 public:
 	void SetBouncing(int Value);
-	bool FillExtraInfo(CNetObj_DDNetProjectile *pProj, int SnappingClient);
+	bool FillExtraInfo(CNetObj_DDNetProjectile *pProj);
 };
 
 #endif

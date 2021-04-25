@@ -230,7 +230,7 @@ public:
 	virtual void OnFlagReset(class CFlag *pFlag);
 
 	// internal events
-	void OnInternalPlayerJoin(class CPlayer *pPlayer);
+	void OnInternalPlayerJoin(class CPlayer *pPlayer, bool ServerJoin, bool Creating);
 	void OnInternalPlayerLeave(class CPlayer *pPlayer);
 	int OnInternalCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
 	void OnInternalCharacterSpawn(class CCharacter *pChr);

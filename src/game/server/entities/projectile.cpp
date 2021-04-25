@@ -150,9 +150,9 @@ void CProjectile::Tick()
 
 	bool IsWeaponCollide = false;
 	if(
-		pOwnerPlayer &&
 		pTargetChr &&
-		pTargetChr->IsAlive())
+		pTargetChr->IsAlive() &&
+		m_IsSolo)
 	{
 		IsWeaponCollide = true;
 	}
@@ -171,26 +171,10 @@ void CProjectile::Tick()
 
 	if(((pTargetChr && (!(m_Hit & CCharacter::DISABLE_HIT_GRENADE) || m_Owner < 0 || pTargetChr == pOwnerChar)) || Collide || GameLayerClipped(CurPos)) && !IsWeaponCollide)
 	{
-		if(m_Explosive /*??*/ && (!pTargetChr || pTargetChr))
+		if(m_Explosive /*??*/ && (!pTargetChr || (pTargetChr && !m_Freeze)))
 		{
-			if(m_Type == WEAPON_SHOTGUN)
-			{
-				int Number = 1;
-				if(GameServer()->EmulateBug(BUG_GRENADE_DOUBLEEXPLOSION) && m_LifeSpan == -1)
-				{
-					Number = 2;
-				}
-				for(int i = 0; i < Number; i++)
-				{
-					GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner < 0);
-					GameWorld()->CreateSound(ColPos, m_SoundImpact);
-				}
-			}
-			else if(m_Type == WEAPON_GRENADE)
-			{
-				GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner < 0);
-				GameWorld()->CreateSound(ColPos, m_SoundImpact);
-			}
+			GameWorld()->CreateExplosion(ColPos, m_Owner, m_Type, m_Damage, m_Owner < 0);
+			GameWorld()->CreateSound(ColPos, m_SoundImpact);
 		}
 		else if(m_Freeze)
 		{
@@ -340,7 +324,7 @@ void CProjectile::Snap(int SnappingClient, int OtherMode)
 	int SnappingClientVersion = SnappingClient >= 0 ? GameServer()->GetClientVersion(SnappingClient) : CLIENT_VERSIONNR;
 
 	CNetObj_DDNetProjectile DDNetProjectile;
-	if(SnappingClientVersion >= VERSION_DDNET_ANTIPING_PROJECTILE && FillExtraInfo(&DDNetProjectile, SnappingClient))
+	if(SnappingClientVersion >= VERSION_DDNET_ANTIPING_PROJECTILE && FillExtraInfo(&DDNetProjectile))
 	{
 		int Type = SnappingClientVersion < VERSION_DDNET_MSG_LEGACY ? (int)NETOBJTYPE_PROJECTILE : NETOBJTYPE_DDNETPROJECTILE;
 		void *pProj = Server()->SnapNewItem(Type, GetID(), sizeof(DDNetProjectile));
@@ -368,7 +352,7 @@ void CProjectile::SetBouncing(int Value)
 	m_Bouncing = Value;
 }
 
-bool CProjectile::FillExtraInfo(CNetObj_DDNetProjectile *pProj, int SnappingClient)
+bool CProjectile::FillExtraInfo(CNetObj_DDNetProjectile *pProj)
 {
 	const int MaxPos = 0x7fffffff / 100;
 	if(abs((int)m_Pos.y) + 1 >= MaxPos || abs((int)m_Pos.x) + 1 >= MaxPos)
@@ -382,30 +366,21 @@ bool CProjectile::FillExtraInfo(CNetObj_DDNetProjectile *pProj, int SnappingClie
 	int Data = 0;
 	Data |= (abs(m_Owner) & 255) << 0;
 	if(m_Owner < 0)
-		Data |= 1 << 8;
-	Data |= 1 << 9; //This bit tells the client to use the extra info
+		Data |= PROJECTILEFLAG_NO_OWNER;
+	//This bit tells the client to use the extra info
+	Data |= PROJECTILEFLAG_IS_DDNET;
+	// PROJECTILEFLAG_BOUNCE_HORIZONTAL, PROJECTILEFLAG_BOUNCE_VERTICAL
 	Data |= (m_Bouncing & 3) << 10;
 	if(m_Explosive)
-		Data |= 1 << 12;
+		Data |= PROJECTILEFLAG_EXPLOSIVE;
 	if(m_Freeze)
-		Data |= 1 << 13;
+		Data |= PROJECTILEFLAG_FREEZE;
 
-	// HACK: shotgun spread speed
-	// 		 use distance to trick the visual
-	float Curvature = 0;
-	float Speed = 0;
-	int TotalLifeSpanTick = (m_LifeSpan + (Server()->Tick() - m_StartTick));
-	float TotalLifeSpan = TotalLifeSpanTick / (float)Server()->TickSpeed();
-	float Variation = (1 - length(m_Direction));
-	float PushbackTime = Variation * TotalLifeSpan;
-	GetProjectileProperties(&Curvature, &Speed);
-	vec2 Pos = CalcPos(m_Pos, -m_Direction, Curvature, Speed, PushbackTime);
-	pProj->m_X = (int)(Pos.x * 100.0f);
-	pProj->m_Y = (int)(Pos.y * 100.0f);
+	pProj->m_X = (int)(m_Pos.x * 100.0f);
+	pProj->m_Y = (int)(m_Pos.y * 100.0f);
 	pProj->m_Angle = (int)(Angle * 1000000.0f);
 	pProj->m_Data = Data;
 	pProj->m_StartTick = m_StartTick;
 	pProj->m_Type = m_Type;
-
 	return true;
 }

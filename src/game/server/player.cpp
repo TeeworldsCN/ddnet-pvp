@@ -745,7 +745,7 @@ CCharacter *CPlayer::ForceSpawn(vec2 Pos)
 	return m_pCharacter;
 }
 
-void CPlayer::SetTeam(int Team, bool DoChatMsg)
+void CPlayer::SetTeam(int Team)
 {
 	KillCharacter();
 
@@ -753,13 +753,6 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	m_LastSetTeam = Server()->Tick();
 	m_LastActionTick = Server()->Tick();
 	m_SpectatorID = SPEC_FREEVIEW;
-
-	protocol7::CNetMsg_Sv_Team Msg;
-	Msg.m_ClientID = m_ClientID;
-	Msg.m_Team = m_Team;
-	Msg.m_Silent = !DoChatMsg;
-	Msg.m_CooldownTick = m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay;
-	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, -1);
 
 	if(Team == TEAM_SPECTATORS)
 	{

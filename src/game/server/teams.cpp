@@ -114,7 +114,7 @@ void CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State)
 	if(OldTeam != Team)
 	{
 		if(State != TEAM_REASON_DISCONNECT && m_aTeamInstances[Team].m_IsCreated)
-			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID]);
+			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], false, false);
 
 		for(int LoopClientID = 0; LoopClientID < MAX_CLIENTS; ++LoopClientID)
 			if(GetPlayer(LoopClientID))
@@ -220,7 +220,7 @@ void CGameTeams::CreateGameInstance(int Team, int Asker)
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "team", aBuf);
 
 	if(Asker >= 0 && Asker < MAX_CLIENTS)
-		m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[Asker]);
+		m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[Asker], false, true);
 }
 
 void CGameTeams::DestroyGameInstance(int Team)
@@ -248,16 +248,13 @@ void CGameTeams::OnPlayerConnect(CPlayer *pPlayer)
 	SetForcePlayerTeam(ClientID, 0, TEAM_REASON_CONNECT);
 
 	if(m_aTeamInstances[m_Core.Team(ClientID)].m_IsCreated)
-		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerJoin(pPlayer);
+		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerJoin(pPlayer, true, false);
 
 	if(!Server()->ClientPrevIngame(ClientID))
 	{
 		char aBuf[512];
 		str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam());
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
-
-		str_format(aBuf, sizeof(aBuf), "'%s' entered", Server()->ClientName(ClientID));
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CGameContext::CHAT_SIX);
 
 		GameServer()->SendChatTarget(ClientID, "DDNet PvP Mod. Version: " GAME_VERSION);
 		GameServer()->SendChatTarget(ClientID, "say /info for detail and make sure to read our /rules");
@@ -280,10 +277,6 @@ void CGameTeams::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)
 		else
 			str_format(aBuf, sizeof(aBuf), "'%s' has left the game", Server()->ClientName(ClientID));
 		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CGameContext::CHAT_SIX);
-
-		if(pReason && *pReason)
-			str_format(aBuf, sizeof(aBuf), "reason: (%s)", pReason);
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CGameContext::CHAT_SIXUP);
 
 		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", ClientID, Server()->ClientName(ClientID));
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);

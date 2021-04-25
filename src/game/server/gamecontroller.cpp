@@ -582,17 +582,27 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 	}
 }
 
-void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer)
+void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bool Creating)
 {
 	int ClientID = pPlayer->GetCID();
+	pPlayer->m_IsReadyToPlay = !IsPlayerReadyMode();
+	pPlayer->m_RespawnDisabled = GetStartRespawnState();
 
 	if(pPlayer->GetTeam() != TEAM_SPECTATORS)
-		pPlayer->SetTeam(GetStartTeam());
+		DoTeamChange(pPlayer, GetStartTeam(), false);
+
 	pPlayer->Respawn();
 
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "ddrteam_join player='%d:%s' team=%d ddrteam='%d'", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam(), GameWorld()->Team());
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+
+	if(ServerJoin)
+		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s in %s room %d", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()), m_pGameType, GameWorld()->Team());
+	else
+		str_format(aBuf, sizeof(aBuf), "'%s' %sjoined the %s in %s room %d", Server()->ClientName(ClientID), Creating ? "created and " : "", GetTeamName(pPlayer->GetTeam()), m_pGameType, GameWorld()->Team());
+
+	GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1);
 
 	// update game info
 	UpdateGameInfo(ClientID);
@@ -942,7 +952,7 @@ void IGameController::Snap(int SnappingClient)
 			if(m_GameStateTimer != -1)
 			{
 				char aBuf[128];
-				str_format(aBuf, sizeof(aBuf), "Game starts in %d", (int)ceil(m_GameStateTimer / (float)Server()->TickSpeed()), false);
+				str_format(aBuf, sizeof(aBuf), "Game starts in %d", (int)ceil(m_GameStateTimer / (float)Server()->TickSpeed()));
 				GameServer()->SendBroadcast(aBuf, SnappingClient, false);
 			}
 			GameStateFlags |= GAMESTATEFLAG_PAUSED;
@@ -959,7 +969,7 @@ void IGameController::Snap(int SnappingClient)
 			if(m_GameStateTimer != -1)
 			{
 				char aBuf[128];
-				str_format(aBuf, sizeof(aBuf), "Game starts in %d", (int)ceil(m_GameStateTimer / (float)Server()->TickSpeed()), false);
+				str_format(aBuf, sizeof(aBuf), "Game starts in %d", (int)ceil(m_GameStateTimer / (float)Server()->TickSpeed()));
 				GameServer()->SendBroadcast(aBuf, SnappingClient, false);
 			}
 			GameStateFlags |= GAMESTATEFLAG_PAUSED;
@@ -991,10 +1001,12 @@ void IGameController::Snap(int SnappingClient)
 	}
 
 	if(m_SuddenDeath)
+	{
 		if(isSixUp)
 			GameStateFlags |= protocol7::GAMESTATEFLAG_SUDDENDEATH;
 		else
 			GameStateFlags |= GAMESTATEFLAG_SUDDENDEATH;
+	}
 
 	if(!isSixUp)
 	{
@@ -1234,7 +1246,7 @@ void IGameController::CheckGameInfo()
 	if(GameInfoChanged)
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 		{
-			if(!IsPlayerInRoom(i) || !Server()->ClientIngame(i) || !GameServer()->GetPlayerDDRTeam(i) != GameWorld()->Team())
+			if(!IsPlayerInRoom(i) || !Server()->ClientIngame(i) || !(GameServer()->GetPlayerDDRTeam(i) != GameWorld()->Team()))
 				continue;
 			UpdateGameInfo(i);
 		}
