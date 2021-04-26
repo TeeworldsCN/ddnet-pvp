@@ -39,7 +39,7 @@ public:
 	void TryRespawn();
 	void Respawn();
 	CCharacter *ForceSpawn(vec2 Pos); // required for loading savegames
-	void SetTeam(int Team);
+	void SetTeam(int Team, bool DoChatMsg = true);
 	int GetTeam() const { return m_Team; };
 	int GetCID() const { return m_ClientID; };
 	int GetClientVersion() const;

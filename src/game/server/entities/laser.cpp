@@ -31,7 +31,7 @@ CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEner
 		CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 		if(pOwnerChar)
 		{
-			m_Hit = m_Hit;
+			m_Hit = pOwnerChar->m_Hit;
 			m_IsSolo = Teams()->m_Core.GetSolo(m_Owner);
 		}
 	}
@@ -51,7 +51,7 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	else
 		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : nullptr, m_Owner, pOwnerChar);
 
-	if(!pHit || (pHit == pOwnerChar && pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (pHit != pOwnerChar && (m_Hit & CCharacter::DISABLE_HIT_LASER && m_Type == WEAPON_LASER) || (m_Hit & CCharacter::DISABLE_HIT_SHOTGUN && m_Type == WEAPON_SHOTGUN)))
+	if(!pHit || (pHit == pOwnerChar && pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (pHit != pOwnerChar && ((m_Hit & CCharacter::DISABLE_HIT_LASER && m_Type == WEAPON_LASER) || (m_Hit & CCharacter::DISABLE_HIT_SHOTGUN && m_Type == WEAPON_SHOTGUN))))
 		return false;
 	m_From = From;
 	m_Pos = At;

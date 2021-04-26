@@ -20,6 +20,8 @@
 #include "entities/projectile.h"
 #include <game/layers.h>
 
+#include <engine/server/server.h>
+
 IGameController::IGameController()
 {
 	m_pGameServer = nullptr;
@@ -589,9 +591,12 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	int ClientID = pPlayer->GetCID();
 	pPlayer->m_IsReadyToPlay = !IsPlayerReadyMode();
 	pPlayer->m_RespawnDisabled = GetStartRespawnState();
+	pPlayer->SetTeam(GetStartTeam(), false);
 
-	if(pPlayer->GetTeam() != TEAM_SPECTATORS)
-		DoTeamChange(pPlayer, GetStartTeam(), false);
+	// HACK: resend map info can reset player's team info
+	// only 0.6 need this hack
+	if(!ServerJoin && !Server()->IsSixup(ClientID))
+		Server()->SendMap(ClientID);
 
 	m_aFakeClientBroadcast[ClientID].m_LastGameState = -1;
 	m_aFakeClientBroadcast[ClientID].m_LastTimer = -1;
@@ -963,6 +968,7 @@ void IGameController::FakeClientBroadcast(int SnappingClient)
 		pState->m_NextBroadcastTick = Server()->Tick() + 5 * Server()->TickSpeed();
 		break;
 	case IGS_GAME_RUNNING:
+	case IGS_END_MATCH:
 		GameServer()->SendBroadcast(" ", SnappingClient, false);
 		break;
 	}
@@ -1583,17 +1589,9 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 		return;
 
 	int OldTeam = pPlayer->GetTeam();
-	pPlayer->SetTeam(Team);
+	pPlayer->SetTeam(Team, DoChatMsg);
 
 	int ClientID = pPlayer->GetCID();
-
-	// notify 0.7 clients
-	protocol7::CNetMsg_Sv_Team Msg;
-	Msg.m_ClientID = ClientID;
-	Msg.m_Team = Team;
-	Msg.m_Silent = DoChatMsg ? 0 : 1;
-	Msg.m_CooldownTick = pPlayer->m_TeamChangeTick;
-	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
 
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d->%d", ClientID, Server()->ClientName(ClientID), OldTeam, Team);

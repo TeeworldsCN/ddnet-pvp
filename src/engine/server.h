@@ -247,6 +247,8 @@ public:
 	virtual char *GetMapName() const = 0;
 
 	virtual bool IsSixup(int ClientID) const = 0;
+
+	virtual void SendMap(int ClientID) = 0; // HACK: send map can reset team info for client
 };
 
 class IGameServer : public IInterface

@@ -47,8 +47,8 @@ class CGameTeams
 	// gametypes
 	struct SGameType
 	{
+		const char *pGameType;
 		char *pName;
-		char *pGameType;
 		char *pVote;
 		char *pSettings;
 	};

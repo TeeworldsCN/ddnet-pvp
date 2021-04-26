@@ -25,10 +25,12 @@ CGameTeams::~CGameTeams()
 	while(m_GameTypes.size() > 0)
 	{
 		SGameType Type = m_GameTypes.back();
-		if(Type.pGameType)
-			free(Type.pGameType);
 		if(Type.pSettings)
 			free(Type.pSettings);
+		if(Type.pName)
+			free(Type.pName);
+		if(Type.pVote)
+			free(Type.pVote);
 		m_GameTypes.pop_back();
 	}
 }
@@ -112,6 +114,8 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 	pPlayer->GameReset();
 	// kill character
 	pPlayer->KillCharacter();
+	// set to spectator to make sure client update team info
+	pPlayer->SetTeam(TEAM_SPECTATORS, false);
 
 	if(Team != OldTeam && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
 	{
@@ -226,7 +230,7 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	if(m_GameTypes.size() == 0 || pGameName == nullptr)
 	{
 		Type.pGameType = "dm";
-		Type.pName = Type.pGameType;
+		Type.pName = (char *)Type.pGameType;
 	}
 	else
 		for(auto GameType : m_GameTypes)
@@ -482,7 +486,11 @@ void CGameTeams::AddGameType(const char *pGameType, const char *pName, const cha
 		str_copy(Type.pName, pName, Len);
 	}
 	else
-		Type.pName = Type.pGameType;
+	{
+		Len = str_length(Type.pGameType) + 1;
+		Type.pName = (char *)malloc(Len * sizeof(char));
+		str_copy(Type.pName, Type.pGameType, Len);
+	}
 
 	m_GameTypes.push_back(Type);
 }
