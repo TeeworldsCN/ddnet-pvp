@@ -130,7 +130,7 @@ void CGameContext::ConSuper(IConsole::IResult *pResult, void *pUserData)
 		pChr->Core()->m_Super = true;
 		pChr->UnFreeze();
 		pChr->m_TeamBeforeSuper = pChr->Team();
-		pChr->Teams()->SetPlayerTeam(pResult->m_ClientID, TEAM_SUPER);
+		pChr->Teams()->SetPlayerTeam(pResult->m_ClientID, TEAM_SUPER, nullptr);
 		pChr->m_DDRaceState = DDRACE_CHEAT;
 	}
 }
@@ -667,4 +667,21 @@ void CGameContext::ConDumpAntibot(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->Antibot()->Dump();
+}
+
+void CGameContext::ConAddGameType(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	if(pResult->NumArguments() > 2)
+		CGameTeams::AddGameType(pResult->GetString(1), pResult->GetString(0), nullptr, pResult->GetString(2));
+	else if(pResult->NumArguments() == 2)
+		CGameTeams::AddGameType(pResult->GetString(1), pResult->GetString(0), nullptr, nullptr);
+	else
+		CGameTeams::AddGameType(pResult->GetString(0), nullptr, nullptr, nullptr);
+}
+
+void CGameContext::ConRoomSetting(IConsole::IResult *pResult, void *pUserData)
+{
+	// TODO: room settings
 }

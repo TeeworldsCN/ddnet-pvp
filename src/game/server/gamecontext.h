@@ -123,11 +123,14 @@ class CGameContext : public IGameServer
 	static void ConRemoveVote(IConsole::IResult *pResult, void *pUserData);
 	static void ConForceVote(IConsole::IResult *pResult, void *pUserData);
 	static void ConClearVotes(IConsole::IResult *pResult, void *pUserData);
-	static void ConAddMapVotes(IConsole::IResult *pResult, void *pUserData);
 	static void ConVote(IConsole::IResult *pResult, void *pUserData);
 	static void ConVoteNo(IConsole::IResult *pResult, void *pUserData);
 	static void ConDumpAntibot(IConsole::IResult *pResult, void *pUserData);
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+
+	// pvp commands
+	static void ConAddGameType(IConsole::IResult *pResult, void *pUserData);
+	static void ConRoomSetting(IConsole::IResult *pResult, void *pUserData);
 
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
@@ -348,7 +351,9 @@ private:
 	static void ConDND(IConsole::IResult *pResult, void *pUserData);
 	static void ConTimeout(IConsole::IResult *pResult, void *pUserData);
 	static void ConBroadTime(IConsole::IResult *pResult, void *pUserData);
+	static void ConJoinOrCreateTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConJoinTeam(IConsole::IResult *pResult, void *pUserData);
+	static void ConCreateTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConLockTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnlockTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConInviteTeam(IConsole::IResult *pResult, void *pUserData);

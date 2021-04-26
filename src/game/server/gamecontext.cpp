@@ -2772,30 +2772,6 @@ struct CMapNameItem
 	bool operator<(const CMapNameItem &Other) const { return str_comp_nocase(m_aName, Other.m_aName) < 0; }
 };
 
-void CGameContext::ConAddMapVotes(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-
-	sorted_array<CMapNameItem> MapList;
-	pSelf->Storage()->ListDirectory(IStorage::TYPE_ALL, "maps", MapScan, &MapList);
-
-	for(int i = 0; i < MapList.size(); i++)
-	{
-		char aDescription[64];
-		str_format(aDescription, sizeof(aDescription), "Map: %s", MapList[i].m_aName);
-
-		char aCommand[MAX_PATH_LENGTH * 2 + 10];
-		char aMapEscaped[MAX_PATH_LENGTH * 2];
-		char *pDst = aMapEscaped;
-		str_escape(&pDst, MapList[i].m_aName, aMapEscaped + sizeof(aMapEscaped));
-		str_format(aCommand, sizeof(aCommand), "change_map \"%s\"", aMapEscaped);
-
-		pSelf->AddVote(aDescription, aCommand);
-	}
-
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "added maps to votes");
-}
-
 int CGameContext::MapScan(const char *pName, int IsDir, int DirType, void *pUserData)
 {
 	sorted_array<CMapNameItem> *pMapList = (sorted_array<CMapNameItem> *)pUserData;
@@ -2853,8 +2829,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("switch_open", "i[switch]", CFGFLAG_SERVER | CFGFLAG_GAME, ConSwitchOpen, this, "Whether a switch is deactivated by default (otherwise activated)");
 	Console()->Register("pause_game", "?i[seconds] ?i[room]", CFGFLAG_SERVER, ConPause, this, "Pause/unpause game");
 	Console()->Register("change_map", "?r[map]", CFGFLAG_SERVER | CFGFLAG_STORE, ConChangeMap, this, "Change map");
-	// Console()->Register("random_map", "?i[stars]", CFGFLAG_SERVER, ConRandomMap, this, "Random map");
-	// Console()->Register("random_unfinished_map", "?i[stars]", CFGFLAG_SERVER, ConRandomUnfinishedMap, this, "Random unfinished map");
+
 	Console()->Register("restart", "?i[seconds] ?i[room]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRestart, this, "Restart in x seconds (0 = abort)");
 	Console()->Register("broadcast", "r[message]", CFGFLAG_SERVER, ConBroadcast, this, "Broadcast message");
 	Console()->Register("say", "r[message]", CFGFLAG_SERVER, ConSay, this, "Say in chat");
@@ -2865,9 +2840,14 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("remove_vote", "r[name]", CFGFLAG_SERVER, ConRemoveVote, this, "remove a voting option");
 	Console()->Register("force_vote", "s[name] s[command] ?r[reason]", CFGFLAG_SERVER, ConForceVote, this, "Force a voting option");
 	Console()->Register("clear_votes", "", CFGFLAG_SERVER, ConClearVotes, this, "Clears the voting options");
-	Console()->Register("add_map_votes", "", CFGFLAG_SERVER, ConAddMapVotes, this, "Automatically adds voting options for all maps");
 	Console()->Register("vote", "r['yes'|'no']", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
 	Console()->Register("dump_antibot", "", CFGFLAG_SERVER, ConDumpAntibot, this, "Dumps the antibot status");
+
+	// pvp rooms
+	Console()->Register("add_gametype", "s[name] ?s[gametype] ?r[settings]", CFGFLAG_SERVER | CFGFLAG_STORE, ConAddGameType, this, "Register an gametype for rooms. First register will be the default for room 0");
+	// Console()->Register("add_gametype_vote", "s[name] s[vote-option] s[gametype] ?r[settings]", CFGFLAG_SERVER | CFGFLAG_STORE, ConAddGameType, this, "Register an gametype that can be created using in vote menu.");
+	Console()->Register("room_setting", "s[setting] ?r[arguments]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRoomSetting, this, "Change current room settings");
+	// Console()->Register("room_new", "s[name] s[gametype] ?r[settings]", CFGFLAG_SERVER, ConNewRoom, this, "Create a new room");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 
@@ -2904,6 +2884,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 
 	m_Layers.Init(Kernel());
 	m_Collision.Init(&m_Layers, &m_Prng);
+	m_pTeams = new CGameTeams(this);
 
 	char aMapName[128];
 	int MapSize;
@@ -2982,8 +2963,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 			TuningList()[i].Set("player_hooking", 0);
 		}
 	}
-
-	m_pTeams = new CGameTeams(this);
 
 	const char *pCensorFilename = "censorlist.txt";
 	IOHANDLE File = Storage()->OpenFile(pCensorFilename, IOFLAG_READ, IStorage::TYPE_ALL);

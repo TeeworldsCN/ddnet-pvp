@@ -27,6 +27,15 @@ class IGameController
 	void SetPlayersReadyState(bool ReadyState);
 	void CheckReadyStates(int WithoutID = -1);
 
+	struct SBroadcastState
+	{
+		int m_LastGameState;
+		int m_LastTimer;
+		int m_NextBroadcastTick;
+	};
+	SBroadcastState m_aFakeClientBroadcast[MAX_CLIENTS];
+	void FakeClientBroadcast(int SnappingClient);
+
 	// balancing
 	enum
 	{

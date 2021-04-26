@@ -26,6 +26,7 @@ enum
 class CGameTeams
 {
 	SGameInstance m_aTeamInstances[MAX_CLIENTS];
+	// TODO: team states is probably redundant
 	int m_aTeamState[MAX_CLIENTS];
 	bool m_aTeamLocked[MAX_CLIENTS];
 	uint64 m_aInvited[MAX_CLIENTS];
@@ -42,7 +43,16 @@ class CGameTeams
 		int Number;
 	};
 	std::vector<SEntity> m_Entities;
-	std::vector<int> m_Joins;
+
+	// gametypes
+	struct SGameType
+	{
+		char *pName;
+		char *pGameType;
+		char *pVote;
+		char *pSettings;
+	};
+	static std::vector<SGameType> m_GameTypes;
 
 public:
 	enum
@@ -77,11 +87,8 @@ public:
 		return m_pGameContext->Server();
 	}
 
-	// void OnCharacterSpawn(int ClientID);
-	// void OnCharacterDeath(int ClientID, int Weapon);
-
 	// returns nullptr if successful, error string if failed
-	const char *SetPlayerTeam(int ClientID, int Team);
+	const char *SetPlayerTeam(int ClientID, int Team, const char *pGameType);
 
 	void ChangeTeamState(int Team, int State);
 
@@ -92,9 +99,10 @@ public:
 	{
 		TEAM_REASON_NORMAL = 0,
 		TEAM_REASON_CONNECT = 1,
-		TEAM_REASON_DISCONNECT = 2
+		TEAM_REASON_DISCONNECT = 2,
+		TEAM_REASON_FORCE = 3
 	};
-	void SetForcePlayerTeam(int ClientID, int Team, int Reason);
+	bool SetForcePlayerTeam(int ClientID, int Team, int Reason, const char *pGameType = nullptr);
 
 	void Reset();
 	void ResetRoundState(int Team);
@@ -129,10 +137,18 @@ public:
 		return Instance.m_Init && !Instance.m_pWorld->m_Paused;
 	}
 
+	int FindAEmptyTeam()
+	{
+		for(int i = 1; i < MAX_CLIENTS; ++i)
+			if(m_aTeamState[i] == TEAMSTATE_EMPTY)
+				return i;
+		return -1;
+	}
+
 	// Game Instances
 	SGameInstance GetGameInstance(int Team);
 	SGameInstance GetPlayerGameInstance(int ClientID);
-	void CreateGameInstance(int Team, int Asker);
+	bool CreateGameInstance(int Team, const char *pGameName, int Asker);
 	void DestroyGameInstance(int Team);
 	void OnPlayerConnect(CPlayer *pPlayer);
 	void OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason);
@@ -140,6 +156,8 @@ public:
 	void OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
 	void OnSnap(int SnappingClient);
 	void OnPostSnap();
+
+	static void AddGameType(const char *pGameType, const char *pName, const char *pVote, const char *pSettings);
 };
 
 #endif

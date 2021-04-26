@@ -7,11 +7,8 @@
 #include "entities/character.h"
 #include "player.h"
 
-#include "gamemodes/ctf.h"
+#include "gamemodes.h"
 #include "gamemodes/dm.h"
-#include "gamemodes/lms.h"
-#include "gamemodes/lts.h"
-#include "gamemodes/tdm.h"
 
 CGameTeams::CGameTeams(CGameContext *pGameContext) :
 	m_pGameContext(pGameContext)
@@ -24,6 +21,16 @@ CGameTeams::~CGameTeams()
 {
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 		DestroyGameInstance(i);
+
+	while(m_GameTypes.size() > 0)
+	{
+		SGameType Type = m_GameTypes.back();
+		if(Type.pGameType)
+			free(Type.pGameType);
+		if(Type.pSettings)
+			free(Type.pSettings);
+		m_GameTypes.pop_back();
+	}
 }
 
 void CGameTeams::Reset()
@@ -36,7 +43,7 @@ void CGameTeams::Reset()
 		m_aTeamLocked[i] = false;
 		m_aInvited[i] = 0;
 	}
-	CreateGameInstance(0, -1);
+	CreateGameInstance(0, nullptr, -1);
 }
 
 void CGameTeams::ResetRoundState(int Team)
@@ -58,7 +65,7 @@ void CGameTeams::ResetSwitchers(int Team)
 	}
 }
 
-const char *CGameTeams::SetPlayerTeam(int ClientID, int Team)
+const char *CGameTeams::SetPlayerTeam(int ClientID, int Team, const char *pGameType)
 {
 	if(ClientID < 0 || ClientID >= MAX_CLIENTS)
 		return "Invalid client ID";
@@ -76,21 +83,35 @@ const char *CGameTeams::SetPlayerTeam(int ClientID, int Team)
 			return "You can't join super room if you don't have super rights";
 		if(Team != TEAM_SUPER && pChar->m_DDRaceState != DDRACE_NONE)
 			return "You have started the game already";
-
-		pChar->Die(ClientID, WEAPON_GAME);
 	}
 
-	CPlayer *pPlayer = GetPlayer(ClientID);
-	// clear score when joining a new room
-	pPlayer->GameReset();
+	if(!SetForcePlayerTeam(ClientID, Team, TEAM_REASON_NORMAL, pGameType))
+		return "You need to specify a game type to create a room";
 
-	SetForcePlayerTeam(ClientID, Team, TEAM_REASON_NORMAL);
 	return nullptr;
 }
 
-void CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State)
+bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const char *pGameType)
 {
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	if(!pPlayer)
+		return false;
+
 	int OldTeam = m_Core.Team(ClientID);
+
+	if(OldTeam != Team && !m_aTeamInstances[Team].m_IsCreated)
+	{
+		if(!pGameType && State != TEAM_REASON_FORCE && m_GameTypes.size() > 1)
+			return false;
+
+		if(!CreateGameInstance(Team, pGameType, ClientID))
+			return false;
+	}
+
+	// clear score when joining a new room
+	pPlayer->GameReset();
+	// kill character
+	pPlayer->KillCharacter();
 
 	if(Team != OldTeam && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
 	{
@@ -103,8 +124,6 @@ void CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State)
 			// unlock team when last player leaves
 			SetTeamLock(OldTeam, false);
 			ResetRoundState(OldTeam);
-			if(GetPlayer(ClientID))
-				GetPlayer(ClientID)->KillCharacter(); // The last one leaving, kill characther first
 			DestroyGameInstance(OldTeam);
 		}
 	}
@@ -113,8 +132,7 @@ void CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State)
 
 	if(OldTeam != Team)
 	{
-		if(State != TEAM_REASON_DISCONNECT && m_aTeamInstances[Team].m_IsCreated)
-			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], false, false);
+		m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], false, false);
 
 		for(int LoopClientID = 0; LoopClientID < MAX_CLIENTS; ++LoopClientID)
 			if(GetPlayer(LoopClientID))
@@ -131,11 +149,7 @@ void CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State)
 		ResetSwitchers(Team);
 	}
 
-	if(TeamOldState == TEAMSTATE_EMPTY && m_aTeamState[Team] != TEAMSTATE_EMPTY)
-	{
-		if(!m_aTeamInstances[Team].m_IsCreated)
-			CreateGameInstance(Team, ClientID);
-	}
+	return true;
 }
 
 int CGameTeams::Count(int Team) const
@@ -202,14 +216,46 @@ SGameInstance CGameTeams::GetPlayerGameInstance(int ClientID)
 	return m_aTeamInstances[m_Core.Team(ClientID)];
 }
 
-void CGameTeams::CreateGameInstance(int Team, int Asker)
+bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 {
+	SGameType Type;
+	Type.pGameType = nullptr;
+	Type.pName = nullptr;
+	Type.pSettings = nullptr;
+
+	if(m_GameTypes.size() == 0 || pGameName == nullptr)
+	{
+		Type.pGameType = "dm";
+		Type.pName = Type.pGameType;
+	}
+	else
+		for(auto GameType : m_GameTypes)
+			if(str_comp(GameType.pName, pGameName) == 0)
+				Type = GameType;
+
+	if(!Type.pGameType)
+		return false;
+
 	if(m_aTeamInstances[Team].m_IsCreated)
 		DestroyGameInstance(Team);
 
+	IGameController *Game = nullptr;
+	if(false)
+		return false;
+#define REGISTER_GAME_TYPE(TYPE, CLASS) \
+	else if(str_comp(#TYPE, Type.pGameType) == 0) \
+		Game = new CLASS();
+#include "gamemodes.h"
+#undef REGISTER_GAME_TYPE
+	else
+	{
+		Game = new CGameControllerDM();
+		Type.pSettings = nullptr;
+	}
+
 	CGameWorld *pWorld = new CGameWorld(Team, m_pGameContext);
 	m_aTeamInstances[Team].m_pWorld = pWorld;
-	m_aTeamInstances[Team].m_pController = new CGameControllerDM();
+	m_aTeamInstances[Team].m_pController = Game;
 	m_aTeamInstances[Team].m_pController->InitController(Team, m_pGameContext, pWorld);
 	m_aTeamInstances[Team].m_IsCreated = true;
 	m_aTeamInstances[Team].m_Init = false;
@@ -219,8 +265,7 @@ void CGameTeams::CreateGameInstance(int Team, int Asker)
 	str_format(aBuf, sizeof(aBuf), "game controller %d is created", Team);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "team", aBuf);
 
-	if(Asker >= 0 && Asker < MAX_CLIENTS)
-		m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[Asker], false, true);
+	return true;
 }
 
 void CGameTeams::DestroyGameInstance(int Team)
@@ -260,6 +305,7 @@ void CGameTeams::OnPlayerConnect(CPlayer *pPlayer)
 		GameServer()->SendChatTarget(ClientID, "say /info for detail and make sure to read our /rules");
 	}
 }
+
 void CGameTeams::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)
 {
 	int ClientID = pPlayer->GetCID();
@@ -337,20 +383,6 @@ void CGameTeams::OnTick()
 				break;
 		}
 	}
-
-	// // Join one player per tick
-	// if(m_Joins.size() > 0)
-	// {
-	// 	int ClientID = m_Joins.back();
-	// 	int Team = m_Core.Team(ClientID);
-	// 	if(!GameServer()->IsPlayerValid(ClientID))
-	// 		m_Joins.pop_back();
-	// 	else if(m_aTeamInstances[Team].m_Init)
-	// 	{
-	// 		m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID]);
-	// 		m_Joins.pop_back();
-	// 	}
-	// }
 }
 
 void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
@@ -401,4 +433,56 @@ void CGameTeams::OnPostSnap()
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 		if(m_aTeamInstances[i].m_Init)
 			m_aTeamInstances[i].m_pWorld->OnPostSnap();
+}
+
+std::vector<CGameTeams::SGameType> CGameTeams::m_GameTypes;
+void CGameTeams::AddGameType(const char *pGameType, const char *pName, const char *pVote, const char *pSettings)
+{
+	SGameType Type;
+
+	bool IsValidGameType = false;
+	if(false)
+		return;
+#define REGISTER_GAME_TYPE(TYPE, CLASS) \
+	else if(str_comp(#TYPE, pGameType) == 0) \
+	{ \
+		Type.pGameType = #TYPE; \
+		IsValidGameType = true; \
+	}
+#include "gamemodes.h"
+#undef REGISTER_GAME_TYPE
+
+	if(!IsValidGameType)
+		return;
+
+	int Len;
+
+	if(pSettings)
+	{
+		Len = str_length(pSettings) + 1;
+		Type.pSettings = (char *)malloc(Len * sizeof(char));
+		str_copy(Type.pSettings, pSettings, Len);
+	}
+	else
+		Type.pSettings = nullptr;
+
+	if(pVote)
+	{
+		Len = str_length(pVote) + 1;
+		Type.pVote = (char *)malloc(Len * sizeof(char));
+		str_copy(Type.pVote, pVote, Len);
+	}
+	else
+		Type.pVote = nullptr;
+
+	if(pName)
+	{
+		Len = str_length(pName) + 1;
+		Type.pName = (char *)malloc(Len * sizeof(char));
+		str_copy(Type.pName, pName, Len);
+	}
+	else
+		Type.pName = Type.pGameType;
+
+	m_GameTypes.push_back(Type);
 }
