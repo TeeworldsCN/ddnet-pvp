@@ -44,6 +44,7 @@ public:
 	int GetCID() const { return m_ClientID; };
 	int GetClientVersion() const;
 	bool SetTimerType(int NewType);
+	void SendCurrentTeamInfo();
 
 	void Tick();
 	void PostTick();

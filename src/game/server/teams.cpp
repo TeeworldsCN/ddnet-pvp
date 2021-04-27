@@ -114,8 +114,6 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 	pPlayer->GameReset();
 	// kill character
 	pPlayer->KillCharacter();
-	// set to spectator to make sure client update team info
-	pPlayer->SetTeam(TEAM_SPECTATORS, false);
 
 	if(Team != OldTeam && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
 	{
@@ -136,7 +134,8 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 
 	if(OldTeam != Team)
 	{
-		m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], false, false);
+		if(State != TEAM_REASON_DISCONNECT)
+			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], false, false);
 
 		for(int LoopClientID = 0; LoopClientID < MAX_CLIENTS; ++LoopClientID)
 			if(GetPlayer(LoopClientID))

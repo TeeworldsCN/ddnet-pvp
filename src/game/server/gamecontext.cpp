@@ -396,6 +396,72 @@ void CGameContext::SendBroadcast(const char *pText, int ClientID, bool IsImporta
 	m_apPlayers[ClientID]->m_LastBroadcastImportance = IsImportant;
 }
 
+void CGameContext::SendCurrentGameInfo(int ClientID, bool IsJoin)
+{
+	CPlayer *pPlayer = m_apPlayers[ClientID];
+
+	// new info for others
+	protocol7::CNetMsg_Sv_ClientInfo NewClientInfoMsg;
+	NewClientInfoMsg.m_ClientID = ClientID;
+	NewClientInfoMsg.m_Local = 0;
+	NewClientInfoMsg.m_Team = pPlayer->GetTeam();
+	NewClientInfoMsg.m_pName = Server()->ClientName(ClientID);
+	NewClientInfoMsg.m_pClan = Server()->ClientClan(ClientID);
+	NewClientInfoMsg.m_Country = Server()->ClientCountry(ClientID);
+	NewClientInfoMsg.m_Silent = true;
+
+	for(int p = 0; p < 6; p++)
+	{
+		NewClientInfoMsg.m_apSkinPartNames[p] = pPlayer->m_TeeInfos.m_apSkinPartNames[p];
+		NewClientInfoMsg.m_aUseCustomColors[p] = pPlayer->m_TeeInfos.m_aUseCustomColors[p];
+		NewClientInfoMsg.m_aSkinPartColors[p] = pPlayer->m_TeeInfos.m_aSkinPartColors[p];
+	}
+
+	// update client infos (others before local)
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if(i == ClientID || !m_apPlayers[i] || !Server()->ClientIngame(i))
+			continue;
+
+		CPlayer *pPlayer = m_apPlayers[i];
+
+		if(IsJoin && Server()->IsSixup(i))
+			Server()->SendPackMsg(&NewClientInfoMsg, MSGFLAG_VITAL | MSGFLAG_NORECORD, i);
+
+		if(Server()->IsSixup(ClientID))
+		{
+			// existing infos for new player
+			protocol7::CNetMsg_Sv_ClientInfo ClientInfoMsg;
+			ClientInfoMsg.m_ClientID = i;
+			ClientInfoMsg.m_Local = 0;
+			ClientInfoMsg.m_Team = pPlayer->GetTeam();
+			ClientInfoMsg.m_pName = Server()->ClientName(i);
+			ClientInfoMsg.m_pClan = Server()->ClientClan(i);
+			ClientInfoMsg.m_Country = Server()->ClientCountry(i);
+			ClientInfoMsg.m_Silent = 0;
+
+			if(GetDDRaceTeam(i) != GetDDRaceTeam(ClientID) && !pPlayer->m_ShowOthers)
+				ClientInfoMsg.m_Team = TEAM_SPECTATORS;
+
+			for(int p = 0; p < 6; p++)
+			{
+				ClientInfoMsg.m_apSkinPartNames[p] = pPlayer->m_TeeInfos.m_apSkinPartNames[p];
+				ClientInfoMsg.m_aUseCustomColors[p] = pPlayer->m_TeeInfos.m_aUseCustomColors[p];
+				ClientInfoMsg.m_aSkinPartColors[p] = pPlayer->m_TeeInfos.m_aSkinPartColors[p];
+			}
+
+			Server()->SendPackMsg(&ClientInfoMsg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
+		}
+	}
+
+	// local info
+	if(Server()->IsSixup(ClientID))
+	{
+		NewClientInfoMsg.m_Local = 1;
+		Server()->SendPackMsg(&NewClientInfoMsg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
+	}
+}
+
 void CGameContext::StartVote(const char *pDesc, const char *pCommand, const char *pReason, const char *pSixupDesc)
 {
 	// reset votes
@@ -1015,16 +1081,6 @@ void CGameContext::OnClientEnter(int ClientID)
 
 	if(Server()->IsSixup(ClientID))
 	{
-		// {
-		// 	protocol7::CNetMsg_Sv_GameInfo Msg;
-		// 	Msg.m_GameFlags = protocol7::GAMEFLAG_RACE;
-		// 	Msg.m_MatchCurrent = 1;
-		// 	Msg.m_MatchNum = 0;
-		// 	Msg.m_ScoreLimit = 0;
-		// 	Msg.m_TimeLimit = 0;
-		// 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
-		// }
-
 		// /team is essential
 		{
 			protocol7::CNetMsg_Sv_CommandInfoRemove Msg;
@@ -1096,66 +1152,7 @@ void CGameContext::OnClientEnter(int ClientID)
 		SendVoteSet(ClientID);
 
 	Server()->ExpireServerInfo();
-
-	CPlayer *pNewPlayer = m_apPlayers[ClientID];
-
-	// new info for others
-	protocol7::CNetMsg_Sv_ClientInfo NewClientInfoMsg;
-	NewClientInfoMsg.m_ClientID = ClientID;
-	NewClientInfoMsg.m_Local = 0;
-	NewClientInfoMsg.m_Team = pNewPlayer->GetTeam();
-	NewClientInfoMsg.m_pName = Server()->ClientName(ClientID);
-	NewClientInfoMsg.m_pClan = Server()->ClientClan(ClientID);
-	NewClientInfoMsg.m_Country = Server()->ClientCountry(ClientID);
-	NewClientInfoMsg.m_Silent = true;
-
-	for(int p = 0; p < 6; p++)
-	{
-		NewClientInfoMsg.m_apSkinPartNames[p] = pNewPlayer->m_TeeInfos.m_apSkinPartNames[p];
-		NewClientInfoMsg.m_aUseCustomColors[p] = pNewPlayer->m_TeeInfos.m_aUseCustomColors[p];
-		NewClientInfoMsg.m_aSkinPartColors[p] = pNewPlayer->m_TeeInfos.m_aSkinPartColors[p];
-	}
-
-	// update client infos (others before local)
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		if(i == ClientID || !m_apPlayers[i] || !Server()->ClientIngame(i))
-			continue;
-
-		CPlayer *pPlayer = m_apPlayers[i];
-
-		if(Server()->IsSixup(i))
-			Server()->SendPackMsg(&NewClientInfoMsg, MSGFLAG_VITAL | MSGFLAG_NORECORD, i);
-
-		if(Server()->IsSixup(ClientID))
-		{
-			// existing infos for new player
-			protocol7::CNetMsg_Sv_ClientInfo ClientInfoMsg;
-			ClientInfoMsg.m_ClientID = i;
-			ClientInfoMsg.m_Local = 0;
-			ClientInfoMsg.m_Team = pPlayer->GetTeam();
-			ClientInfoMsg.m_pName = Server()->ClientName(i);
-			ClientInfoMsg.m_pClan = Server()->ClientClan(i);
-			ClientInfoMsg.m_Country = Server()->ClientCountry(i);
-			ClientInfoMsg.m_Silent = 0;
-
-			for(int p = 0; p < 6; p++)
-			{
-				ClientInfoMsg.m_apSkinPartNames[p] = pPlayer->m_TeeInfos.m_apSkinPartNames[p];
-				ClientInfoMsg.m_aUseCustomColors[p] = pPlayer->m_TeeInfos.m_aUseCustomColors[p];
-				ClientInfoMsg.m_aSkinPartColors[p] = pPlayer->m_TeeInfos.m_aSkinPartColors[p];
-			}
-
-			Server()->SendPackMsg(&ClientInfoMsg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
-		}
-	}
-
-	// local info
-	if(Server()->IsSixup(ClientID))
-	{
-		NewClientInfoMsg.m_Local = 1;
-		Server()->SendPackMsg(&NewClientInfoMsg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
-	}
+	SendCurrentGameInfo(ClientID, true);
 }
 
 bool CGameContext::OnClientDataPersist(int ClientID, void *pData)

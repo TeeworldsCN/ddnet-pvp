@@ -759,7 +759,21 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	Msg.m_Team = m_Team;
 	Msg.m_Silent = !DoChatMsg;
 	Msg.m_CooldownTick = m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay;
-	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, -1);
+
+	// Update team info for sixup
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(!Server()->IsSixup(i) || !GameServer()->IsPlayerValid(i) || !Server()->ClientIngame(i))
+			continue;
+
+		CPlayer *pTargetPlayer = GameServer()->m_apPlayers[i];
+		if(GameServer()->GetDDRaceTeam(i) != GameServer()->GetDDRaceTeam(m_ClientID) && !pTargetPlayer->m_ShowOthers)
+			Msg.m_Team = TEAM_SPECTATORS;
+		else
+			Msg.m_Team = m_Team;
+
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, i);
+	}
 
 	if(Team == TEAM_SPECTATORS)
 	{
@@ -769,6 +783,31 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 			if(pPlayer && pPlayer->m_SpectatorID == m_ClientID)
 				pPlayer->m_SpectatorID = SPEC_FREEVIEW;
 		}
+	}
+}
+
+void CPlayer::SendCurrentTeamInfo()
+{
+	if(!Server()->IsSixup(m_ClientID))
+		return;
+
+	// Update team info for sixup
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(i == m_ClientID || !GameServer()->IsPlayerValid(i) || !Server()->ClientIngame(i))
+			continue;
+
+		CPlayer *pPlayer = GameServer()->m_apPlayers[i];
+
+		protocol7::CNetMsg_Sv_Team Msg;
+		Msg.m_ClientID = pPlayer->m_ClientID;
+		Msg.m_Team = pPlayer->m_Team;
+		Msg.m_Silent = true;
+		Msg.m_CooldownTick = pPlayer->m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay;
+		if(GameServer()->GetDDRaceTeam(i) != GameServer()->GetDDRaceTeam(m_ClientID) && !m_ShowOthers)
+			Msg.m_Team = TEAM_SPECTATORS;
+
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, m_ClientID);
 	}
 }
 

@@ -591,18 +591,26 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	int ClientID = pPlayer->GetCID();
 	pPlayer->m_IsReadyToPlay = !IsPlayerReadyMode();
 	pPlayer->m_RespawnDisabled = GetStartRespawnState();
-	pPlayer->SetTeam(GetStartTeam(), false);
 
 	// HACK: resend map info can reset player's team info
-	// only 0.6 need this hack
+	// SideEffect: gets rid of ddnet dummies
 	if(!ServerJoin && !Server()->IsSixup(ClientID))
 		Server()->SendMap(ClientID);
+
+	// update game info first
+	UpdateGameInfo(ClientID);
+
+	// change team second
+	pPlayer->SetTeam(GetStartTeam(), false);
+
+	// sixup: update team info for fake spectators
+	pPlayer->SendCurrentTeamInfo();
+
+	pPlayer->Respawn();
 
 	m_aFakeClientBroadcast[ClientID].m_LastGameState = -1;
 	m_aFakeClientBroadcast[ClientID].m_LastTimer = -1;
 	m_aFakeClientBroadcast[ClientID].m_NextBroadcastTick = -1;
-
-	pPlayer->Respawn();
 
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "ddrteam_join player='%d:%s' team=%d ddrteam='%d'", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam(), GameWorld()->Team());
@@ -615,15 +623,13 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 
 	GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1);
 
-	// update game info
-	UpdateGameInfo(ClientID);
-
 	OnPlayerJoin(pPlayer);
 }
 
 void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer)
 {
 	int ClientID = pPlayer->GetCID();
+
 	if(Server()->ClientIngame(ClientID))
 	{
 		char aBuf[128];

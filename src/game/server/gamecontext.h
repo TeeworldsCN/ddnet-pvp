@@ -231,6 +231,7 @@ public:
 	void SendMotd(int ClientID);
 	void SendSettings(int ClientID);
 	void SendBroadcast(const char *pText, int ClientID, bool IsImportant = true);
+	void SendCurrentGameInfo(int ClientID, bool IsJoin);
 
 	void List(int ClientID, const char *filter);
 
