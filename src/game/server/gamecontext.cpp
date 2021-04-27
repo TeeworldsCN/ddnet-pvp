@@ -857,7 +857,7 @@ void CGameContext::OnTick()
 									(IsKickVote() || IsSpecVote()) && time_get() < m_VoteCloseTime))
 			{
 				Server()->SetRconCID(IServer::RCON_CID_VOTE);
-				Console()->ExecuteLine(m_aVoteCommand);
+				Console()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
 				Server()->SetRconCID(IServer::RCON_CID_SERV);
 				EndVote();
 				SendChat(-1, CGameContext::CHAT_ALL, "Vote passed", -1, CHAT_SIX);
@@ -869,7 +869,7 @@ void CGameContext::OnTick()
 			{
 				char aBuf[64];
 				str_format(aBuf, sizeof(aBuf), "Vote passed enforced by authorized player");
-				Console()->ExecuteLine(m_aVoteCommand, m_VoteEnforcer);
+				Console()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
 				SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CHAT_SIX);
 				EndVote();
 			}
@@ -2676,6 +2676,10 @@ void CGameContext::ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
 
 void CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
 {
+	int ClientID = pResult->m_ClientID;
+	if(!CheckClientID2(ClientID))
+		return;
+
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const char *pType = pResult->GetString(0);
 	const char *pValue = pResult->GetString(1);
@@ -2691,7 +2695,7 @@ void CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
 			{
 				str_format(aBuf, sizeof(aBuf), "authorized player forced server option '%s' (%s)", pValue, pReason);
 				pSelf->SendChatTarget(-1, aBuf, CHAT_SIX);
-				pSelf->Console()->ExecuteLine(pOption->m_aCommand);
+				pSelf->Console()->ExecuteLine(pOption->m_aCommand, ClientID);
 				break;
 			}
 

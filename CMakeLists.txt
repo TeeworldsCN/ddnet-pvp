@@ -2046,6 +2046,8 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   gamemodes/tdm.h
   gameworld.cpp
   gameworld.h
+  instanceconsole.cpp
+  instanceconsole.h
   player.cpp
   player.h
   teams.cpp
