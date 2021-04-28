@@ -6,6 +6,9 @@
 
 class CGameControllerTDM : public IGameController
 {
+private:
+	int m_RespawnDelayTDM;
+
 public:
 	CGameControllerTDM();
 

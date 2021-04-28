@@ -4,12 +4,21 @@
 #define GAME_SERVER_GAMECONTROLLER_H
 
 #include <base/vmath.h>
+#include <engine/console.h>
 #include <engine/map.h>
 #include <engine/shared/config.h>
 #include <game/generated/protocol.h>
 
 #include <map>
 #include <vector>
+
+#define INSTANCE_CONFIG_INT(Pointer, Command, Default, Min, Max, Desc) \
+	{ \
+		*Pointer = Default; \
+		CIntVariableData *pInt = new CIntVariableData({InstanceConsole(), Pointer, Min, Max, Default}); \
+		m_IntConfigStore.push_back(pInt); \
+		InstanceConsole()->Register(Command, "?i[value]", CFGFLAG_INSTANCE, IntVariableCommand, pInt, Desc); \
+	}
 
 /*
 	Class: Game Controller
@@ -22,7 +31,7 @@ class IGameController
 	class CConfig *m_pConfig;
 	class IServer *m_pServer;
 	class CGameWorld *m_pWorld;
-	class CConsole *m_pInstanceConsole;
+	class IConsole *m_pInstanceConsole;
 
 	void DoActivityCheck();
 	bool GetPlayersReadyState(int WithoutID = -1);
@@ -101,15 +110,22 @@ class IGameController
 	// team
 	int ClampTeam(int Team) const;
 
-	// config variables
-	union CVariables
-	{
-		CIntVariableData m_Int;
-		CColVariableData m_Col;
-		CStrVariableData m_Str;
-	};
-
 protected:
+	// common config
+	int m_Warmup;
+	int m_Countdown;
+	int m_Teamdamage;
+	int m_RoundSwap;
+	int m_MatchSwap;
+	int m_Powerups;
+	int m_Scorelimit;
+	int m_Timelimit;
+	int m_Roundlimit;
+	int m_TeambalanceTime;
+
+	// config variables
+	std::vector<CIntVariableData *> m_IntConfigStore;
+
 	// game
 	int m_GameStartTick;
 	int m_MatchCount;
@@ -233,7 +249,7 @@ public:
 	CConfig *Config() const { return m_pConfig; }
 	IServer *Server() const { return m_pServer; }
 	CGameWorld *GameWorld() const { return m_pWorld; }
-	CConsole *InstanceConsole() const { return m_pInstanceConsole; }
+	IConsole *InstanceConsole() const { return m_pInstanceConsole; }
 
 	// events
 	/*

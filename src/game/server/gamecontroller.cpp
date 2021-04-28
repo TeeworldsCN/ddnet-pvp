@@ -22,10 +22,14 @@
 
 #include <engine/server/server.h>
 
-static void ConTest(IConsole::IResult *pResult, void *pUserData)
+static void ConchainGameInfoUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
 {
-	IGameController *pSelf = (IGameController *)pUserData;
-	pSelf->InstanceConsole()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "instance", "pong");
+	pfnCallback(pResult, pCallbackUserData);
+	if(pResult->NumArguments() >= 1)
+	{
+		IGameController *pThis = static_cast<IGameController *>(pUserData);
+		pThis->CheckGameInfo();
+	}
 }
 
 IGameController::IGameController()
@@ -67,13 +71,29 @@ IGameController::IGameController()
 	// fake client broadcast
 	mem_zero(m_aFakeClientBroadcast, sizeof(m_aFakeClientBroadcast));
 
-	m_pInstanceConsole->Register("ping", "", CFGFLAG_INSTANCE, ConTest, this, "nothing");
 	m_pInstanceConsole->RegisterPrintCallback(IConsole::OUTPUT_LEVEL_STANDARD, InstanceConsolePrint, this);
+
+	INSTANCE_CONFIG_INT(&m_Warmup, "warmup", 10, 0, 1000, "Number of seconds to do warmup before round starts");
+	INSTANCE_CONFIG_INT(&m_Countdown, "countdown", 0, -1000, 1000, "Number of seconds to freeze the game in a countdown before match starts, (-: for survival, +: for all")
+	INSTANCE_CONFIG_INT(&m_Teamdamage, "teamdamage", 0, 0, 1, "Team damage")
+	INSTANCE_CONFIG_INT(&m_RoundSwap, "round_swap", 1, 0, 1, "Swap teams between rounds")
+	INSTANCE_CONFIG_INT(&m_MatchSwap, "match_swap", 1, 0, 1, "Swap teams between matches")
+	INSTANCE_CONFIG_INT(&m_Powerups, "powerups", 1, 0, 1, "Allow powerups like ninja")
+	INSTANCE_CONFIG_INT(&m_Scorelimit, "scorelimit", 20, 0, 1000, "Score limit (0 disables)")
+	INSTANCE_CONFIG_INT(&m_Timelimit, "timelimit", 0, 0, 1000, "Time limit in minutes (0 disables)")
+	INSTANCE_CONFIG_INT(&m_Roundlimit, "roundlimit", 0, 0, 1000, "Round limit for game with rounds (0 disables)")
+	INSTANCE_CONFIG_INT(&m_TeambalanceTime, "teambalance_time", 1, 0, 1000, "How many minutes to wait before autobalancing teams")
+
+	m_pInstanceConsole->Chain("scorelimit", ConchainGameInfoUpdate, this);
+	m_pInstanceConsole->Chain("timelimit", ConchainGameInfoUpdate, this);
+	m_pInstanceConsole->Chain("roundlimit", ConchainGameInfoUpdate, this);
 }
 
 IGameController::~IGameController()
 {
 	delete m_pInstanceConsole;
+	for(auto pInt : m_IntConfigStore)
+		delete pInt;
 }
 
 void IGameController::DoActivityCheck()
@@ -191,7 +211,7 @@ bool IGameController::CanBeMovedOnBalance(int ClientID) const
 
 void IGameController::CheckTeamBalance()
 {
-	if(!IsTeamplay() || !Config()->m_SvTeambalanceTime)
+	if(!IsTeamplay() || !m_TeambalanceTime)
 	{
 		m_UnbalancedTick = TBALANCE_OK;
 		return;
@@ -215,7 +235,7 @@ void IGameController::CheckTeamBalance()
 
 void IGameController::DoTeamBalance()
 {
-	if(!IsTeamplay() || !Config()->m_SvTeambalanceTime || absolute(m_aTeamSize[TEAM_RED] - m_aTeamSize[TEAM_BLUE]) < 2)
+	if(!IsTeamplay() || !m_TeambalanceTime || absolute(m_aTeamSize[TEAM_RED] - m_aTeamSize[TEAM_BLUE]) < 2)
 		return;
 
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", "Balancing teams");
@@ -829,10 +849,10 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 		// only possible when game, pause or start countdown is running
 		if(m_GameState == IGS_GAME_RUNNING || m_GameState == IGS_GAME_PAUSED || m_GameState == IGS_START_COUNTDOWN)
 		{
-			if((Config()->m_SvCountdown < 0 && IsSurvival()) || Config()->m_SvCountdown > 0)
+			if((m_Countdown < 0 && IsSurvival()) || m_Countdown > 0)
 			{
 				m_GameState = GameState;
-				m_GameStateTimer = absolute(Config()->m_SvCountdown) * Server()->TickSpeed();
+				m_GameStateTimer = absolute(m_Countdown) * Server()->TickSpeed();
 				GameWorld()->m_Paused = true;
 			}
 			else
@@ -1265,7 +1285,7 @@ void IGameController::Tick()
 		case TBALANCE_OK:
 			break;
 		default:
-			if(Server()->Tick() > m_UnbalancedTick + Config()->m_SvTeambalanceTime * Server()->TickSpeed() * 60)
+			if(Server()->Tick() > m_UnbalancedTick + m_TeambalanceTime * Server()->TickSpeed() * 60)
 				DoTeamBalance();
 		}
 	}
@@ -1284,12 +1304,12 @@ void IGameController::Tick()
 // info
 void IGameController::CheckGameInfo()
 {
-	bool GameInfoChanged = (m_GameInfo.m_MatchNum != Config()->m_SvRoundlimit) ||
-			       (m_GameInfo.m_ScoreLimit != Config()->m_SvScorelimit) ||
-			       (m_GameInfo.m_TimeLimit != Config()->m_SvTimelimit);
-	m_GameInfo.m_MatchNum = Config()->m_SvRoundlimit;
-	m_GameInfo.m_ScoreLimit = Config()->m_SvScorelimit;
-	m_GameInfo.m_TimeLimit = Config()->m_SvTimelimit;
+	bool GameInfoChanged = (m_GameInfo.m_MatchNum != m_Roundlimit) ||
+			       (m_GameInfo.m_ScoreLimit != m_Scorelimit) ||
+			       (m_GameInfo.m_TimeLimit != m_Timelimit);
+	m_GameInfo.m_MatchNum = m_Roundlimit;
+	m_GameInfo.m_ScoreLimit = m_Scorelimit;
+	m_GameInfo.m_TimeLimit = m_Timelimit;
 	if(GameInfoChanged)
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 			UpdateGameInfo(i);
@@ -1305,7 +1325,7 @@ bool IGameController::IsFriendlyFire(int ClientID1, int ClientID2) const
 		if(!GameServer()->m_apPlayers[ClientID1] || !GameServer()->m_apPlayers[ClientID2])
 			return false;
 
-		if(!Config()->m_SvTeamdamage && GameServer()->m_apPlayers[ClientID1]->GetTeam() == GameServer()->m_apPlayers[ClientID2]->GetTeam())
+		if(!m_Teamdamage && GameServer()->m_apPlayers[ClientID1]->GetTeam() == GameServer()->m_apPlayers[ClientID2]->GetTeam())
 			return true;
 	}
 
@@ -1314,7 +1334,7 @@ bool IGameController::IsFriendlyFire(int ClientID1, int ClientID2) const
 
 bool IGameController::IsFriendlyTeamFire(int Team1, int Team2) const
 {
-	return IsTeamplay() && !Config()->m_SvTeamdamage && Team1 == Team2;
+	return IsTeamplay() && !m_Teamdamage && Team1 == Team2;
 }
 
 bool IGameController::IsPlayerReadyMode() const
@@ -1567,7 +1587,7 @@ bool IGameController::GetStartRespawnState() const
 // team
 bool IGameController::CanChangeTeam(CPlayer *pPlayer, int JoinTeam) const
 {
-	if(!IsTeamplay() || JoinTeam == TEAM_SPECTATORS || !Config()->m_SvTeambalanceTime)
+	if(!IsTeamplay() || JoinTeam == TEAM_SPECTATORS || !m_TeambalanceTime)
 		return true;
 
 	// simulate what would happen if the player changes team
@@ -1693,13 +1713,13 @@ void IGameController::InitController(int Team, class CGameContext *pGameServer, 
 	m_pServer = m_pGameServer->Server();
 	m_pWorld = pWorld;
 	m_GameStartTick = m_pServer->Tick();
-	if(Config()->m_SvWarmup)
-		SetGameState(IGS_WARMUP_USER, Config()->m_SvWarmup);
+	if(m_Warmup)
+		SetGameState(IGS_WARMUP_USER, m_Warmup);
 	else
 		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
-	m_GameInfo.m_ScoreLimit = m_pConfig->m_SvScorelimit;
-	m_GameInfo.m_TimeLimit = m_pConfig->m_SvTimelimit;
-	m_GameInfo.m_MatchNum = m_pConfig->m_SvRoundlimit;
+	m_GameInfo.m_ScoreLimit = m_Scorelimit;
+	m_GameInfo.m_TimeLimit = m_Timelimit;
+	m_GameInfo.m_MatchNum = m_Roundlimit;
 }
 
 void IGameController::SendChatTarget(int To, const char *pText, int Flags)

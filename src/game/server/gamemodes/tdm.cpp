@@ -12,6 +12,8 @@ CGameControllerTDM::CGameControllerTDM() :
 {
 	m_pGameType = "TDM";
 	m_GameFlags = GAMEFLAG_TEAMS;
+
+	INSTANCE_CONFIG_INT(&m_RespawnDelayTDM, "respawn_delay", 3, 0, 10, "Time needed to respawn after death in tdm gametype")
 }
 
 // event
@@ -34,7 +36,7 @@ int CGameControllerTDM::OnCharacterDeath(class CCharacter *pVictim, class CPlaye
 			m_aTeamscore[pKiller->GetTeam() & 1]++; // good shit
 	}
 
-	pVictim->GetPlayer()->m_RespawnTick = maximum(pVictim->GetPlayer()->m_RespawnTick, Server()->Tick() + Server()->TickSpeed() * Config()->m_SvRespawnDelayTDM);
+	pVictim->GetPlayer()->m_RespawnTick = maximum(pVictim->GetPlayer()->m_RespawnTick, Server()->Tick() + Server()->TickSpeed() * m_RespawnDelayTDM);
 
 	return DEATH_NORMAL;
 }

@@ -1605,7 +1605,6 @@ set_src(GAME_SHARED GLOB src/game
   extrainfo.h
   gamecore.cpp
   gamecore.h
-  instance_variables.h
   layers.cpp
   layers.h
   localization.cpp
@@ -2046,8 +2045,6 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   gamemodes/tdm.h
   gameworld.cpp
   gameworld.h
-  instanceconsole.cpp
-  instanceconsole.h
   player.cpp
   player.h
   teams.cpp
