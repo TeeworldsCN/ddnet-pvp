@@ -78,9 +78,6 @@ CGameContext::~CGameContext()
 		delete pPlayer;
 	if(!m_Resetting)
 		delete m_pVoteOptionHeap;
-
-	// if(m_pScore)
-	// 	delete m_pScore;
 }
 
 void CGameContext::Clear()
@@ -737,7 +734,6 @@ void CGameContext::OnTick()
 		else
 		{
 			int Total = 0, Yes = 0, No = 0;
-			bool Veto = false, VetoStop = false;
 			if(m_VoteUpdate)
 			{
 				// count votes
@@ -786,7 +782,7 @@ void CGameContext::OnTick()
 					int ActVote = m_apPlayers[i]->m_Vote;
 					int ActVotePos = m_apPlayers[i]->m_VotePos;
 
-					// only allow IPs to vote once, but keep veto ability
+					// only allow IPs to vote once
 					// check for more players with the same ip (only use the vote of the one who voted first)
 					for(int j = i + 1; j < MAX_CLIENTS; j++)
 					{
@@ -808,49 +804,22 @@ void CGameContext::OnTick()
 						Yes++;
 					else if(ActVote < 0)
 						No++;
-
-					// veto right for players who have been active on server for long and who're not afk
-					if(!IsKickVote() && !IsSpecVote() && g_Config.m_SvVoteVetoTime)
-					{
-						// look through all players with same IP again, including the current player
-						for(int j = i; j < MAX_CLIENTS; j++)
-						{
-							// no need to check ip address of current player
-							if(i != j && (!m_apPlayers[j] || str_comp(aaBuf[j], aaBuf[i]) != 0))
-								continue;
-
-							if(IsClientActivePlayer(j) &&
-								((Server()->Tick() - m_apPlayers[j]->m_JoinTick) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime ||
-									(m_apPlayers[j]->GetCharacter() && m_apPlayers[j]->GetCharacter()->m_DDRaceState == DDRACE_STARTED &&
-										(Server()->Tick() - m_apPlayers[j]->GetCharacter()->m_StartTime) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime)))
-							{
-								if(ActVote == 0)
-									Veto = true;
-								else if(ActVote < 0)
-									VetoStop = true;
-								break;
-							}
-						}
-					}
 				}
 
 				if(g_Config.m_SvVoteMaxTotal && Total > g_Config.m_SvVoteMaxTotal &&
 					(IsKickVote() || IsSpecVote()))
 					Total = g_Config.m_SvVoteMaxTotal;
 
-				if((Yes > Total / (100.0f / g_Config.m_SvVoteYesPercentage)) && !Veto)
+				if(Yes > Total / (100.0f / g_Config.m_SvVoteYesPercentage))
 					m_VoteEnforce = VOTE_ENFORCE_YES;
 				else if(No >= Total - Total / (100.0f / g_Config.m_SvVoteYesPercentage))
-					m_VoteEnforce = VOTE_ENFORCE_NO;
-
-				if(VetoStop)
 					m_VoteEnforce = VOTE_ENFORCE_NO;
 
 				m_VoteWillPass = Yes > (Yes + No) / (100.0f / g_Config.m_SvVoteYesPercentage);
 			}
 
 			if(time_get() > m_VoteCloseTime && !g_Config.m_SvVoteMajority)
-				m_VoteEnforce = (m_VoteWillPass && !Veto) ? VOTE_ENFORCE_YES : VOTE_ENFORCE_NO;
+				m_VoteEnforce = (m_VoteWillPass) ? VOTE_ENFORCE_YES : VOTE_ENFORCE_NO;
 
 			// / Ensure minimum time for vote to end when moderating.
 			if(m_VoteEnforce == VOTE_ENFORCE_YES && !(PlayerModerating() &&
@@ -880,14 +849,10 @@ void CGameContext::OnTick()
 				EndVote();
 				SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CHAT_SIX);
 			}
-			//else if(m_VoteEnforce == VOTE_ENFORCE_NO || time_get() > m_VoteCloseTime)
 			else if(m_VoteEnforce == VOTE_ENFORCE_NO || (time_get() > m_VoteCloseTime && g_Config.m_SvVoteMajority))
 			{
 				EndVote();
-				if(VetoStop || (m_VoteWillPass && Veto))
-					SendChat(-1, CGameContext::CHAT_ALL, "Vote failed because of veto. Find an empty server instead", -1, CHAT_SIX);
-				else
-					SendChat(-1, CGameContext::CHAT_ALL, "Vote failed", -1, CHAT_SIX);
+				SendChat(-1, CGameContext::CHAT_ALL, "Vote failed", -1, CHAT_SIX);
 			}
 			else if(m_VoteUpdate)
 			{
