@@ -379,6 +379,9 @@ private:
 	static void ConList(IConsole::IResult *pResult, void *pUserData);
 	static void ConUninvite(IConsole::IResult *pResult, void *pUserData);
 
+	// instance console
+	static void ConInstanceCommand(IConsole::IResult *pResult, void *pUserData);
+
 	enum
 	{
 		MAX_MUTES = 32,

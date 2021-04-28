@@ -35,4 +35,6 @@ CHAT_COMMAND("invite", "r[player name]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConInvit
 CHAT_COMMAND("showothers", "?i['0'|'1'|'2']", CFGFLAG_CHAT | CFGFLAG_SERVER, ConShowOthers, this, "Whether to show other teams by default, (2 = with distracting stuff)")
 // CHAT_COMMAND("specteam", "?i['0'|'1']", CFGFLAG_CHAT | CFGFLAG_SERVER, ConSpecTeam, this, "Whether to show players in other rooms when spectating (on by default), optional i = 0 for off else for on")
 
+CHAT_COMMAND("setting", "?r[command]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConInstanceCommand, this, "Invoke a command in current room (i.e. you can change room settings)")
+
 #undef CHAT_COMMAND

@@ -5,6 +5,7 @@
 
 #include <base/vmath.h>
 #include <engine/map.h>
+#include <engine/shared/config.h>
 #include <game/generated/protocol.h>
 
 #include <map>
@@ -21,6 +22,7 @@ class IGameController
 	class CConfig *m_pConfig;
 	class IServer *m_pServer;
 	class CGameWorld *m_pWorld;
+	class CConsole *m_pInstanceConsole;
 
 	void DoActivityCheck();
 	bool GetPlayersReadyState(int WithoutID = -1);
@@ -99,12 +101,15 @@ class IGameController
 	// team
 	int ClampTeam(int Team) const;
 
-protected:
-	CGameContext *GameServer() const { return m_pGameServer; }
-	CConfig *Config() const { return m_pConfig; }
-	IServer *Server() const { return m_pServer; }
-	CGameWorld *GameWorld() const { return m_pWorld; }
+	// config variables
+	union CVariables
+	{
+		CIntVariableData m_Int;
+		CColVariableData m_Col;
+		CStrVariableData m_Str;
+	};
 
+protected:
 	// game
 	int m_GameStartTick;
 	int m_MatchCount;
@@ -120,8 +125,6 @@ protected:
 		int m_BlueFlagCarrier;
 	};
 	virtual bool GetFlagState(SFlagState *pState);
-	void EndMatch() { SetGameState(IGS_END_MATCH, TIMER_END); }
-	void EndRound() { SetGameState(IGS_END_ROUND, TIMER_END / 2); }
 
 	enum
 	{
@@ -152,8 +155,6 @@ protected:
 		int m_ScoreLimit;
 		int m_TimeLimit;
 	} m_GameInfo;
-
-	void UpdateGameInfo(int ClientID);
 
 	// event
 	/*
@@ -228,6 +229,12 @@ public:
 	IGameController();
 	virtual ~IGameController();
 
+	CGameContext *GameServer() const { return m_pGameServer; }
+	CConfig *Config() const { return m_pConfig; }
+	IServer *Server() const { return m_pServer; }
+	CGameWorld *GameWorld() const { return m_pWorld; }
+	CConsole *InstanceConsole() const { return m_pInstanceConsole; }
+
 	// events
 	/*
 		Function: OnFlagReset
@@ -265,10 +272,13 @@ public:
 		}
 	}
 	void SwapTeamscore();
+	void EndMatch() { SetGameState(IGS_END_MATCH, TIMER_END); }
+	void EndRound() { SetGameState(IGS_END_ROUND, TIMER_END / 2); }
 
 	// general
 	virtual void Snap(int SnappingClient);
 	virtual void Tick();
+	void UpdateGameInfo(int ClientID);
 
 	/*
 		Function: CanKill
@@ -334,6 +344,13 @@ public:
 	int GetPlayerTeam(int ClientID) const;
 	bool IsPlayerInRoom(int ClientID) const;
 	void InitController(int Team, class CGameContext *pGameServer, class CGameWorld *pWorld);
+
+	// Instance Space Ops
+	void SendChatTarget(int To, const char *pText, int Flags = 3);
+	void SendBroadcast(const char *pText, int ClientID, bool IsImportant = true);
+
+	// Instance Config
+	static void InstanceConsolePrint(const char *pStr, void *pUser, ColorRGBA PrintColor);
 };
 
 #endif

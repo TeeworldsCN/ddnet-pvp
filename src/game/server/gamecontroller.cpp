@@ -22,12 +22,19 @@
 
 #include <engine/server/server.h>
 
+static void ConTest(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	pSelf->InstanceConsole()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "instance", "pong");
+}
+
 IGameController::IGameController()
 {
 	m_pGameServer = nullptr;
 	m_pConfig = nullptr;
 	m_pServer = nullptr;
 	m_pWorld = nullptr;
+	m_pInstanceConsole = new CConsole(CFGFLAG_INSTANCE);
 
 	// balancing
 	m_aTeamSize[TEAM_RED] = 0;
@@ -59,10 +66,14 @@ IGameController::IGameController()
 
 	// fake client broadcast
 	mem_zero(m_aFakeClientBroadcast, sizeof(m_aFakeClientBroadcast));
+
+	m_pInstanceConsole->Register("ping", "", CFGFLAG_INSTANCE, ConTest, this, "nothing");
+	m_pInstanceConsole->RegisterPrintCallback(IConsole::OUTPUT_LEVEL_STANDARD, InstanceConsolePrint, this);
 }
 
 IGameController::~IGameController()
 {
+	delete m_pInstanceConsole;
 }
 
 void IGameController::DoActivityCheck()
@@ -1689,4 +1700,43 @@ void IGameController::InitController(int Team, class CGameContext *pGameServer, 
 	m_GameInfo.m_ScoreLimit = m_pConfig->m_SvScorelimit;
 	m_GameInfo.m_TimeLimit = m_pConfig->m_SvTimelimit;
 	m_GameInfo.m_MatchNum = m_pConfig->m_SvRoundlimit;
+}
+
+void IGameController::SendChatTarget(int To, const char *pText, int Flags)
+{
+	int Start = To;
+	int Limit = To + 1;
+	if(To < 0)
+	{
+		Start = 0;
+		Limit = MAX_CLIENTS;
+	}
+
+	for(int i = Start; i < Limit; i++)
+		if(IsPlayerInRoom(i))
+			GameServer()->SendChatTarget(i, pText, Flags);
+}
+
+void IGameController::SendBroadcast(const char *pText, int ClientID, bool IsImportant)
+{
+	int Start = ClientID;
+	int Limit = ClientID + 1;
+	if(ClientID < 0)
+	{
+		Start = 0;
+		Limit = MAX_CLIENTS;
+	}
+
+	for(int i = Start; i < Limit; i++)
+		if(IsPlayerInRoom(i))
+			GameServer()->SendBroadcast(pText, i, IsImportant);
+}
+
+void IGameController::InstanceConsolePrint(const char *pStr, void *pUser, ColorRGBA PrintColor)
+{
+	IGameController *pController = (IGameController *)pUser;
+
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "%s", pStr);
+	pController->SendChatTarget(-1, aBuf);
 }

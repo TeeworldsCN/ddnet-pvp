@@ -2,6 +2,7 @@
 #include "gamecontext.h"
 #include <engine/engine.h>
 #include <engine/shared/config.h>
+#include <engine/shared/console.h>
 #include <engine/shared/protocol.h>
 #include <game/server/teams.h>
 #include <game/version.h>
@@ -785,21 +786,45 @@ void CGameContext::ConShowOthers(IConsole::IResult *pResult, void *pUserData)
 			"Showing players from other teams is disabled");
 }
 
-// void CGameContext::ConSpecTeam(IConsole::IResult *pResult, void *pUserData)
-// {
-// 	CGameContext *pSelf = (CGameContext *)pUserData;
-// 	if(!CheckClientID(pResult->m_ClientID))
-// 		return;
+void CGameContext::ConInstanceCommand(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int ClientID = pResult->m_ClientID;
+	if(!CheckClientID(ClientID))
+		return;
 
-// 	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-// 	if(!pPlayer)
-// 		return;
+	SGameInstance Instance = pSelf->PlayerGameInstance(ClientID);
+	if(!Instance.m_Init)
+	{
+		pSelf->Console()->Print(
+			IConsole::OUTPUT_LEVEL_STANDARD,
+			"instancecommand",
+			"The room is not ready");
+		return;
+	}
 
-// 	if(pResult->NumArguments())
-// 		pPlayer->m_SpecTeam = pResult->GetInteger(0);
-// 	else
-// 		pPlayer->m_SpecTeam = !pPlayer->m_SpecTeam;
-// }
+	if(Instance.m_pWorld->Team() == 0)
+	{
+		pSelf->Console()->Print(
+			IConsole::OUTPUT_LEVEL_STANDARD,
+			"instancecommand",
+			"You cannot execute command in lobby room / room 0");
+		return;
+	}
+
+	if(pResult->NumArguments())
+	{
+		const char *pCommand = pResult->GetString(0);
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "'%s' called '%s'", pSelf->Server()->ClientName(ClientID), pCommand);
+		Instance.m_pController->SendChatTarget(-1, aBuf);
+		Instance.m_pController->InstanceConsole()->ExecuteLine(pCommand);
+	}
+	else
+	{
+		// TODO: list commands
+	}
+}
 
 bool CheckClientID(int ClientID)
 {

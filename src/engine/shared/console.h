@@ -3,6 +3,7 @@
 #ifndef ENGINE_SHARED_CONSOLE_H
 #define ENGINE_SHARED_CONSOLE_H
 
+#include "config.h"
 #include "memheap.h"
 #include <base/math.h>
 #include <engine/console.h>
