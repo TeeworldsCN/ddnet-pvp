@@ -8,6 +8,7 @@
 #include <engine/map.h>
 #include <engine/shared/config.h>
 #include <game/generated/protocol.h>
+#include <game/voting.h>
 
 #include <map>
 #include <vector>
@@ -109,6 +110,21 @@ class IGameController
 
 	// team
 	int ClampTeam(int Team) const;
+
+	// vote
+	int m_VotePos;
+	int m_VoteCreator;
+	int m_VoteEnforcer;
+	int m_VoteType;
+	int64 m_VoteCloseTime;
+	bool m_VoteUpdate;
+	char m_aVoteDescription[VOTE_DESC_LENGTH];
+	char m_aSixupVoteDescription[VOTE_DESC_LENGTH];
+	char m_aVoteCommand[VOTE_CMD_LENGTH];
+	char m_aVoteReason[VOTE_REASON_LENGTH];
+	int m_NumVoteOptions;
+	int m_VoteEnforce;
+	bool m_VoteWillPass;
 
 protected:
 	// common config
@@ -362,8 +378,18 @@ public:
 	void InitController(int Team, class CGameContext *pGameServer, class CGameWorld *pWorld);
 
 	// Instance Space Ops
-	void SendChatTarget(int To, const char *pText, int Flags = 3);
-	void SendBroadcast(const char *pText, int ClientID, bool IsImportant = true);
+	inline bool IsOptionVote() const { return m_VoteType == VOTE_TYPE_OPTION; };
+	inline bool IsKickVote() const { return m_VoteType == VOTE_TYPE_KICK; };
+	inline bool IsSpecVote() const { return m_VoteType == VOTE_TYPE_SPECTATE; };
+
+	void CallVote(int ClientID, const char *pDesc, const char *pCmd, const char *pReason, const char *pChatmsg, const char *pSixupDesc);
+	void StartVote(const char *pDesc, const char *pCommand, const char *pReason, const char *pSixupDesc);
+	void EndVote();
+	bool IsVoting();
+	void SendVoteSet(int ClientID) const;
+	void SendVoteStatus(int ClientID, int Total, int Yes, int No) const;
+	void SendChatTarget(int To, const char *pText, int Flags = 3) const;
+	void SendBroadcast(const char *pText, int ClientID, bool IsImportant = true) const;
 
 	// Instance Config
 	static void InstanceConsolePrint(const char *pStr, void *pUser, ColorRGBA PrintColor);

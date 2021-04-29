@@ -489,6 +489,11 @@ void CGameContext::EndVote()
 	SendVoteSet(-1);
 }
 
+bool CGameContext::IsVoting()
+{
+	return m_VoteCloseTime > 0;
+}
+
 void CGameContext::SendVoteSet(int ClientID)
 {
 	::CNetMsg_Sv_VoteSet Msg6;
@@ -1646,16 +1651,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 						str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientID),
 							pOption->m_aDescription, aReason);
 						str_format(aDesc, sizeof(aDesc), "%s", pOption->m_aDescription);
-
-						if((str_endswith(pOption->m_aCommand, "random_map") || str_endswith(pOption->m_aCommand, "random_unfinished_map")) && str_length(aReason) == 1 && aReason[0] >= '0' && aReason[0] <= '5')
-						{
-							int Stars = aReason[0] - '0';
-							str_format(aCmd, sizeof(aCmd), "%s %d", pOption->m_aCommand, Stars);
-						}
-						else
-						{
-							str_format(aCmd, sizeof(aCmd), "%s", pOption->m_aCommand);
-						}
 
 						m_LastMapVote = time_get();
 						break;
@@ -3450,7 +3445,7 @@ void CGameContext::OnSetAuthed(int ClientID, int Level)
 		str_format(aBuf, sizeof(aBuf), "ban %s %d Banned by vote", aIP, g_Config.m_SvVoteKickBantime);
 		if(!str_comp_nocase(m_aVoteCommand, aBuf) && Level > Server()->GetAuthedState(m_VoteCreator))
 		{
-			m_VoteEnforce = CGameContext::VOTE_ENFORCE_NO_ADMIN;
+			m_VoteEnforce = VOTE_ENFORCE_NO_ADMIN;
 			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "CGameContext", "Vote aborted by authorized login.");
 		}
 	}
@@ -3794,7 +3789,7 @@ void CGameContext::ForceVote(int EnforcerID, bool Success)
 	if(!m_VoteCloseTime)
 		return;
 
-	m_VoteEnforce = Success ? CGameContext::VOTE_ENFORCE_YES_ADMIN : CGameContext::VOTE_ENFORCE_NO_ADMIN;
+	m_VoteEnforce = Success ? VOTE_ENFORCE_YES_ADMIN : VOTE_ENFORCE_NO_ADMIN;
 	m_VoteEnforcer = EnforcerID;
 
 	char aBuf[256];

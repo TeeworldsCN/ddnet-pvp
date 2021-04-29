@@ -176,6 +176,7 @@ public:
 	// voting
 	void StartVote(const char *pDesc, const char *pCommand, const char *pReason, const char *pSixupDesc);
 	void EndVote();
+	bool IsVoting();
 	void SendVoteSet(int ClientID);
 	void SendVoteStatus(int ClientID, int Total, int Yes, int No);
 	void AbortVoteKickOnDisconnect(int ClientID);
@@ -197,13 +198,6 @@ public:
 	char m_aDeleteTempfile[128];
 	void DeleteTempfile();
 
-	enum
-	{
-		VOTE_ENFORCE_UNKNOWN = 0,
-		VOTE_ENFORCE_NO,
-		VOTE_ENFORCE_YES,
-		VOTE_ENFORCE_ABORT,
-	};
 	CHeap *m_pVoteOptionHeap;
 	CVoteOptionServer *m_pVoteOptionFirst;
 	CVoteOptionServer *m_pVoteOptionLast;
@@ -412,16 +406,6 @@ private:
 public:
 	CLayers *Layers() { return &m_Layers; }
 
-	enum
-	{
-		VOTE_ENFORCE_NO_ADMIN = VOTE_ENFORCE_YES + 1,
-		VOTE_ENFORCE_YES_ADMIN,
-
-		VOTE_TYPE_UNKNOWN = 0,
-		VOTE_TYPE_OPTION,
-		VOTE_TYPE_KICK,
-		VOTE_TYPE_SPECTATE,
-	};
 	int m_VoteVictim;
 	int m_VoteEnforcer;
 

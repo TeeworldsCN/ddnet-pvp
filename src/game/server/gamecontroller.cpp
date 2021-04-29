@@ -1209,6 +1209,148 @@ void IGameController::Snap(int SnappingClient)
 
 void IGameController::Tick()
 {
+	// update voting
+	if(m_VoteCloseTime)
+	{
+		// abort the kick-vote on player-leave
+		if(m_VoteEnforce == VOTE_ENFORCE_ABORT)
+		{
+			SendChatTarget(-1, "Vote aborted");
+			EndVote();
+		}
+		else
+		{
+			int Total = 0, Yes = 0, No = 0;
+			if(m_VoteUpdate)
+			{
+				// count votes
+				char aaBuf[MAX_CLIENTS][NETADDR_MAXSTRSIZE] = {{0}}, *pIP = NULL;
+				bool SinglePlayer = true;
+				for(int i = 0; i < MAX_CLIENTS; i++)
+				{
+					if(GameServer()->m_apPlayers[i])
+					{
+						Server()->GetClientAddr(i, aaBuf[i], NETADDR_MAXSTRSIZE);
+						if(!pIP)
+							pIP = aaBuf[i];
+						else if(SinglePlayer && str_comp(pIP, aaBuf[i]))
+							SinglePlayer = false;
+					}
+				}
+
+				// remember checked players, only the first player with a specific ip will be handled
+				bool aVoteChecked[MAX_CLIENTS] = {false};
+				int64 Now = Server()->Tick();
+				for(int i = 0; i < MAX_CLIENTS; i++)
+				{
+					if(!GameServer()->m_apPlayers[i] || aVoteChecked[i])
+						continue;
+
+					if(GameServer()->GetPlayerDDRTeam(i) != GameWorld()->Team())
+						continue;
+
+					if((IsKickVote() || IsSpecVote()) && (GameServer()->m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS ||
+										     (GameServer()->GetPlayerChar(m_VoteCreator) && GameServer()->GetPlayerChar(i))))
+						continue;
+
+					if(GameServer()->m_apPlayers[i]->m_Afk && i != m_VoteCreator)
+						continue;
+
+					// can't vote in kick and spec votes in the beginning after joining
+					if((IsKickVote() || IsSpecVote()) && Now < GameServer()->m_apPlayers[i]->m_FirstVoteTick)
+						continue;
+
+					// connecting clients with spoofed ips can clog slots without being ingame
+					if(((CServer *)Server())->m_aClients[i].m_State != CServer::CClient::STATE_INGAME)
+						continue;
+
+					// don't count votes by blacklisted clients
+					if(g_Config.m_SvDnsblVote && !m_pServer->DnsblWhite(i) && !SinglePlayer)
+						continue;
+
+					int ActVote = GameServer()->m_apPlayers[i]->m_Vote;
+					int ActVotePos = GameServer()->m_apPlayers[i]->m_VotePos;
+
+					// only allow IPs to vote once
+					// check for more players with the same ip (only use the vote of the one who voted first)
+					for(int j = i + 1; j < MAX_CLIENTS; j++)
+					{
+						if(!GameServer()->m_apPlayers[j] || aVoteChecked[j] || str_comp(aaBuf[j], aaBuf[i]) != 0)
+							continue;
+
+						// count the latest vote by this ip
+						if(ActVotePos < GameServer()->m_apPlayers[j]->m_VotePos)
+						{
+							ActVote = GameServer()->m_apPlayers[j]->m_Vote;
+							ActVotePos = GameServer()->m_apPlayers[j]->m_VotePos;
+						}
+
+						aVoteChecked[j] = true;
+					}
+
+					Total++;
+					if(ActVote > 0)
+						Yes++;
+					else if(ActVote < 0)
+						No++;
+				}
+
+				if(g_Config.m_SvVoteMaxTotal && Total > g_Config.m_SvVoteMaxTotal &&
+					(IsKickVote() || IsSpecVote()))
+					Total = g_Config.m_SvVoteMaxTotal;
+
+				if(Yes > Total / (100.0f / g_Config.m_SvVoteYesPercentage))
+					m_VoteEnforce = VOTE_ENFORCE_YES;
+				else if(No >= Total - Total / (100.0f / g_Config.m_SvVoteYesPercentage))
+					m_VoteEnforce = VOTE_ENFORCE_NO;
+
+				m_VoteWillPass = Yes > (Yes + No) / (100.0f / g_Config.m_SvVoteYesPercentage);
+			}
+
+			if(time_get() > m_VoteCloseTime && !g_Config.m_SvVoteMajority)
+				m_VoteEnforce = (m_VoteWillPass) ? VOTE_ENFORCE_YES : VOTE_ENFORCE_NO;
+
+			// / Ensure minimum time for vote to end when moderating.
+			if(m_VoteEnforce == VOTE_ENFORCE_YES && !(GameServer()->PlayerModerating() &&
+									(IsKickVote() || IsSpecVote()) && time_get() < m_VoteCloseTime))
+			{
+				Server()->SetRconCID(IServer::RCON_CID_VOTE);
+				InstanceConsole()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
+				Server()->SetRconCID(IServer::RCON_CID_SERV);
+				EndVote();
+				SendChatTarget(-1, "Vote passed", CGameContext::CHAT_SIX);
+
+				if(GameServer()->m_apPlayers[m_VoteCreator] && !IsKickVote() && !IsSpecVote())
+					GameServer()->m_apPlayers[m_VoteCreator]->m_LastVoteCall = 0;
+			}
+			else if(m_VoteEnforce == VOTE_ENFORCE_YES_ADMIN)
+			{
+				char aBuf[64];
+				str_format(aBuf, sizeof(aBuf), "Vote passed enforced by authorized player");
+				InstanceConsole()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
+				SendChatTarget(-1, aBuf, CGameContext::CHAT_SIX);
+				EndVote();
+			}
+			else if(m_VoteEnforce == VOTE_ENFORCE_NO_ADMIN)
+			{
+				char aBuf[64];
+				str_format(aBuf, sizeof(aBuf), "Vote failed enforced by authorized player");
+				EndVote();
+				SendChatTarget(-1, aBuf, CGameContext::CHAT_SIX);
+			}
+			else if(m_VoteEnforce == VOTE_ENFORCE_NO || (time_get() > m_VoteCloseTime && g_Config.m_SvVoteMajority))
+			{
+				EndVote();
+				SendChatTarget(-1, "Vote failed", CGameContext::CHAT_SIX);
+			}
+			else if(m_VoteUpdate)
+			{
+				m_VoteUpdate = false;
+				SendVoteStatus(-1, Total, Yes, No);
+			}
+		}
+	}
+
 	// handle game states
 	if(m_GameState != IGS_GAME_RUNNING)
 	{
@@ -1722,7 +1864,157 @@ void IGameController::InitController(int Team, class CGameContext *pGameServer, 
 	m_GameInfo.m_MatchNum = m_Roundlimit;
 }
 
-void IGameController::SendChatTarget(int To, const char *pText, int Flags)
+void IGameController::CallVote(int ClientID, const char *pDesc, const char *pCmd, const char *pReason, const char *pChatmsg, const char *pSixupDesc)
+{
+	// check if a vote is already running
+	if(m_VoteCloseTime)
+		return;
+
+	int64 Now = Server()->Tick();
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientID];
+
+	if(!pPlayer)
+		return;
+
+	SendChatTarget(-1, pChatmsg, CGameContext::CHAT_SIX);
+	if(!pSixupDesc)
+		pSixupDesc = pDesc;
+
+	m_VoteCreator = ClientID;
+	StartVote(pDesc, pCmd, pReason, pSixupDesc);
+	pPlayer->m_Vote = 1;
+	pPlayer->m_VotePos = m_VotePos = 1;
+	pPlayer->m_LastVoteCall = Now;
+}
+
+void IGameController::StartVote(const char *pDesc, const char *pCommand, const char *pReason, const char *pSixupDesc)
+{
+	// reset votes
+	m_VoteEnforce = VOTE_ENFORCE_UNKNOWN;
+	m_VoteEnforcer = -1;
+	for(auto &pPlayer : GameServer()->m_apPlayers)
+	{
+		if(pPlayer)
+		{
+			pPlayer->m_Vote = 0;
+			pPlayer->m_VotePos = 0;
+		}
+	}
+
+	// start vote
+	m_VoteCloseTime = time_get() + time_freq() * g_Config.m_SvVoteTime;
+	str_copy(m_aVoteDescription, pDesc, sizeof(m_aVoteDescription));
+	str_copy(m_aSixupVoteDescription, pSixupDesc, sizeof(m_aSixupVoteDescription));
+	str_copy(m_aVoteCommand, pCommand, sizeof(m_aVoteCommand));
+	str_copy(m_aVoteReason, pReason, sizeof(m_aVoteReason));
+	SendVoteSet(-1);
+	m_VoteUpdate = true;
+}
+
+void IGameController::EndVote()
+{
+	m_VoteCloseTime = 0;
+	SendVoteSet(-1);
+}
+
+bool IGameController::IsVoting()
+{
+	return m_VoteCloseTime > 0;
+}
+
+void IGameController::SendVoteSet(int ClientID) const
+{
+	if(ClientID >= 0 && !IsPlayerInRoom(ClientID))
+		return;
+
+	::CNetMsg_Sv_VoteSet Msg6;
+	protocol7::CNetMsg_Sv_VoteSet Msg7;
+
+	Msg7.m_ClientID = m_VoteCreator;
+	if(m_VoteCloseTime)
+	{
+		Msg6.m_Timeout = Msg7.m_Timeout = (m_VoteCloseTime - time_get()) / time_freq();
+		Msg6.m_pDescription = m_aVoteDescription;
+		Msg7.m_pDescription = m_aSixupVoteDescription;
+		Msg6.m_pReason = Msg7.m_pReason = m_aVoteReason;
+
+		int &Type = (Msg7.m_Type = protocol7::VOTE_UNKNOWN);
+		if(IsKickVote())
+			Type = protocol7::VOTE_START_KICK;
+		else if(IsSpecVote())
+			Type = protocol7::VOTE_START_SPEC;
+		else if(IsOptionVote())
+			Type = protocol7::VOTE_START_OP;
+	}
+	else
+	{
+		Msg6.m_Timeout = Msg7.m_Timeout = 0;
+		Msg6.m_pDescription = Msg7.m_pDescription = "";
+		Msg6.m_pReason = Msg7.m_pReason = "";
+
+		int &Type = (Msg7.m_Type = protocol7::VOTE_UNKNOWN);
+		if(m_VoteEnforce == VOTE_ENFORCE_NO || m_VoteEnforce == VOTE_ENFORCE_NO_ADMIN)
+			Type = protocol7::VOTE_END_FAIL;
+		else if(m_VoteEnforce == VOTE_ENFORCE_YES || m_VoteEnforce == VOTE_ENFORCE_YES_ADMIN)
+			Type = protocol7::VOTE_END_PASS;
+		else if(m_VoteEnforce == VOTE_ENFORCE_ABORT)
+			Type = protocol7::VOTE_END_ABORT;
+
+		if(m_VoteEnforce == VOTE_ENFORCE_NO_ADMIN || m_VoteEnforce == VOTE_ENFORCE_YES_ADMIN)
+			Msg7.m_ClientID = -1;
+	}
+
+	if(ClientID == -1)
+	{
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(!IsPlayerInRoom(i))
+				continue;
+			if(!Server()->IsSixup(i))
+				Server()->SendPackMsg(&Msg6, MSGFLAG_VITAL, i);
+			else
+				Server()->SendPackMsg(&Msg7, MSGFLAG_VITAL, i);
+		}
+	}
+	else
+	{
+		if(!Server()->IsSixup(ClientID))
+			Server()->SendPackMsg(&Msg6, MSGFLAG_VITAL, ClientID);
+		else
+			Server()->SendPackMsg(&Msg7, MSGFLAG_VITAL, ClientID);
+	}
+}
+
+void IGameController::SendVoteStatus(int ClientID, int Total, int Yes, int No) const
+{
+	if(ClientID == -1)
+	{
+		for(int i = 0; i < MAX_CLIENTS; ++i)
+			if(Server()->ClientIngame(i))
+				SendVoteStatus(i, Total, Yes, No);
+		return;
+	}
+
+	if(!IsPlayerInRoom(ClientID))
+		return;
+
+	if(Total > VANILLA_MAX_CLIENTS && GameServer()->IsPlayerValid(ClientID) && GameServer()->m_apPlayers[ClientID]->GetClientVersion() <= VERSION_DDRACE)
+	{
+		Yes = float(Yes) * VANILLA_MAX_CLIENTS / float(Total);
+		No = float(No) * VANILLA_MAX_CLIENTS / float(Total);
+		Total = VANILLA_MAX_CLIENTS;
+	}
+
+	CNetMsg_Sv_VoteStatus Msg = {0};
+	Msg.m_Total = Total;
+	Msg.m_Yes = Yes;
+	Msg.m_No = No;
+	Msg.m_Pass = Total - (Yes + No);
+
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID);
+}
+
+void IGameController::SendChatTarget(int To, const char *pText, int Flags) const
 {
 	int Start = To;
 	int Limit = To + 1;
@@ -1737,7 +2029,7 @@ void IGameController::SendChatTarget(int To, const char *pText, int Flags)
 			GameServer()->SendChatTarget(i, pText, Flags);
 }
 
-void IGameController::SendBroadcast(const char *pText, int ClientID, bool IsImportant)
+void IGameController::SendBroadcast(const char *pText, int ClientID, bool IsImportant) const
 {
 	int Start = ClientID;
 	int Limit = ClientID + 1;
