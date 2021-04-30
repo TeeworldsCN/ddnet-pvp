@@ -32,6 +32,95 @@ static void ConchainGameInfoUpdate(IConsole::IResult *pResult, void *pUserData, 
 	}
 }
 
+static void ConPause(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+
+	if(pResult->NumArguments())
+		pSelf->DoPause(clamp(pResult->GetInteger(0), -1, 1000));
+	else
+		pSelf->DoPause(pSelf->IsGamePaused() ? 0 : IGameController::TIMER_INFINITE);
+}
+
+static void ConRestart(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+
+	int Seconds = pResult->NumArguments() ? clamp(pResult->GetInteger(0), -1, 1000) : 0;
+	if(Seconds < 0)
+		pSelf->AbortWarmup();
+	else
+		pSelf->DoWarmup(Seconds);
+}
+
+static void ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	int Team = clamp(pResult->GetInteger(0), -1, 1);
+
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "All players were moved to the %s", pSelf->GetTeamName(Team));
+	pSelf->SendChatTarget(-1, aBuf);
+
+	for(auto &pPlayer : pSelf->GameServer()->m_apPlayers)
+		if(pPlayer && pSelf->IsPlayerInRoom(pPlayer->GetCID()))
+			pSelf->DoTeamChange(pPlayer, Team, false);
+}
+
+static void ConHelp(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	int ClientID = pResult->m_ClientID;
+
+	if(pResult->NumArguments() == 0)
+		pSelf->GameServer()->Console()->ExecuteLine("help", ClientID, false); // call main help for info
+	else
+	{
+		const char *pArg = pResult->GetString(0);
+		const IConsole::CCommandInfo *pCmdInfo =
+			pSelf->InstanceConsole()->GetCommandInfo(pArg, CFGFLAG_CHAT | CFGFLAG_INSTANCE, false);
+		if(pCmdInfo)
+		{
+			if(pCmdInfo->m_pParams)
+			{
+				char aBuf[256];
+				str_format(aBuf, sizeof(aBuf), "Usage: setting %s %s", pCmdInfo->m_pName, pCmdInfo->m_pParams);
+				pSelf->InstanceConsole()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "help", aBuf);
+			}
+
+			if(pCmdInfo->m_pHelp)
+				pSelf->InstanceConsole()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "help", pCmdInfo->m_pHelp);
+		}
+		else
+			pSelf->InstanceConsole()->Print(
+				IConsole::OUTPUT_LEVEL_STANDARD,
+				"help",
+				"Command is either unknown or you have given a blank command without any parameters.");
+	}
+}
+
+static void ConKick(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	int VictimID = pResult->GetInteger(0);
+
+	if(pSelf->GameWorld()->Team() == 0)
+		pSelf->GameServer()->Console()->ExecuteLine(pResult->GetString(1));
+	else
+	{
+		if(pSelf->GameServer()->m_pTeams->SetForcePlayerTeam(VictimID, 0, CGameTeams::TEAM_REASON_FORCE, nullptr))
+			pSelf->GameServer()->m_pTeams->SetClientInvited(pSelf->GameWorld()->Team(), VictimID, false);
+		else
+			pSelf->GameServer()->Console()->ExecuteLine(pResult->GetString(1));
+	}
+}
+
+static void ConVoteCommand(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	pSelf->GameServer()->Console()->ExecuteLine(pResult->GetString(0));
+}
+
 IGameController::IGameController()
 {
 	m_pGameServer = nullptr;
@@ -39,6 +128,7 @@ IGameController::IGameController()
 	m_pServer = nullptr;
 	m_pWorld = nullptr;
 	m_pInstanceConsole = new CConsole(CFGFLAG_INSTANCE);
+	m_ChatResponseTargetID = -1;
 
 	// balancing
 	m_aTeamSize[TEAM_RED] = 0;
@@ -68,25 +158,49 @@ IGameController::IGameController()
 	m_aNumSpawnPoints[1] = 0;
 	m_aNumSpawnPoints[2] = 0;
 
+	// vote
+	m_VotePos = 0;
+	m_VoteCreator = -1;
+	m_VoteEnforcer = -1;
+	m_VoteCloseTime = 0;
+	m_VoteUpdate = false;
+	m_aVoteDescription[0] = 0;
+	m_aSixupVoteDescription[0] = 0;
+	m_aVoteCommand[0] = 0;
+	m_aVoteReason[0] = 0;
+	m_VoteEnforce = 0;
+	m_VoteWillPass = false;
+
 	// fake client broadcast
 	mem_zero(m_aFakeClientBroadcast, sizeof(m_aFakeClientBroadcast));
 
 	m_pInstanceConsole->RegisterPrintCallback(IConsole::OUTPUT_LEVEL_STANDARD, InstanceConsolePrint, this);
 
-	INSTANCE_CONFIG_INT(&m_Warmup, "warmup", 10, 0, 1000, "Number of seconds to do warmup before round starts");
-	INSTANCE_CONFIG_INT(&m_Countdown, "countdown", 0, -1000, 1000, "Number of seconds to freeze the game in a countdown before match starts, (-: for survival, +: for all")
-	INSTANCE_CONFIG_INT(&m_Teamdamage, "teamdamage", 0, 0, 1, "Team damage")
-	INSTANCE_CONFIG_INT(&m_RoundSwap, "round_swap", 1, 0, 1, "Swap teams between rounds")
-	INSTANCE_CONFIG_INT(&m_MatchSwap, "match_swap", 1, 0, 1, "Swap teams between matches")
-	INSTANCE_CONFIG_INT(&m_Powerups, "powerups", 1, 0, 1, "Allow powerups like ninja")
-	INSTANCE_CONFIG_INT(&m_Scorelimit, "scorelimit", 20, 0, 1000, "Score limit (0 disables)")
-	INSTANCE_CONFIG_INT(&m_Timelimit, "timelimit", 0, 0, 1000, "Time limit in minutes (0 disables)")
-	INSTANCE_CONFIG_INT(&m_Roundlimit, "roundlimit", 0, 0, 1000, "Round limit for game with rounds (0 disables)")
-	INSTANCE_CONFIG_INT(&m_TeambalanceTime, "teambalance_time", 1, 0, 1000, "How many minutes to wait before autobalancing teams")
+	INSTANCE_CONFIG_INT(&m_Warmup, "warmup", 10, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Number of seconds to do warmup before round starts");
+	INSTANCE_CONFIG_INT(&m_Countdown, "countdown", 0, -1000, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Number of seconds to freeze the game in a countdown before match starts, (-: for survival, +: for all")
+	INSTANCE_CONFIG_INT(&m_Teamdamage, "teamdamage", 0, 0, 2, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Team damage (1 = half damage, 2 = full damage)")
+	INSTANCE_CONFIG_INT(&m_RoundSwap, "round_swap", 1, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Swap teams between rounds")
+	INSTANCE_CONFIG_INT(&m_MatchSwap, "match_swap", 1, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Swap teams between matches")
+	INSTANCE_CONFIG_INT(&m_Powerups, "powerups", 1, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Allow powerups like ninja")
+	INSTANCE_CONFIG_INT(&m_Scorelimit, "scorelimit", 20, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Score limit (0 disables)")
+	INSTANCE_CONFIG_INT(&m_Timelimit, "timelimit", 0, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Time limit in minutes (0 disables)")
+	INSTANCE_CONFIG_INT(&m_Roundlimit, "roundlimit", 0, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Round limit for game with rounds (0 disables)")
+	INSTANCE_CONFIG_INT(&m_TeambalanceTime, "teambalance_time", 1, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "How many minutes to wait before autobalancing teams")
 
 	m_pInstanceConsole->Chain("scorelimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("timelimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("roundlimit", ConchainGameInfoUpdate, this);
+
+	m_pInstanceConsole->Chain("cmdlist", ConchainReplyOnly, this);
+
+	m_pInstanceConsole->Register("pause", "?i[seconds]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConPause, this, "Pause/unpause game");
+	m_pInstanceConsole->Register("restart", "?i[seconds]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConRestart, this, "Restart in x seconds (0 = abort)");
+	m_pInstanceConsole->Register("set_team_all", "i[team-id]", CFGFLAG_INSTANCE, ConSetTeamAll, this, "Set team of all players to team");
+	m_pInstanceConsole->Register("help", "?r[command]", CFGFLAG_CHAT | CFGFLAG_INSTANCE | CFGFLAG_NO_CONSENT, ConHelp, this, "Shows help to command, general help if left blank");
+
+	// vote helper
+	m_pInstanceConsole->Register("vote_kick", "i[id] r[real-command]", CFGFLAG_INSTANCE, ConKick, this, "Helper command for vote kicking, it is not recommended to call this directly");
+	m_pInstanceConsole->Register("vote_command", "r[real-command]", CFGFLAG_INSTANCE, ConVoteCommand, this, "Helper command for vote kicking, it is not recommended to call this directly");
 }
 
 IGameController::~IGameController()
@@ -622,11 +736,19 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	int ClientID = pPlayer->GetCID();
 	pPlayer->m_IsReadyToPlay = !IsPlayerReadyMode();
 	pPlayer->m_RespawnDisabled = GetStartRespawnState();
+	pPlayer->m_Vote = 0;
+	pPlayer->m_VotePos = 0;
+
+	if(GameServer()->m_VoteCloseTime > 0)
+		GameServer()->SendVoteSet(ClientID);
+	else
+		SendVoteSet(ClientID);
 
 	// HACK: resend map info can reset player's team info
 	// SideEffect: gets rid of ddnet dummies
-	if(!ServerJoin && !Server()->IsSixup(ClientID))
-		Server()->SendMap(ClientID);
+	// TODO: enable this
+	// if(!ServerJoin && !Server()->IsSixup(ClientID))
+	// 	Server()->SendMap(ClientID);
 
 	// update game info first
 	UpdateGameInfo(ClientID);
@@ -655,6 +777,8 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1);
 
 	OnPlayerJoin(pPlayer);
+
+	m_VoteUpdate = true;
 }
 
 void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer)
@@ -677,6 +801,8 @@ void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer)
 
 	CheckReadyStates(ClientID);
 	OnPlayerLeave(pPlayer);
+
+	m_VoteUpdate = true;
 }
 
 void IGameController::OnReset()
@@ -1216,7 +1342,7 @@ void IGameController::Tick()
 		if(m_VoteEnforce == VOTE_ENFORCE_ABORT)
 		{
 			SendChatTarget(-1, "Vote aborted");
-			EndVote();
+			EndVote(true);
 		}
 		else
 		{
@@ -1317,7 +1443,7 @@ void IGameController::Tick()
 				Server()->SetRconCID(IServer::RCON_CID_VOTE);
 				InstanceConsole()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
 				Server()->SetRconCID(IServer::RCON_CID_SERV);
-				EndVote();
+				EndVote(true);
 				SendChatTarget(-1, "Vote passed", CGameContext::CHAT_SIX);
 
 				if(GameServer()->m_apPlayers[m_VoteCreator] && !IsKickVote() && !IsSpecVote())
@@ -1329,18 +1455,18 @@ void IGameController::Tick()
 				str_format(aBuf, sizeof(aBuf), "Vote passed enforced by authorized player");
 				InstanceConsole()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
 				SendChatTarget(-1, aBuf, CGameContext::CHAT_SIX);
-				EndVote();
+				EndVote(true);
 			}
 			else if(m_VoteEnforce == VOTE_ENFORCE_NO_ADMIN)
 			{
 				char aBuf[64];
 				str_format(aBuf, sizeof(aBuf), "Vote failed enforced by authorized player");
-				EndVote();
+				EndVote(true);
 				SendChatTarget(-1, aBuf, CGameContext::CHAT_SIX);
 			}
 			else if(m_VoteEnforce == VOTE_ENFORCE_NO || (time_get() > m_VoteCloseTime && g_Config.m_SvVoteMajority))
 			{
-				EndVote();
+				EndVote(true);
 				SendChatTarget(-1, "Vote failed", CGameContext::CHAT_SIX);
 			}
 			else if(m_VoteUpdate)
@@ -1800,6 +1926,8 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 	// reset inactivity counter when joining the game
 	if(OldTeam == TEAM_SPECTATORS)
 		pPlayer->m_InactivityTickCounter = 0;
+
+	m_VoteUpdate = true;
 }
 
 int IGameController::GetStartTeam()
@@ -1894,7 +2022,7 @@ void IGameController::StartVote(const char *pDesc, const char *pCommand, const c
 	m_VoteEnforcer = -1;
 	for(auto &pPlayer : GameServer()->m_apPlayers)
 	{
-		if(pPlayer)
+		if(pPlayer && IsPlayerInRoom(pPlayer->GetCID()))
 		{
 			pPlayer->m_Vote = 0;
 			pPlayer->m_VotePos = 0;
@@ -1911,10 +2039,11 @@ void IGameController::StartVote(const char *pDesc, const char *pCommand, const c
 	m_VoteUpdate = true;
 }
 
-void IGameController::EndVote()
+void IGameController::EndVote(bool SendInfo)
 {
 	m_VoteCloseTime = 0;
-	SendVoteSet(-1);
+	if(SendInfo)
+		SendVoteSet(-1);
 }
 
 bool IGameController::IsVoting()
@@ -2048,7 +2177,31 @@ void IGameController::InstanceConsolePrint(const char *pStr, void *pUser, ColorR
 {
 	IGameController *pController = (IGameController *)pUser;
 
+	int TargetID = pController->m_ChatResponseTargetID;
+	if(TargetID < 0 || TargetID >= MAX_CLIENTS)
+		TargetID = -1;
+
+	const char *pLineOrig = pStr;
+
+	if(pStr[0] == '[')
+	{
+		// Remove time and category: [20:39:00][Console]
+		pStr = str_find(pStr, "]: ");
+		if(pStr)
+			pStr += 3;
+		else
+			pStr = pLineOrig;
+	}
+
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "%s", pStr);
-	pController->SendChatTarget(-1, aBuf);
+	pController->SendChatTarget(TargetID, aBuf);
+	pController->m_ChatResponseTargetID = -1;
+}
+
+void IGameController::ConchainReplyOnly(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	IGameController *pThis = static_cast<IGameController *>(pUserData);
+	pThis->m_ChatResponseTargetID = pResult->m_ClientID;
+	pfnCallback(pResult, pCallbackUserData);
 }

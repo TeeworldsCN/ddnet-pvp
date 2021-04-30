@@ -43,6 +43,7 @@ enum
 	CFGFLAG_COLLIGHT = 1 << 10,
 	CFGFLAG_COLALPHA = 1 << 11,
 	CFGFLAG_INSTANCE = 1 << 12,
+	CFGFLAG_NO_CONSENT = 1 << 13,
 };
 
 class CConfigManager : public IConfigManager

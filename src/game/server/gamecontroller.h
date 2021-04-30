@@ -13,12 +13,12 @@
 #include <map>
 #include <vector>
 
-#define INSTANCE_CONFIG_INT(Pointer, Command, Default, Min, Max, Desc) \
+#define INSTANCE_CONFIG_INT(Pointer, Command, Default, Min, Max, Flag, Desc) \
 	{ \
 		*Pointer = Default; \
 		CIntVariableData *pInt = new CIntVariableData({InstanceConsole(), Pointer, Min, Max, Default}); \
 		m_IntConfigStore.push_back(pInt); \
-		InstanceConsole()->Register(Command, "?i[value]", CFGFLAG_INSTANCE, IntVariableCommand, pInt, Desc); \
+		InstanceConsole()->Register(Command, "?i[value]", Flag, IntVariableCommand, pInt, Desc); \
 	}
 
 /*
@@ -127,18 +127,6 @@ class IGameController
 	bool m_VoteWillPass;
 
 protected:
-	// common config
-	int m_Warmup;
-	int m_Countdown;
-	int m_Teamdamage;
-	int m_RoundSwap;
-	int m_MatchSwap;
-	int m_Powerups;
-	int m_Scorelimit;
-	int m_Timelimit;
-	int m_Roundlimit;
-	int m_TeambalanceTime;
-
 	// config variables
 	std::vector<CIntVariableData *> m_IntConfigStore;
 
@@ -266,6 +254,19 @@ public:
 	IServer *Server() const { return m_pServer; }
 	CGameWorld *GameWorld() const { return m_pWorld; }
 	IConsole *InstanceConsole() const { return m_pInstanceConsole; }
+	int m_ChatResponseTargetID;
+
+	// common config
+	int m_Warmup;
+	int m_Countdown;
+	int m_Teamdamage;
+	int m_RoundSwap;
+	int m_MatchSwap;
+	int m_Powerups;
+	int m_Scorelimit;
+	int m_Timelimit;
+	int m_Roundlimit;
+	int m_TeambalanceTime;
 
 	// events
 	/*
@@ -384,8 +385,9 @@ public:
 
 	void CallVote(int ClientID, const char *pDesc, const char *pCmd, const char *pReason, const char *pChatmsg, const char *pSixupDesc);
 	void StartVote(const char *pDesc, const char *pCommand, const char *pReason, const char *pSixupDesc);
-	void EndVote();
+	void EndVote(bool SendInfo);
 	bool IsVoting();
+	void VoteUpdate() { m_VoteUpdate = true; }
 	void SendVoteSet(int ClientID) const;
 	void SendVoteStatus(int ClientID, int Total, int Yes, int No) const;
 	void SendChatTarget(int To, const char *pText, int Flags = 3) const;
@@ -393,6 +395,7 @@ public:
 
 	// Instance Config
 	static void InstanceConsolePrint(const char *pStr, void *pUser, ColorRGBA PrintColor);
+	static void ConchainReplyOnly(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 };
 
 #endif

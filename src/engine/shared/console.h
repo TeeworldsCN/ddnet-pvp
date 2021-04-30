@@ -15,7 +15,6 @@ class CConsole : public IConsole
 	{
 	public:
 		CCommand *m_pNext;
-		int m_Flags;
 		bool m_Temp;
 		FCommandCallback m_pfnCallback;
 		void *m_pUserData;

@@ -200,6 +200,16 @@ void CGameContext::CallVote(int ClientID, const char *pDesc, const char *pCmd, c
 	if(!pSixupDesc)
 		pSixupDesc = pDesc;
 
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		SGameInstance Instance = GameInstance(i);
+		if(Instance.m_Init && Instance.m_pController->IsVoting())
+		{
+			Instance.m_pController->EndVote(false);
+			Instance.m_pController->SendChatTarget(-1, "This room's vote has been cancelled due to a server vote being called");
+		}
+	}
+
 	m_VoteCreator = ClientID;
 	StartVote(pDesc, pCmd, pReason, pSixupDesc);
 	pPlayer->m_Vote = 1;
@@ -580,12 +590,13 @@ void CGameContext::SendVoteStatus(int ClientID, int Total, int Yes, int No)
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID);
 }
 
-void CGameContext::AbortVoteKickOnDisconnect(int ClientID)
-{
-	if(m_VoteCloseTime && ((str_startswith(m_aVoteCommand, "kick ") && str_toint(&m_aVoteCommand[5]) == ClientID) ||
-				      (str_startswith(m_aVoteCommand, "set_team ") && str_toint(&m_aVoteCommand[9]) == ClientID)))
-		m_VoteEnforce = VOTE_ENFORCE_ABORT;
-}
+// TODO: move to controller
+// void CGameContext::AbortVoteKickOnDisconnect(int ClientID)
+// {
+// 	if(m_VoteCloseTime && ((str_startswith(m_aVoteCommand, "kick ") && str_toint(&m_aVoteCommand[5]) == ClientID) ||
+// 				      (str_startswith(m_aVoteCommand, "set_team ") && str_toint(&m_aVoteCommand[9]) == ClientID)))
+// 		m_VoteEnforce = VOTE_ENFORCE_ABORT;
+// }
 
 void CGameContext::SendTuningParams(int ClientID, int Zone)
 {
@@ -1193,8 +1204,6 @@ void CGameContext::OnClientConnected(int ClientID, void *pData)
 
 void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 {
-	AbortVoteKickOnDisconnect(ClientID);
-
 	m_pTeams->OnPlayerDisconnect(m_apPlayers[ClientID], pReason);
 	delete m_apPlayers[ClientID];
 	m_apPlayers[ClientID] = 0;
@@ -1630,6 +1639,8 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				str_copy(aReason, pMsg->m_Reason, sizeof(aReason));
 			}
 
+			bool IsRoomVote = false;
+
 			if(str_comp_nocase(pMsg->m_Type, "option") == 0)
 			{
 				int Authed = Server()->GetAuthedState(ClientID);
@@ -1643,15 +1654,21 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 							SendChatTarget(ClientID, "Invalid option");
 							return;
 						}
-						if((str_find(pOption->m_aCommand, "sv_map ") != 0 || str_find(pOption->m_aCommand, "change_map ") != 0 || str_find(pOption->m_aCommand, "random_map") != 0 || str_find(pOption->m_aCommand, "random_unfinished_map") != 0) && RateLimitPlayerMapVote(ClientID))
+						if((str_find(pOption->m_aCommand, "sv_map ") != 0 || str_find(pOption->m_aCommand, "change_map ") != 0) && RateLimitPlayerMapVote(ClientID))
 						{
 							return;
 						}
 
-						str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientID),
-							pOption->m_aDescription, aReason);
-						str_format(aDesc, sizeof(aDesc), "%s", pOption->m_aDescription);
+						IsRoomVote = str_startswith(pOption->m_aCommand, "setting ");
 
+						if(IsRoomVote)
+							str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change room setting '%s' (%s)", Server()->ClientName(ClientID),
+								pOption->m_aDescription, aReason);
+						else
+							str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientID),
+								pOption->m_aDescription, aReason);
+						str_format(aDesc, sizeof(aDesc), "%s", pOption->m_aDescription);
+						str_format(aCmd, sizeof(aCmd), "%s", pOption->m_aCommand);
 						m_LastMapVote = time_get();
 						break;
 					}
@@ -1692,7 +1709,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					return;
 				}
 				//else if(!g_Config.m_SvVoteKick)
-				else if(!g_Config.m_SvVoteKick && !Authed) // allow admins to call kick votes even if they are forbidden
+				else if(!g_Config.m_SvVoteKick && !Authed && !GetDDRaceTeam(ClientID)) // allow admins to call kick votes even if they are forbidden
 				{
 					SendChatTarget(ClientID, "Server does not allow voting to kick players");
 					m_apPlayers[ClientID]->m_Last_KickVote = time_get();
@@ -1767,33 +1784,27 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				// Don't allow kicking if a player has no character
 				if(!GetPlayerChar(ClientID) || !GetPlayerChar(KickID) || GetDDRaceTeam(ClientID) != GetDDRaceTeam(KickID))
 				{
-					SendChatTarget(ClientID, "You can kick only your team member");
+					SendChatTarget(ClientID, "You can only kick players in your room");
 					m_apPlayers[ClientID]->m_Last_KickVote = time_get();
 					return;
 				}
 
 				str_format(aChatmsg, sizeof(aChatmsg), "'%s' called for vote to kick '%s' (%s)", Server()->ClientName(ClientID), Server()->ClientName(KickID), aReason);
 				str_format(aSixupDesc, sizeof(aSixupDesc), "%2d: %s", KickID, Server()->ClientName(KickID));
-				if(!GetDDRaceTeam(ClientID))
+
+				if(!g_Config.m_SvVoteKickBantime || GetDDRaceTeam(KickID))
 				{
-					if(!g_Config.m_SvVoteKickBantime)
-					{
-						str_format(aCmd, sizeof(aCmd), "kick %d Kicked by vote", KickID);
-						str_format(aDesc, sizeof(aDesc), "Kick '%s'", Server()->ClientName(KickID));
-					}
-					else
-					{
-						char aAddrStr[NETADDR_MAXSTRSIZE] = {0};
-						Server()->GetClientAddr(KickID, aAddrStr, sizeof(aAddrStr));
-						str_format(aCmd, sizeof(aCmd), "ban %s %d Banned by vote", aAddrStr, g_Config.m_SvVoteKickBantime);
-						str_format(aDesc, sizeof(aDesc), "Ban '%s'", Server()->ClientName(KickID));
-					}
+					str_format(aCmd, sizeof(aCmd), "setting vote_kick %d kick %d Kicked by vote", KickID, KickID);
+					str_format(aDesc, sizeof(aDesc), "Kick '%s'", Server()->ClientName(KickID));
 				}
 				else
 				{
-					str_format(aCmd, sizeof(aCmd), "uninvite %d %d; set_team_ddr %d 0", KickID, GetDDRaceTeam(KickID), KickID);
-					str_format(aDesc, sizeof(aDesc), "Move '%s' to team 0", Server()->ClientName(KickID));
+					char aAddrStr[NETADDR_MAXSTRSIZE] = {0};
+					Server()->GetClientAddr(KickID, aAddrStr, sizeof(aAddrStr));
+					str_format(aCmd, sizeof(aCmd), "setting vote_kick %d ban %s %d Banned by vote", KickID, aAddrStr, g_Config.m_SvVoteKickBantime);
+					str_format(aDesc, sizeof(aDesc), "Ban '%s'", Server()->ClientName(KickID));
 				}
+				IsRoomVote = true;
 				m_apPlayers[ClientID]->m_Last_KickVote = time_get();
 				m_VoteType = VOTE_TYPE_KICK;
 				m_VoteVictim = KickID;
@@ -1825,35 +1836,44 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 				if(!GetPlayerChar(ClientID) || !GetPlayerChar(SpectateID) || GetDDRaceTeam(ClientID) != GetDDRaceTeam(SpectateID))
 				{
-					SendChatTarget(ClientID, "You can only move your team member to spectators");
+					SendChatTarget(ClientID, "You can only move players in your room to spectators");
 					return;
 				}
 
 				str_format(aSixupDesc, sizeof(aSixupDesc), "%2d: %s", SpectateID, Server()->ClientName(SpectateID));
-				if(g_Config.m_SvPauseable && g_Config.m_SvVotePause)
-				{
-					str_format(aChatmsg, sizeof(aChatmsg), "'%s' called for vote to pause '%s' for %d seconds (%s)", Server()->ClientName(ClientID), Server()->ClientName(SpectateID), g_Config.m_SvVotePauseTime, aReason);
-					str_format(aDesc, sizeof(aDesc), "Pause '%s' (%ds)", Server()->ClientName(SpectateID), g_Config.m_SvVotePauseTime);
-					str_format(aCmd, sizeof(aCmd), "uninvite %d %d; force_pause %d %d", SpectateID, GetDDRaceTeam(SpectateID), SpectateID, g_Config.m_SvVotePauseTime);
-				}
-				else
-				{
-					str_format(aChatmsg, sizeof(aChatmsg), "'%s' called for vote to move '%s' to spectators (%s)", Server()->ClientName(ClientID), Server()->ClientName(SpectateID), aReason);
-					str_format(aDesc, sizeof(aDesc), "Move '%s' to spectators", Server()->ClientName(SpectateID));
-					str_format(aCmd, sizeof(aCmd), "uninvite %d %d; set_team %d -1 %d", SpectateID, GetDDRaceTeam(SpectateID), SpectateID, g_Config.m_SvVoteSpectateRejoindelay);
-				}
+				str_format(aChatmsg, sizeof(aChatmsg), "'%s' called for vote to move '%s' to spectators (%s)", Server()->ClientName(ClientID), Server()->ClientName(SpectateID), aReason);
+				str_format(aDesc, sizeof(aDesc), "Move '%s' to spectators", Server()->ClientName(SpectateID));
+				str_format(aCmd, sizeof(aCmd), "setting vote_command set_team %d -1 %d", SpectateID, GetDDRaceTeam(SpectateID), SpectateID, g_Config.m_SvVoteSpectateRejoindelay);
+				IsRoomVote = true;
 				m_VoteType = VOTE_TYPE_SPECTATE;
 				m_VoteVictim = SpectateID;
 			}
 
-			if(aCmd[0] && str_comp(aCmd, "info") != 0)
-				CallVote(ClientID, aDesc, aCmd, aReason, aChatmsg, aSixupDesc[0] ? aSixupDesc : 0);
+			if(aCmd[0])
+			{
+				if(IsRoomVote)
+				{
+					SGameInstance Instance = PlayerGameInstance(ClientID);
+					if(!Instance.m_Init)
+					{
+						Console()->Print(
+							IConsole::OUTPUT_LEVEL_STANDARD,
+							"instancecommand",
+							"The room is not ready");
+					}
+					else
+					{
+						Instance.m_pController->CallVote(ClientID, aDesc, aCmd + 8, aReason, aChatmsg, aSixupDesc[0] ? aSixupDesc : 0);
+					}
+				}
+				else if(str_comp(aCmd, "info") != 0)
+				{
+					CallVote(ClientID, aDesc, aCmd, aReason, aChatmsg, aSixupDesc[0] ? aSixupDesc : 0);
+				}
+			}
 		}
 		else if(MsgID == NETMSGTYPE_CL_VOTE)
 		{
-			if(!m_VoteCloseTime)
-				return;
-
 			if(g_Config.m_SvSpamprotection && pPlayer->m_LastVoteTry && pPlayer->m_LastVoteTry + Server()->TickSpeed() * 3 > Server()->Tick())
 				return;
 
@@ -1868,6 +1888,14 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			pPlayer->m_Vote = pMsg->m_Vote;
 			pPlayer->m_VotePos = ++m_VotePos;
+
+			SGameInstance Instance = PlayerGameInstance(ClientID);
+			if(Instance.m_Init && Instance.m_pController->IsVoting())
+				Instance.m_pController->VoteUpdate();
+
+			if(!m_VoteCloseTime)
+				return;
+
 			m_VoteUpdate = true;
 		}
 		else if(MsgID == NETMSGTYPE_CL_SETTEAM && !pPlayerWorld->m_Paused)
@@ -2363,62 +2391,10 @@ void CGameContext::ConSwitchOpen(IConsole::IResult *pResult, void *pUserData)
 	}
 }
 
-void CGameContext::ConPause(IConsole::IResult *pResult, void *pUserData)
-{
-	if(!CheckClientID2(pResult->m_ClientID))
-		return;
-
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int TeamArg = 2;
-	SGameInstance Instance = pResult->NumArguments() >= TeamArg ? pSelf->GameInstance(pResult->GetInteger(TeamArg - 1)) : pSelf->PlayerGameInstance(pResult->m_ClientID);
-
-	if(!Instance.m_Init)
-		return;
-
-	if(pResult->NumArguments())
-		Instance.m_pController->DoPause(clamp(pResult->GetInteger(0), -1, 1000));
-	else
-		Instance.m_pController->DoPause(Instance.m_pController->IsGamePaused() ? 0 : IGameController::TIMER_INFINITE);
-}
-
 void CGameContext::ConChangeMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->Server()->ChangeMap(pResult->NumArguments() ? pResult->GetString(0) : "");
-}
-
-// void CGameContext::ConRandomMap(IConsole::IResult *pResult, void *pUserData)
-// {
-// 	CGameContext *pSelf = (CGameContext *)pUserData;
-
-// 	int Stars = pResult->NumArguments() ? pResult->GetInteger(0) : -1;
-
-// 	pSelf->m_pScore->RandomMap(pSelf->m_VoteCreator, Stars);
-// }
-
-// void CGameContext::ConRandomUnfinishedMap(IConsole::IResult *pResult, void *pUserData)
-// {
-// 	CGameContext *pSelf = (CGameContext *)pUserData;
-
-// 	int Stars = pResult->NumArguments() ? pResult->GetInteger(0) : -1;
-
-// 	pSelf->m_pScore->RandomUnfinishedMap(pSelf->m_VoteCreator, Stars);
-// }
-
-void CGameContext::ConRestart(IConsole::IResult *pResult, void *pUserData)
-{
-	if(!CheckClientID2(pResult->m_ClientID))
-		return;
-
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int TeamArg = 2;
-	SGameInstance Instance = pResult->NumArguments() >= TeamArg ? pSelf->GameInstance(pResult->GetInteger(TeamArg - 1)) : pSelf->PlayerGameInstance(pResult->m_ClientID);
-
-	int Seconds = pResult->NumArguments() ? clamp(pResult->GetInteger(0), -1, 1000) : 0;
-	if(Seconds < 0)
-		Instance.m_pController->AbortWarmup();
-	else
-		Instance.m_pController->DoWarmup(Seconds);
 }
 
 void CGameContext::ConBroadcast(IConsole::IResult *pResult, void *pUserData)
@@ -2474,29 +2450,6 @@ void CGameContext::ConSetTeam(IConsole::IResult *pResult, void *pUserData)
 
 	if(Team == TEAM_SPECTATORS)
 		pSelf->m_apPlayers[ClientID]->Pause(false, true);
-}
-
-void CGameContext::ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
-{
-	if(!CheckClientID2(pResult->m_ClientID))
-		return;
-
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int TeamArg = 2;
-	SGameInstance Instance = pResult->NumArguments() >= TeamArg ? pSelf->GameInstance(pResult->GetInteger(TeamArg - 1)) : pSelf->PlayerGameInstance(pResult->m_ClientID);
-
-	if(!Instance.m_Init)
-		return;
-
-	int Team = clamp(pResult->GetInteger(0), -1, 1);
-
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "All players were moved to the %s", pSelf->GameInstance(0).m_pController->GetTeamName(Team));
-	pSelf->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
-
-	for(auto &pPlayer : pSelf->m_apPlayers)
-		if(pSelf->GetPlayerDDRTeam(pPlayer->GetCID()) == Instance.m_pWorld->Team())
-			Instance.m_pController->DoTeamChange(pPlayer, Team, false);
 }
 
 void CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
@@ -2788,14 +2741,11 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("tune_zone_enter", "i[zone] r[message]", CFGFLAG_SERVER | CFGFLAG_GAME, ConTuneSetZoneMsgEnter, this, "which message to display on zone enter; use 0 for normal area");
 	Console()->Register("tune_zone_leave", "i[zone] r[message]", CFGFLAG_SERVER | CFGFLAG_GAME, ConTuneSetZoneMsgLeave, this, "which message to display on zone leave; use 0 for normal area");
 	Console()->Register("switch_open", "i[switch]", CFGFLAG_SERVER | CFGFLAG_GAME, ConSwitchOpen, this, "Whether a switch is deactivated by default (otherwise activated)");
-	Console()->Register("pause_game", "?i[seconds] ?i[room]", CFGFLAG_SERVER, ConPause, this, "Pause/unpause game");
 	Console()->Register("change_map", "?r[map]", CFGFLAG_SERVER | CFGFLAG_STORE, ConChangeMap, this, "Change map");
 
-	Console()->Register("restart", "?i[seconds] ?i[room]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRestart, this, "Restart in x seconds (0 = abort)");
 	Console()->Register("broadcast", "r[message]", CFGFLAG_SERVER, ConBroadcast, this, "Broadcast message");
 	Console()->Register("say", "r[message]", CFGFLAG_SERVER, ConSay, this, "Say in chat");
 	Console()->Register("set_team", "i[id] i[team-id] ?i[delay in minutes]", CFGFLAG_SERVER, ConSetTeam, this, "Set team of player to team");
-	Console()->Register("set_team_all", "i[team-id] ?i[room]", CFGFLAG_SERVER, ConSetTeamAll, this, "Set team of all players to team");
 
 	Console()->Register("add_vote", "s[name] r[command]", CFGFLAG_SERVER, ConAddVote, this, "Add a voting option");
 	Console()->Register("remove_vote", "r[name]", CFGFLAG_SERVER, ConRemoveVote, this, "remove a voting option");
@@ -2806,9 +2756,7 @@ void CGameContext::OnConsoleInit()
 
 	// pvp rooms
 	Console()->Register("add_gametype", "s[name] ?s[gametype] ?r[settings]", CFGFLAG_SERVER | CFGFLAG_STORE, ConAddGameType, this, "Register an gametype for rooms. First register will be the default for room 0");
-	// Console()->Register("add_gametype_vote", "s[name] s[vote-option] s[gametype] ?r[settings]", CFGFLAG_SERVER | CFGFLAG_STORE, ConAddGameType, this, "Register an gametype that can be created using in vote menu.");
-	Console()->Register("room_setting", "s[setting] ?r[arguments]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRoomSetting, this, "Change current room settings");
-	// Console()->Register("room_new", "s[name] s[gametype] ?r[settings]", CFGFLAG_SERVER, ConNewRoom, this, "Create a new room");
+	Console()->Register("room_setting", "i[setting] ?r[arguments]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRoomSetting, this, "Invoke a command in a specified room");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 
@@ -2909,21 +2857,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	LoadMapSettings();
 
 	m_MapBugs.Dump();
-
-	if(g_Config.m_SvSoloServer)
-	{
-		g_Config.m_SvTeam = 3;
-		g_Config.m_SvShowOthersDefault = 1;
-
-		Tuning()->Set("player_collision", 0);
-		Tuning()->Set("player_hooking", 0);
-
-		for(int i = 0; i < NUM_TUNEZONES; i++)
-		{
-			TuningList()[i].Set("player_collision", 0);
-			TuningList()[i].Set("player_hooking", 0);
-		}
-	}
 
 	const char *pCensorFilename = "censorlist.txt";
 	IOHANDLE File = Storage()->OpenFile(pCensorFilename, IOFLAG_READ, IStorage::TYPE_ALL);

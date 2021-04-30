@@ -92,6 +92,10 @@ void CGameContext::ConHelp(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "help",
 			"/help + any command will show you the help for this command");
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "help",
+			"/setting will show a list of all room commands");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "help",
+			"/setting help + any command will show the detail of a room command");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "help",
 			"Example /help emote will display the help about /emote");
 	}
 	else
@@ -793,6 +797,15 @@ void CGameContext::ConInstanceCommand(IConsole::IResult *pResult, void *pUserDat
 	if(!CheckClientID(ClientID))
 		return;
 
+	if(g_Config.m_SvRoomSetting == 0)
+	{
+		pSelf->Console()->Print(
+			IConsole::OUTPUT_LEVEL_STANDARD,
+			"instancecommand",
+			"/setting is disabled");
+		return;
+	}
+
 	SGameInstance Instance = pSelf->PlayerGameInstance(ClientID);
 	if(!Instance.m_Init)
 	{
@@ -814,15 +827,55 @@ void CGameContext::ConInstanceCommand(IConsole::IResult *pResult, void *pUserDat
 
 	if(pResult->NumArguments())
 	{
-		const char *pCommand = pResult->GetString(0);
+		const char *pLine = pResult->GetString(0);
 		char aBuf[256];
-		str_format(aBuf, sizeof(aBuf), "'%s' called '%s'", pSelf->Server()->ClientName(ClientID), pCommand);
-		Instance.m_pController->SendChatTarget(-1, aBuf);
-		Instance.m_pController->InstanceConsole()->ExecuteLine(pCommand);
+		Instance.m_pController->InstanceConsole()->SetFlagMask(CFGFLAG_CHAT);
+
+		const char *pArgs = str_find(pLine, " ");
+		char aCommand[128];
+		if(pArgs)
+			str_copy(aCommand, pLine, minimum((int)sizeof(aCommand), (int)(pArgs - pLine + 1)));
+		else
+			str_copy(aCommand, pLine, sizeof(aCommand));
+
+		const IConsole::CCommandInfo *pCmdInfo =
+			Instance.m_pController->InstanceConsole()->GetCommandInfo(aCommand, CFGFLAG_CHAT, false);
+
+		if(!pCmdInfo)
+		{
+			str_format(aBuf, sizeof(aBuf), "The command '%s' does not exist", aCommand);
+			Instance.m_pController->SendChatTarget(ClientID, aBuf);
+			return;
+		}
+
+		if(pCmdInfo->m_Flags & CFGFLAG_NO_CONSENT)
+			Instance.m_pController->InstanceConsole()->ExecuteLine(pLine);
+		else
+		{
+			if(g_Config.m_SvRoomSetting != 1)
+			{
+				if(pSelf->m_VoteCloseTime > 0)
+				{
+					str_format(aBuf, sizeof(aBuf), "You can not call a setting vote now, because a server vote is in progress.");
+					Instance.m_pController->SendChatTarget(ClientID, aBuf);
+				}
+				else
+				{
+					str_format(aBuf, sizeof(aBuf), "'%s' called vote to change room setting '%s'", pSelf->Server()->ClientName(ClientID), pLine);
+					Instance.m_pController->CallVote(ClientID, pLine, pLine, "/setting", aBuf, pLine);
+				}
+			}
+			else
+			{
+				str_format(aBuf, sizeof(aBuf), "'%s' called '%s'", pSelf->Server()->ClientName(ClientID), pLine);
+				Instance.m_pController->SendChatTarget(-1, aBuf);
+				Instance.m_pController->InstanceConsole()->ExecuteLine(pLine);
+			}
+		}
 	}
 	else
 	{
-		// TODO: list commands
+		Instance.m_pController->InstanceConsole()->ExecuteLine("cmdlist");
 	}
 }
 

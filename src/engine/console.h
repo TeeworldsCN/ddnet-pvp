@@ -66,6 +66,7 @@ public:
 	public:
 		CCommandInfo() { m_AccessLevel = ACCESS_LEVEL_ADMIN; }
 		virtual ~CCommandInfo() {}
+		int m_Flags;
 		const char *m_pName;
 		const char *m_pHelp;
 		const char *m_pParams;

@@ -13,7 +13,7 @@ CGameControllerTDM::CGameControllerTDM() :
 	m_pGameType = "TDM";
 	m_GameFlags = GAMEFLAG_TEAMS;
 
-	INSTANCE_CONFIG_INT(&m_RespawnDelayTDM, "respawn_delay", 3, 0, 10, "Time needed to respawn after death in tdm gametype")
+	INSTANCE_CONFIG_INT(&m_RespawnDelayTDM, "respawn_delay", 3, 0, 10, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Time needed to respawn after death in tdm gametype")
 }
 
 // event
