@@ -671,8 +671,6 @@ void CGameContext::ConDumpAntibot(IConsole::IResult *pResult, void *pUserData)
 
 void CGameContext::ConAddGameType(IConsole::IResult *pResult, void *pUserData)
 {
-	CGameContext *pSelf = (CGameContext *)pUserData;
-
 	if(pResult->NumArguments() > 2)
 		CGameTeams::AddGameType(pResult->GetString(1), pResult->GetString(0), nullptr, pResult->GetString(2));
 	else if(pResult->NumArguments() == 2)

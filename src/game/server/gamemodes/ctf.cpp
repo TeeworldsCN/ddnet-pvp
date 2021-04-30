@@ -17,7 +17,7 @@ CGameControllerCTF::CGameControllerCTF() :
 	m_apFlags[0] = 0;
 	m_apFlags[1] = 0;
 	m_pGameType = "CTF";
-	m_GameFlags = GAMEFLAG_TEAMS | GAMEFLAG_FLAGS;
+	m_GameFlags = IGF_TEAMS | IGF_FLAGS;
 }
 
 void CGameControllerCTF::OnCharacterSpawn(CCharacter *pChr)

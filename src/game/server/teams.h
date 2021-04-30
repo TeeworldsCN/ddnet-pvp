@@ -13,7 +13,7 @@ struct SGameInstance
 {
 	bool m_Init;
 	bool m_IsCreated;
-	int m_Entities;
+	unsigned int m_Entities;
 	IGameController *m_pController;
 	CGameWorld *m_pWorld;
 };

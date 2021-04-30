@@ -18,7 +18,7 @@
 		*Pointer = Default; \
 		CIntVariableData *pInt = new CIntVariableData({InstanceConsole(), Pointer, Min, Max, Default}); \
 		m_IntConfigStore.push_back(pInt); \
-		InstanceConsole()->Register(Command, "?i[value]", Flag, IntVariableCommand, pInt, Desc); \
+		InstanceConsole()->Register(Command, "?i[value]", Flag, IGameController::IntVariableCommand, pInt, Desc); \
 	}
 
 /*
@@ -122,9 +122,9 @@ class IGameController
 	char m_aSixupVoteDescription[VOTE_DESC_LENGTH];
 	char m_aVoteCommand[VOTE_CMD_LENGTH];
 	char m_aVoteReason[VOTE_REASON_LENGTH];
-	int m_NumVoteOptions;
 	int m_VoteEnforce;
 	bool m_VoteWillPass;
+	int m_VoteVictim;
 
 protected:
 	// config variables
@@ -280,7 +280,7 @@ public:
 
 	// internal events
 	void OnInternalPlayerJoin(class CPlayer *pPlayer, bool ServerJoin, bool Creating);
-	void OnInternalPlayerLeave(class CPlayer *pPlayer);
+	void OnInternalPlayerLeave(class CPlayer *pPlayer, bool ServerLeave);
 	int OnInternalCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
 	void OnInternalCharacterSpawn(class CCharacter *pChr);
 	bool OnInternalCharacterTile(class CCharacter *pChr, int MapIndex);
@@ -387,6 +387,8 @@ public:
 	void StartVote(const char *pDesc, const char *pCommand, const char *pReason, const char *pSixupDesc);
 	void EndVote(bool SendInfo);
 	bool IsVoting();
+	void SetVoteVictim(int ClientID) { m_VoteVictim = ClientID; }
+	void SetVoteType(int Type) { m_VoteType = Type; }
 	void VoteUpdate() { m_VoteUpdate = true; }
 	void SendVoteSet(int ClientID) const;
 	void SendVoteStatus(int ClientID, int Total, int Yes, int No) const;
@@ -396,6 +398,9 @@ public:
 	// Instance Config
 	static void InstanceConsolePrint(const char *pStr, void *pUser, ColorRGBA PrintColor);
 	static void ConchainReplyOnly(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+	static void IntVariableCommand(IConsole::IResult *pResult, void *pUserData);
+	static void ColVariableCommand(IConsole::IResult *pResult, void *pUserData);
+	static void StrVariableCommand(IConsole::IResult *pResult, void *pUserData);
 };
 
 #endif

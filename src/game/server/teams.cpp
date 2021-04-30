@@ -118,7 +118,7 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 	if(Team != OldTeam && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
 	{
 		if(State == TEAM_REASON_NORMAL && m_aTeamInstances[OldTeam].m_IsCreated)
-			m_aTeamInstances[OldTeam].m_pController->OnInternalPlayerLeave(GameServer()->m_apPlayers[ClientID]);
+			m_aTeamInstances[OldTeam].m_pController->OnInternalPlayerLeave(GameServer()->m_apPlayers[ClientID], false);
 		if(Count(OldTeam) <= 1 && OldTeam != TEAM_FLOCK)
 		{
 			m_aTeamState[OldTeam] = TEAMSTATE_EMPTY;
@@ -315,7 +315,7 @@ void CGameTeams::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)
 	bool WasModerator = pPlayer->m_Moderating && Server()->ClientIngame(ClientID);
 
 	if(m_aTeamInstances[m_Core.Team(ClientID)].m_IsCreated)
-		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerLeave(pPlayer);
+		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerLeave(pPlayer, true);
 
 	pPlayer->OnDisconnect();
 	if(Server()->ClientIngame(ClientID))

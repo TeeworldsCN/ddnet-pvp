@@ -1843,7 +1843,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				str_format(aSixupDesc, sizeof(aSixupDesc), "%2d: %s", SpectateID, Server()->ClientName(SpectateID));
 				str_format(aChatmsg, sizeof(aChatmsg), "'%s' called for vote to move '%s' to spectators (%s)", Server()->ClientName(ClientID), Server()->ClientName(SpectateID), aReason);
 				str_format(aDesc, sizeof(aDesc), "Move '%s' to spectators", Server()->ClientName(SpectateID));
-				str_format(aCmd, sizeof(aCmd), "setting vote_command set_team %d -1 %d", SpectateID, GetDDRaceTeam(SpectateID), SpectateID, g_Config.m_SvVoteSpectateRejoindelay);
+				str_format(aCmd, sizeof(aCmd), "setting vote_command set_team %d -1 %d", SpectateID, g_Config.m_SvVoteSpectateRejoindelay);
 				IsRoomVote = true;
 				m_VoteType = VOTE_TYPE_SPECTATE;
 				m_VoteVictim = SpectateID;
@@ -1863,6 +1863,9 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					}
 					else
 					{
+						Instance.m_pController->SetVoteType(m_VoteType);
+						if(m_VoteType == VOTE_TYPE_KICK || m_VoteType == VOTE_TYPE_SPECTATE)
+							Instance.m_pController->SetVoteVictim(m_VoteVictim);
 						Instance.m_pController->CallVote(ClientID, aDesc, aCmd + 8, aReason, aChatmsg, aSixupDesc[0] ? aSixupDesc : 0);
 					}
 				}
