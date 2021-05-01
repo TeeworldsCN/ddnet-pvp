@@ -124,17 +124,17 @@ class CCharacter *CGameContext::GetPlayerChar(int ClientID)
 
 SGameInstance CGameContext::GameInstance(int Team)
 {
-	return m_pTeams->GetGameInstance(Team);
+	return Teams()->GetGameInstance(Team);
 }
 
 SGameInstance CGameContext::PlayerGameInstance(int ClientID)
 {
-	return m_pTeams->GetGameInstance(m_pTeams->m_Core.Team(ClientID));
+	return Teams()->GetGameInstance(Teams()->m_Core.Team(ClientID));
 }
 
 int CGameContext::GetPlayerDDRTeam(int ClientID)
 {
-	return m_pTeams->m_Core.Team(ClientID);
+	return Teams()->m_Core.Team(ClientID);
 }
 
 bool CGameContext::EmulateBug(int Bug)
@@ -251,7 +251,7 @@ void CGameContext::SendChatTarget(int To, const char *pText, int Flags)
 void CGameContext::SendChatTeam(int Team, const char *pText)
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)
-		if(m_pTeams->m_Core.Team(i) == Team)
+		if(Teams()->m_Core.Team(i) == Team)
 			SendChatTarget(i, pText);
 }
 
@@ -300,7 +300,7 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText, in
 	}
 	else
 	{
-		CTeamsCore *Teams = &m_pTeams->m_Core;
+		CTeamsCore *Teams = &m_Teams.m_Core;
 		CNetMsg_Sv_Chat Msg;
 		Msg.m_Team = 1;
 		Msg.m_ClientID = ChatterClientID;
@@ -704,7 +704,7 @@ void CGameContext::OnTick()
 		m_TeeHistorian.BeginPlayers();
 	}
 
-	m_pTeams->OnTick();
+	Teams()->OnTick();
 	UpdatePlayerMaps(); // TODO: check if this need to be ticked before controller
 
 	if(m_TeeHistorianActive)
@@ -1058,7 +1058,7 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 
 void CGameContext::OnClientEnter(int ClientID)
 {
-	m_pTeams->OnPlayerConnect(m_apPlayers[ClientID]);
+	Teams()->OnPlayerConnect(m_apPlayers[ClientID]);
 
 	if(Server()->IsSixup(ClientID))
 	{
@@ -1204,7 +1204,7 @@ void CGameContext::OnClientConnected(int ClientID, void *pData)
 
 void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 {
-	m_pTeams->OnPlayerDisconnect(m_apPlayers[ClientID], pReason);
+	Teams()->OnPlayerDisconnect(m_apPlayers[ClientID], pReason);
 	delete m_apPlayers[ClientID];
 	m_apPlayers[ClientID] = 0;
 
@@ -1281,7 +1281,7 @@ bool CGameContext::OnClientDDNetVersionKnown(int ClientID)
 		pPlayer->m_TimerType = g_Config.m_SvDefaultTimerType;
 
 	// First update the teams state.
-	m_pTeams->SendTeamsState(ClientID);
+	Teams()->SendTeamsState(ClientID);
 
 	// Then send records.
 	// SendRecord(ClientID);
@@ -1543,7 +1543,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			pPlayer->UpdatePlaytime();
 
-			int GameTeam = m_pTeams->m_Core.Team(pPlayer->GetCID());
+			int GameTeam = Teams()->m_Core.Team(pPlayer->GetCID());
 			if(Team)
 				Team = ((pPlayer->GetTeam() == -1) ? CHAT_SPEC : GameTeam);
 			else
@@ -1920,7 +1920,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				return;
 			}
 
-			int DDRTeam = m_pTeams->m_Core.Team(ClientID);
+			int DDRTeam = Teams()->m_Core.Team(ClientID);
 
 			// Switch team on given client and kill/respawn him
 			if(GameInstance(DDRTeam).m_pController->CanJoinTeam(pMsg->m_Team, ClientID))
@@ -2758,10 +2758,10 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("dump_antibot", "", CFGFLAG_SERVER, ConDumpAntibot, this, "Dumps the antibot status");
 
 	// backwards compatible
-	Console()->Register("sv_gametype", "s[gametype] ?r[settings]", CFGFLAG_SERVER | CFGFLAG_STORE, ConSetDefaultGameType, this, "Set a default gametype for room 0. The default game type won't be avalible for room id >1");
-	Console()->Register("add_gametype", "s[name] ?s[gametype] ?r[settings]", CFGFLAG_SERVER | CFGFLAG_STORE, ConAddGameType, this, "Register an gametype for rooms. First register will be the default for room 0");
-	Console()->Register("add_gametypefile", "s[name] s[gametype] r[filename]", CFGFLAG_SERVER | CFGFLAG_STORE, ConAddGameTypeFile, this, "Register an gametype for rooms. First register will be the default for room 0");
-	Console()->Register("room_setting", "i[room] ?r[settings]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRoomSetting, this, "Invoke a command in a specified room");
+	Console()->Register("sv_gametype", "s[gametype] ?r[settings]", CFGFLAG_SERVER, ConSetDefaultGameType, this, "Set a default gametype for room 0. The default game type won't be avalible for room id >1");
+	Console()->Register("add_gametype", "s[name] ?s[gametype] ?r[settings]", CFGFLAG_SERVER, ConAddGameType, this, "Register an gametype for rooms. First register will be the default for room 0");
+	Console()->Register("add_gametypefile", "s[name] s[gametype] r[filename]", CFGFLAG_SERVER, ConAddGameTypeFile, this, "Register an gametype for rooms. First register will be the default for room 0");
+	Console()->Register("room_setting", "i[room] ?r[settings]", CFGFLAG_SERVER, ConRoomSetting, this, "Invoke a command in a specified room");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 
@@ -2798,7 +2798,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 
 	m_Layers.Init(Kernel());
 	m_Collision.Init(&m_Layers, &m_Prng);
-	m_pTeams = new CGameTeams(this);
+	m_Teams.Init(this);
 
 	char aMapName[128];
 	int MapSize;
@@ -2985,7 +2985,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 			{
 				vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
 				//m_pController->OnEntity(Index-ENTITY_OFFSET, Pos);
-				m_pTeams->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_GAME, pTiles[y * pTileMap->m_Width + x].m_Flags);
+				Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_GAME, pTiles[y * pTileMap->m_Width + x].m_Flags);
 			}
 
 			if(pFront)
@@ -3014,7 +3014,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				if(Index >= ENTITY_OFFSET)
 				{
 					vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
-					m_pTeams->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_FRONT, pFront[y * pTileMap->m_Width + x].m_Flags);
+					Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_FRONT, pFront[y * pTileMap->m_Width + x].m_Flags);
 				}
 			}
 			if(pSwitch)
@@ -3025,7 +3025,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				if(Index >= ENTITY_OFFSET)
 				{
 					vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
-					m_pTeams->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_SWITCH, pSwitch[y * pTileMap->m_Width + x].m_Flags, pSwitch[y * pTileMap->m_Width + x].m_Number);
+					Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_SWITCH, pSwitch[y * pTileMap->m_Width + x].m_Flags, pSwitch[y * pTileMap->m_Width + x].m_Number);
 				}
 			}
 		}
@@ -3178,7 +3178,7 @@ void CGameContext::OnMapChange(char *pNewMapName, int MapNameSize)
 	str_copy(m_aDeleteTempfile, aTemp, sizeof(m_aDeleteTempfile));
 }
 
-void CGameContext::OnShutdown()
+void CGameContext::OnShutdown(bool FullShutdown)
 {
 	Antibot()->RoundEnd();
 
@@ -3200,7 +3200,9 @@ void CGameContext::OnShutdown()
 	Console()->ResetServerGameSettings();
 	Collision()->Dest();
 	Clear();
-	delete m_pTeams;
+
+	if(FullShutdown)
+		m_Teams.ClearGameTypes();
 }
 
 void CGameContext::LoadMapSettings()
@@ -3252,7 +3254,7 @@ void CGameContext::OnSnap(int ClientID)
 		Server()->SendMsg(&Msg, MSGFLAG_RECORD | MSGFLAG_NOSEND, ClientID);
 	}
 
-	m_pTeams->OnSnap(ClientID);
+	Teams()->OnSnap(ClientID);
 
 	for(auto &pPlayer : m_apPlayers)
 	{
@@ -3266,7 +3268,7 @@ void CGameContext::OnSnap(int ClientID)
 void CGameContext::OnPreSnap() {}
 void CGameContext::OnPostSnap()
 {
-	m_pTeams->OnPostSnap();
+	Teams()->OnPostSnap();
 }
 
 bool CGameContext::IsPlayerValid(int ClientID) const
@@ -3449,7 +3451,7 @@ int CGameContext::ProcessSpamProtection(int ClientID)
 
 int CGameContext::GetDDRaceTeam(int ClientID)
 {
-	return m_pTeams->m_Core.Team(ClientID);
+	return Teams()->m_Core.Team(ClientID);
 }
 
 void CGameContext::ResetTuning()

@@ -2389,6 +2389,9 @@ int CServer::Run()
 		return -1;
 	}
 
+	// Late chain to avoid double map load
+	Console()->Chain("sv_map", ConchainMapUpdate, this);
+
 	if(g_Config.m_SvSqliteFile[0] != '\0')
 	{
 		auto pSqlServers = std::unique_ptr<IDbConnection>(CreateSqliteConnection(
@@ -2501,7 +2504,7 @@ int CServer::Run()
 						}
 					}
 
-					GameServer()->OnShutdown();
+					GameServer()->OnShutdown(false);
 
 					for(int ClientID = 0; ClientID < MAX_CLIENTS; ClientID++)
 					{
@@ -2693,7 +2696,7 @@ int CServer::Run()
 	m_Fifo.Shutdown();
 #endif
 
-	GameServer()->OnShutdown();
+	GameServer()->OnShutdown(true);
 	m_pMap->Unload();
 
 	DbPool()->OnShutdown();
@@ -3478,7 +3481,6 @@ void CServer::RegisterCommands()
 
 	Console()->Chain("sv_name", ConchainSpecialInfoupdate, this);
 	Console()->Chain("password", ConchainSpecialInfoupdate, this);
-	Console()->Chain("sv_map", ConchainMapUpdate, this);
 
 	Console()->Chain("sv_max_clients_per_ip", ConchainMaxclientsperipUpdate, this);
 	Console()->Chain("access_level", ConchainCommandAccessUpdate, this);

@@ -70,8 +70,8 @@ void CPickup::Tick()
 	for(int i = 0; i < Num; ++i)
 	{
 		CCharacter *pChr = apEnts[i];
-		bool isSoloInteract = (m_SoloSpawnTick[pChr->GetPlayer()->GetCID()] < 0) && GameServer()->m_pTeams->m_Core.GetSolo(i);
-		bool isNormalInteract = m_SpawnTick < 0 && !GameServer()->m_pTeams->m_Core.GetSolo(i);
+		bool isSoloInteract = (m_SoloSpawnTick[pChr->GetPlayer()->GetCID()] < 0) && GameServer()->Teams()->m_Core.GetSolo(i);
+		bool isNormalInteract = m_SpawnTick < 0 && !GameServer()->Teams()->m_Core.GetSolo(i);
 
 		if(pChr && pChr->IsAlive() && (isSoloInteract || isNormalInteract))
 		{

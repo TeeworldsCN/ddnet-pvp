@@ -108,8 +108,8 @@ static void ConKick(IConsole::IResult *pResult, void *pUserData)
 		pSelf->GameServer()->Console()->ExecuteLine(pResult->GetString(1));
 	else
 	{
-		if(pSelf->GameServer()->m_pTeams->SetForcePlayerTeam(VictimID, 0, CGameTeams::TEAM_REASON_FORCE, nullptr))
-			pSelf->GameServer()->m_pTeams->SetClientInvited(pSelf->GameWorld()->Team(), VictimID, false);
+		if(pSelf->GameServer()->Teams()->SetForcePlayerTeam(VictimID, 0, CGameTeams::TEAM_REASON_FORCE, nullptr))
+			pSelf->GameServer()->Teams()->SetClientInvited(pSelf->GameWorld()->Team(), VictimID, false);
 		else
 			pSelf->GameServer()->Console()->ExecuteLine(pResult->GetString(1));
 	}
@@ -460,7 +460,7 @@ int IGameController::OnInternalCharacterDeath(CCharacter *pVictim, CPlayer *pKil
 	int DeathFlag = OnCharacterDeath(pVictim, pKiller, Weapon);
 
 	if(!(DeathFlag & DEATH_KEEP_SOLO))
-		GameServer()->m_pTeams->m_Core.SetSolo(pVictim->GetPlayer()->GetCID(), false);
+		GameServer()->Teams()->m_Core.SetSolo(pVictim->GetPlayer()->GetCID(), false);
 
 	if(!(DeathFlag & DEATH_SKIP_SCORE))
 	{
@@ -509,12 +509,12 @@ bool IGameController::OnInternalCharacterTile(CCharacter *pChr, int MapIndex)
 	int m_TileFIndex = GameServer()->Collision()->GetFTileIndex(MapIndex);
 
 	// solo part
-	if(((m_TileIndex == TILE_SOLO_ENABLE) || (m_TileFIndex == TILE_SOLO_ENABLE)) && !GameServer()->m_pTeams->m_Core.GetSolo(ClientID))
+	if(((m_TileIndex == TILE_SOLO_ENABLE) || (m_TileFIndex == TILE_SOLO_ENABLE)) && !GameServer()->Teams()->m_Core.GetSolo(ClientID))
 	{
 		GameServer()->SendChatTarget(ClientID, "You are now in a solo part");
 		pChr->SetSolo(true);
 	}
-	else if(((m_TileIndex == TILE_SOLO_DISABLE) || (m_TileFIndex == TILE_SOLO_DISABLE)) && GameServer()->m_pTeams->m_Core.GetSolo(ClientID))
+	else if(((m_TileIndex == TILE_SOLO_DISABLE) || (m_TileFIndex == TILE_SOLO_DISABLE)) && GameServer()->Teams()->m_Core.GetSolo(ClientID))
 	{
 		GameServer()->SendChatTarget(ClientID, "You are now out of the solo part");
 		pChr->SetSolo(false);

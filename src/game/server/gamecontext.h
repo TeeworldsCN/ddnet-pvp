@@ -9,6 +9,7 @@
 
 #include <game/layers.h>
 #include <game/mapbugs.h>
+#include <game/server/teams.h>
 #include <game/voting.h>
 
 #include <base/tl/array.h>
@@ -85,6 +86,7 @@ class CGameContext : public IGameServer
 	IAntibot *m_pAntibot;
 	CLayers m_Layers;
 	CCollision m_Collision;
+	CGameTeams m_Teams;
 	protocol7::CNetObjHandler m_NetObjHandler7;
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_Tuning;
@@ -152,6 +154,7 @@ public:
 	IEngine *Engine() { return m_pEngine; }
 	IStorage *Storage() { return m_pStorage; }
 	CCollision *Collision() { return &m_Collision; }
+	CGameTeams *Teams() { return &m_Teams; }
 	CTuningParams *Tuning() { return &m_Tuning; }
 	CTuningParams *TuningList() { return &m_aTuningList[0]; }
 	IAntibot *Antibot() { return m_pAntibot; }
@@ -164,8 +167,6 @@ public:
 	void Clear();
 
 	CPlayer *m_apPlayers[MAX_CLIENTS];
-
-	CGameTeams *m_pTeams;
 
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
@@ -242,7 +243,7 @@ public:
 	virtual void OnInit();
 	virtual void OnConsoleInit();
 	virtual void OnMapChange(char *pNewMapName, int MapNameSize);
-	virtual void OnShutdown();
+	virtual void OnShutdown(bool FullShutdown);
 
 	virtual void OnTick();
 	virtual void OnPreSnap();

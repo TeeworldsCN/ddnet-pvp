@@ -62,7 +62,7 @@ public:
 	class CConfig *Config() { return m_pGameServer->Config(); }
 	class CGameContext *GameServer() { return m_pGameServer; }
 	class IServer *Server() { return m_pGameServer->Server(); }
-	class CGameTeams *Teams() { return m_pGameServer->m_pTeams; }
+	class CGameTeams *Teams() { return m_pGameServer->Teams(); }
 
 	/* Getters */
 	CEntity *TypeNext() { return m_pNextTypeEntity; }

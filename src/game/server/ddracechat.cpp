@@ -275,7 +275,7 @@ void CGameContext::ConLockTeam(IConsole::IResult *pResult, void *pUserData)
 
 	int Team = pSelf->GetPlayerDDRTeam(pResult->m_ClientID);
 
-	bool Lock = pSelf->m_pTeams->TeamLocked(Team);
+	bool Lock = pSelf->Teams()->TeamLocked(Team);
 
 	if(pResult->NumArguments() > 0)
 		Lock = !pResult->GetInteger(0);
@@ -299,7 +299,7 @@ void CGameContext::ConLockTeam(IConsole::IResult *pResult, void *pUserData)
 	}
 	else
 	{
-		pSelf->m_pTeams->SetTeamLock(Team, true);
+		pSelf->Teams()->SetTeamLock(Team, true);
 
 		str_format(aBuf, sizeof(aBuf), "'%s' locked your team. After the race starts, killing will kill everyone in your team.", pSelf->Server()->ClientName(pResult->m_ClientID));
 
@@ -335,7 +335,7 @@ void CGameContext::ConUnlockTeam(IConsole::IResult *pResult, void *pUserData)
 
 void CGameContext::UnlockTeam(int ClientID, int Team)
 {
-	m_pTeams->SetTeamLock(Team, false);
+	Teams()->SetTeamLock(Team, false);
 
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "'%s' unlocked your team.", Server()->ClientName(ClientID));
@@ -383,7 +383,7 @@ void CGameContext::ConInviteTeam(IConsole::IResult *pResult, void *pUserData)
 			return;
 		}
 
-		if(pSelf->m_pTeams->IsInvited(Team, Target))
+		if(pSelf->Teams()->IsInvited(Team, Target))
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "invite", "Player already invited");
 			return;
@@ -395,7 +395,7 @@ void CGameContext::ConInviteTeam(IConsole::IResult *pResult, void *pUserData)
 			return;
 		}
 
-		pSelf->m_pTeams->SetClientInvited(Team, Target, true);
+		pSelf->Teams()->SetClientInvited(Team, Target, true);
 		pSelf->m_apPlayers[pResult->m_ClientID]->m_LastInvited = pSelf->Server()->Tick();
 
 		char aBuf[512];
@@ -469,25 +469,25 @@ void CGameContext::ConJoinOrCreateTeam(IConsole::IResult *pResult, void *pUserDa
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			"You can\'t change rooms that fast!");
 	}
-	else if(!pSelf->m_pTeams->CanSwitchTeam(pPlayer->GetCID()))
+	else if(!pSelf->Teams()->CanSwitchTeam(pPlayer->GetCID()))
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			"You can\'t change rooms at this time.");
 	}
-	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->m_pTeams->TeamLocked(Team) && !pSelf->m_pTeams->IsInvited(Team, pResult->m_ClientID))
+	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->Teams()->TeamLocked(Team) && !pSelf->Teams()->IsInvited(Team, pResult->m_ClientID))
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			g_Config.m_SvInvite ?
                                 "This room is locked using /lock. Only members of the room can unlock it using /lock." :
                                 "This room is locked using /lock. Only members of the room can invite you or unlock it using /lock.");
 	}
-	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->m_pTeams->Count(Team) >= g_Config.m_SvTeamMaxSize)
+	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->Teams()->Count(Team) >= g_Config.m_SvTeamMaxSize)
 	{
 		char aBuf[512];
 		str_format(aBuf, sizeof(aBuf), "This room already has the maximum allowed size of %d players", g_Config.m_SvTeamMaxSize);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", aBuf);
 	}
-	else if(const char *pError = pSelf->m_pTeams->SetPlayerTeam(pPlayer->GetCID(), Team, pGameType))
+	else if(const char *pError = pSelf->Teams()->SetPlayerTeam(pPlayer->GetCID(), Team, pGameType))
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", pError);
 	}
@@ -535,25 +535,25 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			"You can\'t change rooms that fast!");
 	}
-	else if(!pSelf->m_pTeams->CanSwitchTeam(pPlayer->GetCID()))
+	else if(!pSelf->Teams()->CanSwitchTeam(pPlayer->GetCID()))
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			"You can\'t change rooms at this time.");
 	}
-	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->m_pTeams->TeamLocked(Team) && !pSelf->m_pTeams->IsInvited(Team, pResult->m_ClientID))
+	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->Teams()->TeamLocked(Team) && !pSelf->Teams()->IsInvited(Team, pResult->m_ClientID))
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			g_Config.m_SvInvite ?
                                 "This room is locked using /lock. Only members of the room can unlock it using /lock." :
                                 "This room is locked using /lock. Only members of the room can invite you or unlock it using /lock.");
 	}
-	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->m_pTeams->Count(Team) >= g_Config.m_SvTeamMaxSize)
+	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->Teams()->Count(Team) >= g_Config.m_SvTeamMaxSize)
 	{
 		char aBuf[512];
 		str_format(aBuf, sizeof(aBuf), "This room already has the maximum allowed size of %d players", g_Config.m_SvTeamMaxSize);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", aBuf);
 	}
-	else if(const char *pError = pSelf->m_pTeams->SetPlayerTeam(pPlayer->GetCID(), Team, nullptr))
+	else if(const char *pError = pSelf->Teams()->SetPlayerTeam(pPlayer->GetCID(), Team, nullptr))
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", pError);
 	}
@@ -594,7 +594,7 @@ void CGameContext::ConCreateTeam(IConsole::IResult *pResult, void *pUserData)
 		pPlayer->GetCharacter()->m_LastStartWarning = pSelf->Server()->Tick();
 	}
 
-	int Team = pSelf->m_pTeams->FindAEmptyTeam();
+	int Team = pSelf->Teams()->FindAEmptyTeam();
 	if(Team < 0)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
@@ -607,25 +607,25 @@ void CGameContext::ConCreateTeam(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			"You can\'t change rooms that fast!");
 	}
-	else if(!pSelf->m_pTeams->CanSwitchTeam(pPlayer->GetCID()))
+	else if(!pSelf->Teams()->CanSwitchTeam(pPlayer->GetCID()))
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			"You can\'t change rooms at this time.");
 	}
-	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->m_pTeams->TeamLocked(Team) && !pSelf->m_pTeams->IsInvited(Team, pResult->m_ClientID))
+	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->Teams()->TeamLocked(Team) && !pSelf->Teams()->IsInvited(Team, pResult->m_ClientID))
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			g_Config.m_SvInvite ?
                                 "This room is locked using /lock. Only members of the room can unlock it using /lock." :
                                 "This room is locked using /lock. Only members of the room can invite you or unlock it using /lock.");
 	}
-	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->m_pTeams->Count(Team) >= g_Config.m_SvTeamMaxSize)
+	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->Teams()->Count(Team) >= g_Config.m_SvTeamMaxSize)
 	{
 		char aBuf[512];
 		str_format(aBuf, sizeof(aBuf), "This room already has the maximum allowed size of %d players", g_Config.m_SvTeamMaxSize);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", aBuf);
 	}
-	else if(const char *pError = pSelf->m_pTeams->SetPlayerTeam(pPlayer->GetCID(), Team, pGameType))
+	else if(const char *pError = pSelf->Teams()->SetPlayerTeam(pPlayer->GetCID(), Team, pGameType))
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", pError);
 	}

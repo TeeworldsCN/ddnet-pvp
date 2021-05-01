@@ -3,7 +3,6 @@
 #define GAME_SERVER_TEAMS_H
 
 #include <engine/shared/config.h>
-#include <game/server/gamecontext.h>
 #include <game/teamscore.h>
 
 #include <utility>
@@ -14,8 +13,8 @@ struct SGameInstance
 	bool m_Init;
 	bool m_IsCreated;
 	unsigned int m_Entities;
-	IGameController *m_pController;
-	CGameWorld *m_pWorld;
+	class IGameController *m_pController;
+	class CGameWorld *m_pWorld;
 };
 
 struct SGameType
@@ -67,27 +66,12 @@ public:
 
 	CTeamsCore m_Core;
 
-	CGameTeams(CGameContext *pGameContext);
+	CGameTeams();
 	~CGameTeams();
 
-	// helper methods
-	CCharacter *Character(int ClientID)
-	{
-		return GameServer()->GetPlayerChar(ClientID);
-	}
-	CPlayer *GetPlayer(int ClientID)
-	{
-		return GameServer()->m_apPlayers[ClientID];
-	}
+	void Init(class CGameContext *pGameServer);
 
-	class CGameContext *GameServer()
-	{
-		return m_pGameContext;
-	}
-	class IServer *Server()
-	{
-		return m_pGameContext->Server();
-	}
+	class CGameContext *GameServer() { return m_pGameContext; }
 
 	// returns nullptr if successful, error string if failed
 	const char *SetPlayerTeam(int ClientID, int Team, const char *pGameType);
@@ -115,45 +99,19 @@ public:
 	void ResetInvited(int Team);
 	void SetClientInvited(int Team, int ClientID, bool Invited);
 
-	int GetTeamState(int Team)
-	{
-		return m_aTeamState[Team];
-	}
-
-	bool TeamLocked(int Team)
-	{
-		if(Team <= TEAM_FLOCK || Team >= TEAM_SUPER)
-			return false;
-
-		return m_aTeamLocked[Team];
-	}
-
-	bool IsInvited(int Team, int ClientID)
-	{
-		return m_aInvited[Team] & 1LL << ClientID;
-	}
-
-	int CanSwitchTeam(int ClientID)
-	{
-		SGameInstance Instance = GetPlayerGameInstance(ClientID);
-		return Instance.m_Init && !Instance.m_pWorld->m_Paused;
-	}
-
-	int FindAEmptyTeam()
-	{
-		for(int i = 1; i < MAX_CLIENTS; ++i)
-			if(m_aTeamState[i] == TEAMSTATE_EMPTY)
-				return i;
-		return -1;
-	}
+	int GetTeamState(int Team);
+	bool TeamLocked(int Team);
+	bool IsInvited(int Team, int ClientID);
+	int CanSwitchTeam(int ClientID);
+	int FindAEmptyTeam();
 
 	// Game Instances
 	SGameInstance GetGameInstance(int Team);
 	SGameInstance GetPlayerGameInstance(int ClientID);
 	bool CreateGameInstance(int Team, const char *pGameName, int Asker);
 	void DestroyGameInstance(int Team);
-	void OnPlayerConnect(CPlayer *pPlayer);
-	void OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason);
+	void OnPlayerConnect(class CPlayer *pPlayer);
+	void OnPlayerDisconnect(class CPlayer *pPlayer, const char *pReason);
 	void OnTick();
 	void OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
 	void OnSnap(int SnappingClient);

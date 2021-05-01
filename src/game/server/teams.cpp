@@ -10,19 +10,28 @@
 #include "gamemodes.h"
 #include "gamemodes/dm.h"
 
-CGameTeams::CGameTeams(CGameContext *pGameContext) :
-	m_pGameContext(pGameContext)
+CGameTeams::CGameTeams()
 {
+	m_pGameContext = nullptr;
 	mem_zero(m_aTeamInstances, sizeof(m_aTeamInstances));
-	Reset();
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		m_aTeamState[i] = TEAMSTATE_EMPTY;
+		m_aTeamLocked[i] = false;
+		m_aInvited[i] = 0;
+	}
 }
 
 CGameTeams::~CGameTeams()
 {
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 		DestroyGameInstance(i);
+}
 
-	ClearGameTypes();
+void CGameTeams::Init(CGameContext *pGameServer)
+{
+	m_pGameContext = pGameServer;
+	CreateGameInstance(0, nullptr, -1);
 }
 
 void CGameTeams::Reset()
@@ -35,7 +44,6 @@ void CGameTeams::Reset()
 		m_aTeamLocked[i] = false;
 		m_aInvited[i] = 0;
 	}
-	CreateGameInstance(0, nullptr, -1);
 }
 
 void CGameTeams::ResetRoundState(int Team)
@@ -68,7 +76,7 @@ const char *CGameTeams::SetPlayerTeam(int ClientID, int Team, const char *pGameT
 	if(m_Core.Team(ClientID) == Team)
 		return "You are in this room already";
 
-	CCharacter *pChar = Character(ClientID);
+	CCharacter *pChar = GameServer()->GetPlayerChar(ClientID);
 	if(pChar)
 	{
 		if(Team == TEAM_SUPER && !pChar->m_Super)
@@ -85,7 +93,7 @@ const char *CGameTeams::SetPlayerTeam(int ClientID, int Team, const char *pGameT
 
 bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const char *pGameType)
 {
-	CPlayer *pPlayer = GetPlayer(ClientID);
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientID];
 	if(!pPlayer)
 		return false;
 
@@ -128,7 +136,7 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], false, false);
 
 		for(int LoopClientID = 0; LoopClientID < MAX_CLIENTS; ++LoopClientID)
-			if(GetPlayer(LoopClientID))
+			if(GameServer()->IsPlayerValid(LoopClientID))
 				SendTeamsState(LoopClientID);
 	}
 
@@ -174,7 +182,7 @@ void CGameTeams::SendTeamsState(int ClientID)
 	for(unsigned i = 0; i < MAX_CLIENTS; i++)
 		Msg.AddInt(m_Core.Team(i));
 
-	Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
+	GameServer()->Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
 }
 
 void CGameTeams::SetTeamLock(int Team, bool Lock)
@@ -304,10 +312,10 @@ void CGameTeams::OnPlayerConnect(CPlayer *pPlayer)
 	if(m_aTeamInstances[m_Core.Team(ClientID)].m_IsCreated)
 		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerJoin(pPlayer, true, false);
 
-	if(!Server()->ClientPrevIngame(ClientID))
+	if(!GameServer()->Server()->ClientPrevIngame(ClientID))
 	{
 		char aBuf[512];
-		str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam());
+		str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, GameServer()->Server()->ClientName(ClientID), pPlayer->GetTeam());
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
 		GameServer()->SendChatTarget(ClientID, "DDNet PvP Mod. Version: " GAME_VERSION);
@@ -318,29 +326,29 @@ void CGameTeams::OnPlayerConnect(CPlayer *pPlayer)
 void CGameTeams::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)
 {
 	int ClientID = pPlayer->GetCID();
-	bool WasModerator = pPlayer->m_Moderating && Server()->ClientIngame(ClientID);
+	bool WasModerator = pPlayer->m_Moderating && GameServer()->Server()->ClientIngame(ClientID);
 
 	if(m_aTeamInstances[m_Core.Team(ClientID)].m_IsCreated)
 		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerLeave(pPlayer, true);
 
 	pPlayer->OnDisconnect();
-	if(Server()->ClientIngame(ClientID))
+	if(GameServer()->Server()->ClientIngame(ClientID))
 	{
 		char aBuf[512];
 		if(pReason && *pReason)
-			str_format(aBuf, sizeof(aBuf), "'%s' has left the game (%s)", Server()->ClientName(ClientID), pReason);
+			str_format(aBuf, sizeof(aBuf), "'%s' has left the game (%s)", GameServer()->Server()->ClientName(ClientID), pReason);
 		else
-			str_format(aBuf, sizeof(aBuf), "'%s' has left the game", Server()->ClientName(ClientID));
+			str_format(aBuf, sizeof(aBuf), "'%s' has left the game", GameServer()->Server()->ClientName(ClientID));
 		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CGameContext::CHAT_SIX);
 
-		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", ClientID, Server()->ClientName(ClientID));
+		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", ClientID, GameServer()->Server()->ClientName(ClientID));
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
 	}
 
 	if(!GameServer()->PlayerModerating() && WasModerator)
 		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, "Server kick/spec votes are no longer actively moderated.");
 
-	GameServer()->m_pTeams->SetForcePlayerTeam(ClientID, TEAM_FLOCK, TEAM_REASON_DISCONNECT);
+	SetForcePlayerTeam(ClientID, TEAM_FLOCK, TEAM_REASON_DISCONNECT);
 }
 
 void CGameTeams::OnTick()
@@ -407,7 +415,7 @@ void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 
 void CGameTeams::OnSnap(int SnappingClient)
 {
-	CPlayer *pPlayer = GetPlayer(SnappingClient);
+	CPlayer *pPlayer = GameServer()->m_apPlayers[SnappingClient];
 	int ShowOthers = pPlayer->m_ShowOthers;
 
 	int SnapAs = SnappingClient;
@@ -444,8 +452,40 @@ void CGameTeams::OnPostSnap()
 			m_aTeamInstances[i].m_pWorld->OnPostSnap();
 }
 
+int CGameTeams::GetTeamState(int Team)
+{
+	return m_aTeamState[Team];
+}
+
+bool CGameTeams::TeamLocked(int Team)
+{
+	if(Team <= TEAM_FLOCK || Team >= TEAM_SUPER)
+		return false;
+
+	return m_aTeamLocked[Team];
+}
+
+bool CGameTeams::IsInvited(int Team, int ClientID)
+{
+	return m_aInvited[Team] & 1LL << ClientID;
+}
+
+int CGameTeams::CanSwitchTeam(int ClientID)
+{
+	SGameInstance Instance = GetPlayerGameInstance(ClientID);
+	return Instance.m_Init && !Instance.m_pWorld->m_Paused;
+}
+
+int CGameTeams::FindAEmptyTeam()
+{
+	for(int i = 1; i < MAX_CLIENTS; ++i)
+		if(m_aTeamState[i] == TEAMSTATE_EMPTY)
+			return i;
+	return -1;
+}
 std::vector<SGameType> CGameTeams::m_GameTypes;
-SGameType CGameTeams::m_DefaultGameType = {0, 0, 0, false};
+SGameType CGameTeams::m_DefaultGameType = {nullptr, nullptr, nullptr, false};
+
 void CGameTeams::SetDefaultGameType(const char *pGameType, const char *pSettings, bool IsFile)
 {
 	bool IsValidGameType = false;
