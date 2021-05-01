@@ -988,7 +988,6 @@ int CPlayer::Pause(bool Paused, bool Force)
 	if(!m_pCharacter)
 		return 0;
 
-	char aBuf[128];
 	if(Paused != m_Paused)
 	{
 		// Update state

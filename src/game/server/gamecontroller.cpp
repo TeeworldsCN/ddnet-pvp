@@ -170,6 +170,8 @@ IGameController::IGameController()
 	m_aVoteReason[0] = 0;
 	m_VoteEnforce = 0;
 	m_VoteWillPass = false;
+	m_VoteType = VOTE_TYPE_UNKNOWN;
+	m_VoteVictim = -1;
 
 	// fake client broadcast
 	mem_zero(m_aFakeClientBroadcast, sizeof(m_aFakeClientBroadcast));
@@ -203,7 +205,7 @@ IGameController::IGameController()
 
 	// vote helper
 	m_pInstanceConsole->Register("vote_kick", "i[id] r[real-command]", CFGFLAG_INSTANCE, ConKick, this, "Helper command for vote kicking, it is not recommended to call this directly");
-	m_pInstanceConsole->Register("vote_command", "r[real-command]", CFGFLAG_INSTANCE, ConVoteCommand, this, "Helper command for vote kicking, it is not recommended to call this directly");
+	m_pInstanceConsole->Register("vote_command", "r[real-command]", CFGFLAG_INSTANCE, ConVoteCommand, this, "Helper command for vote commands, it is not recommended to call this directly");
 }
 
 IGameController::~IGameController()
@@ -784,7 +786,7 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	m_VoteUpdate = true;
 }
 
-void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer)
+void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer, bool ServerLeave)
 {
 	int ClientID = pPlayer->GetCID();
 
@@ -805,6 +807,10 @@ void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer)
 	CheckReadyStates(ClientID);
 	OnPlayerLeave(pPlayer);
 
+	if(m_VoteVictim == ClientID && (GameWorld()->Team() > 0 || ServerLeave))
+	{
+		EndVote(true);
+	}
 	m_VoteUpdate = true;
 }
 
@@ -1942,10 +1948,8 @@ int IGameController::GetStartTeam()
 	int Team = TEAM_RED;
 	if(IsTeamplay())
 	{
-#ifdef CONF_DEBUG
-		if(!Config()->m_DbgStress) // this will force the auto balancer to work overtime aswell
-			Team = m_aTeamSize[TEAM_RED] > m_aTeamSize[TEAM_BLUE] ? TEAM_BLUE : TEAM_RED;
-#endif // CONF_DEBUG
+		// this will force the auto balancer to work overtime aswell
+		Team = m_aTeamSize[TEAM_RED] > m_aTeamSize[TEAM_BLUE] ? TEAM_BLUE : TEAM_RED;
 	}
 
 	// check if there're enough player slots left
@@ -2047,6 +2051,7 @@ void IGameController::EndVote(bool SendInfo)
 	m_VoteCloseTime = 0;
 	if(SendInfo)
 		SendVoteSet(-1);
+	m_VoteVictim = -1;
 }
 
 bool IGameController::IsVoting()
@@ -2207,4 +2212,108 @@ void IGameController::ConchainReplyOnly(IConsole::IResult *pResult, void *pUserD
 	IGameController *pThis = static_cast<IGameController *>(pUserData);
 	pThis->m_ChatResponseTargetID = pResult->m_ClientID;
 	pfnCallback(pResult, pCallbackUserData);
+}
+
+void IGameController::IntVariableCommand(IConsole::IResult *pResult, void *pUserData)
+{
+	CIntVariableData *pData = (CIntVariableData *)pUserData;
+
+	if(pResult->NumArguments())
+	{
+		int Val = pResult->GetInteger(0);
+
+		// do clamping
+		if(pData->m_Min != pData->m_Max)
+		{
+			if(Val < pData->m_Min)
+				Val = pData->m_Min;
+			if(pData->m_Max != 0 && Val > pData->m_Max)
+				Val = pData->m_Max;
+		}
+
+		*(pData->m_pVariable) = Val;
+		if(pResult->m_ClientID != IConsole::CLIENT_ID_GAME)
+			pData->m_OldValue = Val;
+	}
+	else
+	{
+		char aBuf[32];
+		str_format(aBuf, sizeof(aBuf), "Value: %d", *(pData->m_pVariable));
+		pData->m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
+	}
+}
+
+void IGameController::ColVariableCommand(IConsole::IResult *pResult, void *pUserData)
+{
+	CColVariableData *pData = (CColVariableData *)pUserData;
+
+	if(pResult->NumArguments())
+	{
+		ColorHSLA Col = pResult->GetColor(0, pData->m_Light);
+		int Val = Col.Pack(pData->m_Light ? 0.5f : 0.0f, pData->m_Alpha);
+
+		*(pData->m_pVariable) = Val;
+		if(pResult->m_ClientID != IConsole::CLIENT_ID_GAME)
+			pData->m_OldValue = Val;
+	}
+	else
+	{
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "Value: %u", *(pData->m_pVariable));
+		pData->m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
+
+		ColorHSLA Hsla(*(pData->m_pVariable), true);
+		if(pData->m_Light)
+			Hsla = Hsla.UnclampLighting();
+		str_format(aBuf, sizeof(aBuf), "H: %d°, S: %d%%, L: %d%%", round_truncate(Hsla.h * 360), round_truncate(Hsla.s * 100), round_truncate(Hsla.l * 100));
+		pData->m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
+
+		ColorRGBA Rgba = color_cast<ColorRGBA>(Hsla);
+		str_format(aBuf, sizeof(aBuf), "R: %d, G: %d, B: %d, #%06X", round_truncate(Rgba.r * 255), round_truncate(Rgba.g * 255), round_truncate(Rgba.b * 255), Rgba.Pack(false));
+		pData->m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
+
+		if(pData->m_Alpha)
+		{
+			str_format(aBuf, sizeof(aBuf), "A: %d%%", round_truncate(Hsla.a * 100));
+			pData->m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
+		}
+	}
+}
+
+void IGameController::StrVariableCommand(IConsole::IResult *pResult, void *pUserData)
+{
+	CStrVariableData *pData = (CStrVariableData *)pUserData;
+
+	if(pResult->NumArguments())
+	{
+		const char *pString = pResult->GetString(0);
+		if(!str_utf8_check(pString))
+		{
+			char aTemp[4];
+			int Length = 0;
+			while(*pString)
+			{
+				int Size = str_utf8_encode(aTemp, static_cast<unsigned char>(*pString++));
+				if(Length + Size < pData->m_MaxSize)
+				{
+					mem_copy(pData->m_pStr + Length, aTemp, Size);
+					Length += Size;
+				}
+				else
+					break;
+			}
+			pData->m_pStr[Length] = 0;
+		}
+		else
+			str_copy(pData->m_pStr, pString, pData->m_MaxSize);
+
+		if(pResult->m_ClientID != IConsole::CLIENT_ID_GAME)
+			str_copy(pData->m_pOldValue, pData->m_pStr, pData->m_MaxSize);
+	}
+	else
+	{
+		char aBuf[1024];
+		str_format(aBuf, sizeof(aBuf), "Value: %s", pData->m_pStr);
+		pData->m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
+	}
 }
