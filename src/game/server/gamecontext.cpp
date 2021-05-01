@@ -2754,9 +2754,11 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("vote", "r['yes'|'no']", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
 	Console()->Register("dump_antibot", "", CFGFLAG_SERVER, ConDumpAntibot, this, "Dumps the antibot status");
 
-	// pvp rooms
+	// backwards compatible
+	Console()->Register("sv_gametype", "s[gametype] ?r[settings]", CFGFLAG_SERVER | CFGFLAG_STORE, ConSetDefaultGameType, this, "Set a default gametype for room 0. The default game type won't be avalible for room id >1");
 	Console()->Register("add_gametype", "s[name] ?s[gametype] ?r[settings]", CFGFLAG_SERVER | CFGFLAG_STORE, ConAddGameType, this, "Register an gametype for rooms. First register will be the default for room 0");
-	Console()->Register("room_setting", "i[setting] ?r[arguments]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRoomSetting, this, "Invoke a command in a specified room");
+	Console()->Register("add_gametypefile", "s[name] s[gametype] r[filename]", CFGFLAG_SERVER | CFGFLAG_STORE, ConAddGameTypeFile, this, "Register an gametype for rooms. First register will be the default for room 0");
+	Console()->Register("room_setting", "i[room] ?r[settings]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRoomSetting, this, "Invoke a command in a specified room");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 

@@ -18,6 +18,14 @@ struct SGameInstance
 	CGameWorld *m_pWorld;
 };
 
+struct SGameType
+{
+	const char *pGameType;
+	char *pName;
+	char *pSettings;
+	bool IsFile;
+};
+
 enum
 {
 	ENTITIES_PER_TICK = 25,
@@ -45,14 +53,8 @@ class CGameTeams
 	std::vector<SEntity> m_Entities;
 
 	// gametypes
-	struct SGameType
-	{
-		const char *pGameType;
-		char *pName;
-		char *pVote;
-		char *pSettings;
-	};
 	static std::vector<SGameType> m_GameTypes;
+	static SGameType m_DefaultGameType;
 
 public:
 	enum
@@ -157,7 +159,9 @@ public:
 	void OnSnap(int SnappingClient);
 	void OnPostSnap();
 
-	static void AddGameType(const char *pGameType, const char *pName, const char *pVote, const char *pSettings);
+	static void SetDefaultGameType(const char *pGameType, const char *pSettings, bool IsFile);
+	static void AddGameType(const char *pGameType, const char *pName, const char *pSettings, bool IsFile);
+	static void ClearGameTypes();
 };
 
 #endif

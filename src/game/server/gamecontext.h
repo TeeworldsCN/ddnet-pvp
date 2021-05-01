@@ -128,7 +128,9 @@ class CGameContext : public IGameServer
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	// pvp commands
+	static void ConSetDefaultGameType(IConsole::IResult *pResult, void *pUserData);
 	static void ConAddGameType(IConsole::IResult *pResult, void *pUserData);
+	static void ConAddGameTypeFile(IConsole::IResult *pResult, void *pUserData);
 	static void ConRoomSetting(IConsole::IResult *pResult, void *pUserData);
 
 	CGameContext(int Resetting);

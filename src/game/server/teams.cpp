@@ -22,17 +22,7 @@ CGameTeams::~CGameTeams()
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 		DestroyGameInstance(i);
 
-	while(m_GameTypes.size() > 0)
-	{
-		SGameType Type = m_GameTypes.back();
-		if(Type.pSettings)
-			free(Type.pSettings);
-		if(Type.pName)
-			free(Type.pName);
-		if(Type.pVote)
-			free(Type.pVote);
-		m_GameTypes.pop_back();
-	}
+	ClearGameTypes();
 }
 
 void CGameTeams::Reset()
@@ -222,14 +212,22 @@ SGameInstance CGameTeams::GetPlayerGameInstance(int ClientID)
 bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 {
 	SGameType Type;
+	Type.IsFile = false;
 	Type.pGameType = nullptr;
 	Type.pName = nullptr;
 	Type.pSettings = nullptr;
 
-	if(m_GameTypes.size() == 0 || pGameName == nullptr)
+	if(pGameName == nullptr)
 	{
-		Type.pGameType = "dm";
-		Type.pName = (char *)Type.pGameType;
+		if(!m_DefaultGameType.pGameType)
+		{
+			Type.pGameType = "dm";
+			Type.pSettings = nullptr;
+		}
+		else
+		{
+			Type = m_DefaultGameType;
+		}
 	}
 	else
 		for(auto GameType : m_GameTypes)
@@ -263,6 +261,14 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	m_aTeamInstances[Team].m_IsCreated = true;
 	m_aTeamInstances[Team].m_Init = false;
 	m_aTeamInstances[Team].m_Entities = 0;
+
+	if(Type.pSettings && Type.pSettings[0])
+	{
+		if(Type.IsFile)
+			m_aTeamInstances[Team].m_pController->InstanceConsole()->ExecuteFile(Type.pSettings);
+		else
+			m_aTeamInstances[Team].m_pController->InstanceConsole()->ExecuteLine(Type.pSettings);
+	}
 
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "game controller %d is created", Team);
@@ -438,8 +444,40 @@ void CGameTeams::OnPostSnap()
 			m_aTeamInstances[i].m_pWorld->OnPostSnap();
 }
 
-std::vector<CGameTeams::SGameType> CGameTeams::m_GameTypes;
-void CGameTeams::AddGameType(const char *pGameType, const char *pName, const char *pVote, const char *pSettings)
+std::vector<SGameType> CGameTeams::m_GameTypes;
+SGameType CGameTeams::m_DefaultGameType = {0, 0, 0, false};
+void CGameTeams::SetDefaultGameType(const char *pGameType, const char *pSettings, bool IsFile)
+{
+	bool IsValidGameType = false;
+	if(false)
+		return;
+#define REGISTER_GAME_TYPE(TYPE, CLASS) \
+	else if(str_comp(#TYPE, pGameType) == 0) \
+	{ \
+		m_DefaultGameType.pGameType = #TYPE; \
+		IsValidGameType = true; \
+	}
+#include "gamemodes.h"
+#undef REGISTER_GAME_TYPE
+
+	if(!IsValidGameType)
+		return;
+
+	int Len;
+
+	if(pSettings)
+	{
+		Len = str_length(pSettings) + 1;
+		m_DefaultGameType.pSettings = (char *)malloc(Len * sizeof(char));
+		str_copy(m_DefaultGameType.pSettings, pSettings, Len);
+	}
+	else
+		m_DefaultGameType.pSettings = nullptr;
+
+	m_DefaultGameType.IsFile = IsFile;
+}
+
+void CGameTeams::AddGameType(const char *pGameType, const char *pName, const char *pSettings, bool IsFile)
 {
 	SGameType Type;
 
@@ -469,15 +507,6 @@ void CGameTeams::AddGameType(const char *pGameType, const char *pName, const cha
 	else
 		Type.pSettings = nullptr;
 
-	if(pVote)
-	{
-		Len = str_length(pVote) + 1;
-		Type.pVote = (char *)malloc(Len * sizeof(char));
-		str_copy(Type.pVote, pVote, Len);
-	}
-	else
-		Type.pVote = nullptr;
-
 	if(pName)
 	{
 		Len = str_length(pName) + 1;
@@ -491,5 +520,31 @@ void CGameTeams::AddGameType(const char *pGameType, const char *pName, const cha
 		str_copy(Type.pName, Type.pGameType, Len);
 	}
 
+	Type.IsFile = IsFile;
+
+	if(!m_DefaultGameType.pGameType)
+		SetDefaultGameType(Type.pGameType, Type.pSettings, IsFile);
+
 	m_GameTypes.push_back(Type);
+}
+
+void CGameTeams::ClearGameTypes()
+{
+	while(m_GameTypes.size() > 0)
+	{
+		SGameType Type = m_GameTypes.back();
+		if(Type.pSettings)
+			free(Type.pSettings);
+		if(Type.pName)
+			free(Type.pName);
+		m_GameTypes.pop_back();
+	}
+	if(m_DefaultGameType.pGameType)
+	{
+		if(m_DefaultGameType.pSettings)
+			free(m_DefaultGameType.pSettings);
+		if(m_DefaultGameType.pName)
+			free(m_DefaultGameType.pName);
+		m_DefaultGameType.pGameType = nullptr;
+	}
 }

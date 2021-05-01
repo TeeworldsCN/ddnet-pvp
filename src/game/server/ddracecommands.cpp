@@ -669,16 +669,40 @@ void CGameContext::ConDumpAntibot(IConsole::IResult *pResult, void *pUserData)
 	pSelf->Antibot()->Dump();
 }
 
+void CGameContext::ConSetDefaultGameType(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	if(pResult->NumArguments() > 2)
+		CGameTeams::SetDefaultGameType(pResult->GetString(0), pResult->GetString(1), false);
+	else if(pResult->NumArguments() == 2)
+		CGameTeams::SetDefaultGameType(pResult->GetString(0), pResult->GetString(1), false);
+	else
+		CGameTeams::SetDefaultGameType(pResult->GetString(0), nullptr, false);
+}
+
 void CGameContext::ConAddGameType(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
 	if(pResult->NumArguments() > 2)
-		CGameTeams::AddGameType(pResult->GetString(1), pResult->GetString(0), nullptr, pResult->GetString(2));
+		CGameTeams::AddGameType(pResult->GetString(1), pResult->GetString(0), pResult->GetString(2), false);
 	else if(pResult->NumArguments() == 2)
-		CGameTeams::AddGameType(pResult->GetString(1), pResult->GetString(0), nullptr, nullptr);
+		CGameTeams::AddGameType(pResult->GetString(1), pResult->GetString(0), nullptr, false);
 	else
-		CGameTeams::AddGameType(pResult->GetString(0), nullptr, nullptr, nullptr);
+		CGameTeams::AddGameType(pResult->GetString(0), nullptr, nullptr, false);
+}
+
+void CGameContext::ConAddGameTypeFile(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	if(pResult->NumArguments() > 2)
+		CGameTeams::AddGameType(pResult->GetString(1), pResult->GetString(0), pResult->GetString(2), true);
+	else if(pResult->NumArguments() == 2)
+		CGameTeams::AddGameType(pResult->GetString(1), pResult->GetString(0), nullptr, true);
+	else
+		CGameTeams::AddGameType(pResult->GetString(0), nullptr, nullptr, true);
 }
 
 void CGameContext::ConRoomSetting(IConsole::IResult *pResult, void *pUserData)

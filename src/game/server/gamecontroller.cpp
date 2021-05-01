@@ -198,6 +198,9 @@ IGameController::IGameController()
 	m_pInstanceConsole->Register("set_team_all", "i[team-id]", CFGFLAG_INSTANCE, ConSetTeamAll, this, "Set team of all players to team");
 	m_pInstanceConsole->Register("help", "?r[command]", CFGFLAG_CHAT | CFGFLAG_INSTANCE | CFGFLAG_NO_CONSENT, ConHelp, this, "Shows help to command, general help if left blank");
 
+	// vote commands
+	// TODO: add votes
+
 	// vote helper
 	m_pInstanceConsole->Register("vote_kick", "i[id] r[real-command]", CFGFLAG_INSTANCE, ConKick, this, "Helper command for vote kicking, it is not recommended to call this directly");
 	m_pInstanceConsole->Register("vote_command", "r[real-command]", CFGFLAG_INSTANCE, ConVoteCommand, this, "Helper command for vote kicking, it is not recommended to call this directly");
