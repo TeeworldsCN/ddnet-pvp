@@ -9,7 +9,7 @@ enum
 	VOTE_CMD_LENGTH = 512,
 	VOTE_REASON_LENGTH = 16,
 
-	MAX_VOTE_OPTIONS = 8192,
+	MAX_VOTE_OPTIONS = 4096 - 32, // 8192 in total, leave 32 for rooms, 4096 - 16 for each global and room-wise votes.
 };
 
 enum
