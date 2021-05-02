@@ -359,7 +359,7 @@ public:
 	bool GetStartRespawnState() const;
 
 	// team
-	bool CanJoinTeam(int Team, int NotThisID) const;
+	bool CanJoinTeam(int Team, int ClientID, bool SendReason) const;
 	bool CanChangeTeam(CPlayer *pPplayer, int JoinTeam) const;
 
 	void DoTeamChange(class CPlayer *pPlayer, int Team, bool DoChatMsg = true);
@@ -378,7 +378,13 @@ public:
 	bool IsPlayerInRoom(int ClientID) const;
 	void InitController(int Team, class CGameContext *pGameServer, class CGameWorld *pWorld);
 
-	// Instance Space Ops
+	// vote
+	class CHeap *m_pVoteOptionHeap;
+	CVoteOptionServer *m_pVoteOptionFirst;
+	CVoteOptionServer *m_pVoteOptionLast;
+	int m_NumVoteOptions;
+	bool m_ResendVotes;
+
 	inline bool IsOptionVote() const { return m_VoteType == VOTE_TYPE_OPTION; };
 	inline bool IsKickVote() const { return m_VoteType == VOTE_TYPE_KICK; };
 	inline bool IsSpecVote() const { return m_VoteType == VOTE_TYPE_SPECTATE; };
@@ -390,8 +396,12 @@ public:
 	void SetVoteVictim(int ClientID) { m_VoteVictim = ClientID; }
 	void SetVoteType(int Type) { m_VoteType = Type; }
 	void VoteUpdate() { m_VoteUpdate = true; }
+	struct CVoteOptionServer *GetVoteOption(int Index);
+
 	void SendVoteSet(int ClientID) const;
 	void SendVoteStatus(int ClientID, int Total, int Yes, int No) const;
+
+	// Instance Space Ops
 	void SendChatTarget(int To, const char *pText, int Flags = 3) const;
 	void SendBroadcast(const char *pText, int ClientID, bool IsImportant = true) const;
 

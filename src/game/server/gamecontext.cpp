@@ -366,7 +366,7 @@ void CGameContext::SendSettings(int ClientID)
 		Msg.m_SpecVote = g_Config.m_SvVoteSpectate;
 		Msg.m_TeamLock = 0;
 		Msg.m_TeamBalance = 0;
-		Msg.m_PlayerSlots = g_Config.m_SvMaxClients - g_Config.m_SvSpectatorSlots;
+		Msg.m_PlayerSlots = g_Config.m_SvMaxClients;
 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
 	}
 }
@@ -986,14 +986,23 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 {
 	CPlayer *pPl = m_apPlayers[ClientID];
 
+	SGameInstance Instance = PlayerGameInstance(ClientID);
+
+	int GlobalVotes = m_NumVoteOptions;
+	int NumInstanceVotes = Instance.m_IsCreated ? Instance.m_pController->m_NumVoteOptions : 0;
+	int NumRoomVotes = Teams()->m_NumRooms;
+	int TotalVotes = GlobalVotes + NumInstanceVotes + NumRoomVotes;
+
 	if(pPl->m_SendVoteIndex == -1)
 		return; // we didn't start sending options yet
 
-	if(pPl->m_SendVoteIndex > m_NumVoteOptions)
+	if(pPl->m_SendVoteIndex > TotalVotes)
 		return; // shouldn't happen / fail silently
 
-	int VotesLeft = m_NumVoteOptions - pPl->m_SendVoteIndex;
-	int NumVotesToSend = minimum(g_Config.m_SvSendVotesPerTick, VotesLeft);
+	int VotesLeft = TotalVotes - pPl->m_SendVoteIndex;
+	int NumGlobalVotesToSend = clamp(GlobalVotes - pPl->m_SendVoteIndex, 0, GlobalVotes);
+	int NumInstanceVotesToSend = clamp(NumInstanceVotes - (pPl->m_SendVoteIndex - GlobalVotes), 0, NumInstanceVotes);
+	int NumRoomVotesToSend = clamp(NumRoomVotes - (pPl->m_SendVoteIndex - NumInstanceVotes - GlobalVotes), 0, NumRoomVotes);
 
 	if(!VotesLeft)
 	{
@@ -1022,9 +1031,11 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 	OptionMsg.m_pDescription14 = "";
 
 	// get current vote option by index
-	CVoteOptionServer *pCurrent = GetVoteOption(pPl->m_SendVoteIndex);
+	CVoteOptionServer *pCurrent = NULL;
+	if(NumGlobalVotesToSend)
+		pCurrent = GetVoteOption(GlobalVotes - NumGlobalVotesToSend);
 
-	while(CurIndex < NumVotesToSend && pCurrent != NULL)
+	while(CurIndex < GlobalVotes && CurIndex < g_Config.m_SvSendVotesPerTick && pCurrent != NULL)
 	{
 		switch(CurIndex)
 		{
@@ -1049,11 +1060,70 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 		pCurrent = pCurrent->m_pNext;
 	}
 
+	// get current vote option by index
+	pCurrent = NULL;
+	int InstanceVoteIndex = NumInstanceVotes - NumInstanceVotesToSend;
+	if(NumInstanceVotesToSend)
+		pCurrent = Instance.m_pController->GetVoteOption(InstanceVoteIndex);
+
+	while(InstanceVoteIndex < NumInstanceVotes && CurIndex < g_Config.m_SvSendVotesPerTick && pCurrent != NULL)
+	{
+		switch(CurIndex)
+		{
+		case 0: OptionMsg.m_pDescription0 = pCurrent->m_aDescription; break;
+		case 1: OptionMsg.m_pDescription1 = pCurrent->m_aDescription; break;
+		case 2: OptionMsg.m_pDescription2 = pCurrent->m_aDescription; break;
+		case 3: OptionMsg.m_pDescription3 = pCurrent->m_aDescription; break;
+		case 4: OptionMsg.m_pDescription4 = pCurrent->m_aDescription; break;
+		case 5: OptionMsg.m_pDescription5 = pCurrent->m_aDescription; break;
+		case 6: OptionMsg.m_pDescription6 = pCurrent->m_aDescription; break;
+		case 7: OptionMsg.m_pDescription7 = pCurrent->m_aDescription; break;
+		case 8: OptionMsg.m_pDescription8 = pCurrent->m_aDescription; break;
+		case 9: OptionMsg.m_pDescription9 = pCurrent->m_aDescription; break;
+		case 10: OptionMsg.m_pDescription10 = pCurrent->m_aDescription; break;
+		case 11: OptionMsg.m_pDescription11 = pCurrent->m_aDescription; break;
+		case 12: OptionMsg.m_pDescription12 = pCurrent->m_aDescription; break;
+		case 13: OptionMsg.m_pDescription13 = pCurrent->m_aDescription; break;
+		case 14: OptionMsg.m_pDescription14 = pCurrent->m_aDescription; break;
+		}
+
+		CurIndex++;
+		pCurrent = pCurrent->m_pNext;
+		InstanceVoteIndex++;
+	}
+
+	int RoomIndex = NumRoomVotes - NumRoomVotesToSend;
+
+	while(RoomIndex < NumRoomVotes && CurIndex < g_Config.m_SvSendVotesPerTick)
+	{
+		switch(CurIndex)
+		{
+		case 0: OptionMsg.m_pDescription0 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 1: OptionMsg.m_pDescription1 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 2: OptionMsg.m_pDescription2 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 3: OptionMsg.m_pDescription3 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 4: OptionMsg.m_pDescription4 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 5: OptionMsg.m_pDescription5 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 6: OptionMsg.m_pDescription6 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 7: OptionMsg.m_pDescription7 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 8: OptionMsg.m_pDescription8 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 9: OptionMsg.m_pDescription9 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 10: OptionMsg.m_pDescription10 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 11: OptionMsg.m_pDescription11 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 12: OptionMsg.m_pDescription12 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 13: OptionMsg.m_pDescription13 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 14: OptionMsg.m_pDescription14 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		}
+
+		CurIndex++;
+		RoomIndex++;
+	}
+
 	// send msg
-	OptionMsg.m_NumOptions = NumVotesToSend;
+	OptionMsg.m_NumOptions = CurIndex;
 	Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, ClientID);
 
-	pPl->m_SendVoteIndex += NumVotesToSend;
+	pPl->m_SendVoteIndex += CurIndex;
 }
 
 void CGameContext::OnClientEnter(int ClientID)
@@ -1173,7 +1243,7 @@ void CGameContext::OnClientConnected(int ClientID, void *pData)
 	}
 
 	// Check whether to join as spectator
-	const bool AsSpec = (Spec || g_Config.m_SvTournamentMode || g_Config.m_SvTeam == 2) ? true : false;
+	const bool AsSpec = (Spec || g_Config.m_SvTournamentMode || g_Config.m_SvRoom == 2) ? true : false;
 
 	if(!m_apPlayers[ClientID])
 		m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, AsSpec);
@@ -1905,7 +1975,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		{
 			CNetMsg_Cl_SetTeam *pMsg = (CNetMsg_Cl_SetTeam *)pRawMsg;
 
-			if(pPlayer->GetTeam() == pMsg->m_Team || (g_Config.m_SvSpamprotection && pPlayer->m_LastSetTeam && pPlayer->m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > Server()->Tick()))
+			if(pPlayer->GetTeam() == pMsg->m_Team || (g_Config.m_SvSpamprotection && pPlayer->m_LastSetTeam && pPlayer->m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay > Server()->Tick()))
 				return;
 
 			if(pPlayer->m_TeamChangeTick > Server()->Tick())
@@ -1923,7 +1993,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			int DDRTeam = Teams()->m_Core.Team(ClientID);
 
 			// Switch team on given client and kill/respawn him
-			if(GameInstance(DDRTeam).m_pController->CanJoinTeam(pMsg->m_Team, ClientID))
+			if(GameInstance(DDRTeam).m_pController->CanJoinTeam(pMsg->m_Team, ClientID, true))
 			{
 				if(pPlayer->IsPaused())
 					SendChatTarget(ClientID, "Use /pause first then you can kill");
@@ -1934,12 +2004,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					GameInstance(DDRTeam).m_pController->DoTeamChange(pPlayer, pMsg->m_Team);
 					pPlayer->m_TeamChangeTick = Server()->Tick();
 				}
-			}
-			else
-			{
-				char aBuf[128];
-				str_format(aBuf, sizeof(aBuf), "Only %d active players are allowed", Server()->MaxClients() - g_Config.m_SvSpectatorSlots);
-				SendBroadcast(aBuf, ClientID);
 			}
 		}
 		else if(MsgID == NETMSGTYPE_CL_ISDDNETLEGACY)
@@ -2472,6 +2536,18 @@ void CGameContext::AddVote(const char *pDescription, const char *pCommand)
 		return;
 	}
 
+	if(str_startswith(pDescription, "☉"))
+	{
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "vote description cannot starts with the reserved icon 'U+2609' for room list");
+		return;
+	}
+
+	if(str_startswith(pDescription, "☐"))
+	{
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "vote description cannot starts with the reserved icon 'U+2610' for room options");
+		return;
+	}
+
 	// check for valid option
 	if(!Console()->LineIsValid(pCommand) || str_length(pCommand) >= VOTE_CMD_LENGTH)
 	{
@@ -2519,6 +2595,18 @@ void CGameContext::AddVote(const char *pDescription, const char *pCommand)
 
 	str_copy(pOption->m_aDescription, pDescription, sizeof(pOption->m_aDescription));
 	mem_copy(pOption->m_aCommand, pCommand, Len + 1);
+
+	// start reloading vote option list
+	// clear vote options
+	CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;
+	Server()->SendPackMsg(&VoteClearOptionsMsg, MSGFLAG_VITAL, -1);
+
+	// reset sending of vote options
+	for(auto &pPlayer : m_apPlayers)
+	{
+		if(pPlayer)
+			pPlayer->m_SendVoteIndex = 0;
+	}
 }
 
 void CGameContext::ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
@@ -2850,7 +2938,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		g_Config.m_SvOldTeleportHook = 0;
 		g_Config.m_SvOldTeleportWeapons = 0;
 		g_Config.m_SvTeleportHoldHook = 0;
-		g_Config.m_SvTeam = 1;
 
 		if(Collision()->m_NumSwitchers > 0)
 			for(int i = 0; i < Collision()->m_NumSwitchers + 1; ++i)

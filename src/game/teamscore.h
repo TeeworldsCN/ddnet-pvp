@@ -15,6 +15,7 @@ class CTeamsCore
 {
 	int m_Team[MAX_CLIENTS];
 	bool m_IsSolo[MAX_CLIENTS];
+	int m_TeamSize[MAX_CLIENTS];
 
 public:
 	bool m_IsDDRace16;
@@ -28,6 +29,9 @@ public:
 
 	int Team(int ClientID) const;
 	void Team(int ClientID, int Team);
+	void Join(int ClientID, int Team);
+	void Leave(int ClientID);
+	int Count(int Team) const { return m_TeamSize[Team]; }
 
 	void Reset();
 	void SetSolo(int ClientID, bool Value)

@@ -2257,7 +2257,7 @@ void CCharacter::DDRaceInit()
 		}
 	}
 
-	if(g_Config.m_SvTeam == 2 && Team == TEAM_FLOCK)
+	if(g_Config.m_SvRoom == 2 && Team == TEAM_FLOCK)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "Please join a room to play");
 		m_LastStartWarning = Server()->Tick();

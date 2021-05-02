@@ -67,6 +67,124 @@ static void ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
 			pSelf->DoTeamChange(pPlayer, Team, false);
 }
 
+static void ConAddVote(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	const char *pDescription = pResult->GetString(0);
+	const char *pCommand = pResult->GetString(1);
+
+	if(pSelf->m_NumVoteOptions == MAX_VOTE_OPTIONS)
+	{
+		pSelf->GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "maximum number of room vote options reached");
+		return;
+	}
+
+	// check for valid option
+	if(!pSelf->InstanceConsole()->LineIsValid(pCommand) || str_length(pCommand) >= VOTE_CMD_LENGTH)
+	{
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "skipped invalid command '%s'", pCommand);
+		pSelf->GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+		return;
+	}
+	while(*pDescription == ' ')
+		pDescription++;
+	if(str_length(pDescription) >= VOTE_DESC_LENGTH || *pDescription == 0)
+	{
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "skipped invalid option '%s'", pDescription);
+		pSelf->GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+		return;
+	}
+
+	// check for duplicate entry
+	CVoteOptionServer *pOption = pSelf->m_pVoteOptionFirst;
+	while(pOption)
+	{
+		if(str_comp_nocase(pDescription, pOption->m_aDescription + sizeof("☐ ")) == 0)
+		{
+			char aBuf[256];
+			str_format(aBuf, sizeof(aBuf), "option '%s' already exists", pDescription);
+			pSelf->GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+			return;
+		}
+		pOption = pOption->m_pNext;
+	}
+
+	// add the option
+	++pSelf->m_NumVoteOptions;
+	int Len = str_length(pCommand);
+
+	pOption = (CVoteOptionServer *)pSelf->m_pVoteOptionHeap->Allocate(sizeof(CVoteOptionServer) + Len);
+	pOption->m_pNext = 0;
+	pOption->m_pPrev = pSelf->m_pVoteOptionLast;
+	if(pOption->m_pPrev)
+		pOption->m_pPrev->m_pNext = pOption;
+	pSelf->m_pVoteOptionLast = pOption;
+	if(!pSelf->m_pVoteOptionFirst)
+		pSelf->m_pVoteOptionFirst = pOption;
+
+	str_format(pOption->m_aDescription, sizeof(pOption->m_aDescription), "☐ %s", pDescription);
+	mem_copy(pOption->m_aCommand, pCommand, Len + 1);
+}
+
+void ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	const char *pDescription = pResult->GetString(0);
+
+	// check for valid option
+	CVoteOptionServer *pOption = pSelf->m_pVoteOptionFirst;
+	while(pOption)
+	{
+		if(str_comp_nocase(pDescription, pOption->m_aDescription) == 0)
+			break;
+		pOption = pOption->m_pNext;
+	}
+	if(!pOption)
+	{
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "option '%s' does not exist", pDescription);
+		pSelf->GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+		return;
+	}
+
+	// remove the option
+	--pSelf->m_NumVoteOptions;
+
+	CHeap *pVoteOptionHeap = new CHeap();
+	CVoteOptionServer *pVoteOptionFirst = 0;
+	CVoteOptionServer *pVoteOptionLast = 0;
+	int NumVoteOptions = pSelf->m_NumVoteOptions;
+	for(CVoteOptionServer *pSrc = pSelf->m_pVoteOptionFirst; pSrc; pSrc = pSrc->m_pNext)
+	{
+		if(pSrc == pOption)
+			continue;
+
+		// copy option
+		int Len = str_length(pSrc->m_aCommand);
+		CVoteOptionServer *pDst = (CVoteOptionServer *)pVoteOptionHeap->Allocate(sizeof(CVoteOptionServer) + Len);
+		pDst->m_pNext = 0;
+		pDst->m_pPrev = pVoteOptionLast;
+		if(pDst->m_pPrev)
+			pDst->m_pPrev->m_pNext = pDst;
+		pVoteOptionLast = pDst;
+		if(!pVoteOptionFirst)
+			pVoteOptionFirst = pDst;
+
+		str_copy(pDst->m_aDescription, pSrc->m_aDescription, sizeof(pDst->m_aDescription));
+		mem_copy(pDst->m_aCommand, pSrc->m_aCommand, Len + 1);
+	}
+
+	// clean up
+	delete pSelf->m_pVoteOptionHeap;
+	pSelf->m_pVoteOptionHeap = pVoteOptionHeap;
+	pSelf->m_pVoteOptionFirst = pVoteOptionFirst;
+	pSelf->m_pVoteOptionLast = pVoteOptionLast;
+	pSelf->m_NumVoteOptions = NumVoteOptions;
+	pSelf->m_ResendVotes = true;
+}
+
 static void ConHelp(IConsole::IResult *pResult, void *pUserData)
 {
 	IGameController *pSelf = (IGameController *)pUserData;
@@ -172,6 +290,11 @@ IGameController::IGameController()
 	m_VoteWillPass = false;
 	m_VoteType = VOTE_TYPE_UNKNOWN;
 	m_VoteVictim = -1;
+	m_pVoteOptionHeap = new CHeap();
+	m_pVoteOptionFirst = nullptr;
+	m_pVoteOptionLast = nullptr;
+	m_NumVoteOptions = 0;
+	m_ResendVotes = false;
 
 	// fake client broadcast
 	mem_zero(m_aFakeClientBroadcast, sizeof(m_aFakeClientBroadcast));
@@ -201,7 +324,8 @@ IGameController::IGameController()
 	m_pInstanceConsole->Register("help", "?r[command]", CFGFLAG_CHAT | CFGFLAG_INSTANCE | CFGFLAG_NO_CONSENT, ConHelp, this, "Shows help to command, general help if left blank");
 
 	// vote commands
-	// TODO: add votes
+	m_pInstanceConsole->Register("add_vote", "s[name] r[command]", CFGFLAG_INSTANCE, ConAddVote, this, "Add a voting option");
+	m_pInstanceConsole->Register("remove_vote", "r[name]", CFGFLAG_INSTANCE, ConRemoveVote, this, "remove a voting option");
 
 	// vote helper
 	m_pInstanceConsole->Register("vote_kick", "i[id] r[real-command]", CFGFLAG_INSTANCE, ConKick, this, "Helper command for vote kicking, it is not recommended to call this directly");
@@ -213,6 +337,8 @@ IGameController::~IGameController()
 	delete m_pInstanceConsole;
 	for(auto pInt : m_IntConfigStore)
 		delete pInt;
+
+	delete m_pVoteOptionHeap;
 }
 
 void IGameController::DoActivityCheck()
@@ -242,22 +368,10 @@ void IGameController::DoActivityCheck()
 				switch(Config()->m_SvInactiveKick)
 				{
 				case 0:
+				case 1:
 				{
 					// move player to spectator
 					DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
-				}
-				break;
-				case 1:
-				{
-					// move player to spectator if the reserved slots aren't filled yet, kick him otherwise
-					int Spectators = 0;
-					for(auto &pPlayer : GameServer()->m_apPlayers)
-						if(pPlayer && pPlayer->GetTeam() == TEAM_SPECTATORS)
-							++Spectators;
-					if(Spectators >= g_Config.m_SvSpectatorSlots)
-						Server()->Kick(i, "Kicked for inactivity");
-					else
-						DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
 				}
 				break;
 				case 2:
@@ -743,6 +857,11 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	pPlayer->m_RespawnDisabled = GetStartRespawnState();
 	pPlayer->m_Vote = 0;
 	pPlayer->m_VotePos = 0;
+
+	// clear vote options for joining player
+	CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;
+	Server()->SendPackMsg(&VoteClearOptionsMsg, MSGFLAG_VITAL, pPlayer->GetCID());
+	pPlayer->m_SendVoteIndex = 0;
 
 	if(GameServer()->m_VoteCloseTime > 0)
 		GameServer()->SendVoteSet(ClientID);
@@ -1344,6 +1463,23 @@ void IGameController::Snap(int SnappingClient)
 
 void IGameController::Tick()
 {
+	if(m_ResendVotes)
+	{
+		// reset sending of vote options
+		// only reset for player in room
+		for(auto &pPlayer : GameServer()->m_apPlayers)
+		{
+			if(pPlayer && IsPlayerInRoom(pPlayer->GetCID()))
+			{
+				// clear vote options
+				CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;
+				Server()->SendPackMsg(&VoteClearOptionsMsg, MSGFLAG_VITAL, pPlayer->GetCID());
+				pPlayer->m_SendVoteIndex = 0;
+			}
+		}
+		m_ResendVotes = false;
+	}
+
 	// update voting
 	if(m_VoteCloseTime)
 	{
@@ -1877,14 +2013,31 @@ bool IGameController::CanChangeTeam(CPlayer *pPlayer, int JoinTeam) const
 	return aPlayerCount[JoinTeam] - aPlayerCount[JoinTeam ^ 1] < 2;
 }
 
-bool IGameController::CanJoinTeam(int Team, int NotThisID) const
+bool IGameController::CanJoinTeam(int Team, int ClientID, bool SendReason) const
 {
 	if(Team == TEAM_SPECTATORS)
 		return true;
 
+	if(GameWorld()->Team() == 0 && Config()->m_SvRoom == 2)
+	{
+		if(SendReason)
+			GameServer()->SendBroadcast("You need to join a room to play. Use '/create' to create rooms.", ClientID);
+		return false;
+	}
+
 	// check if there're enough player slots left
-	int TeamMod = IsPlayerInRoom(NotThisID) && GameServer()->m_apPlayers[NotThisID]->GetTeam() != TEAM_SPECTATORS ? -1 : 0;
-	return TeamMod + m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] < Config()->m_SvMaxClients - Config()->m_SvSpectatorSlots;
+	int TeamMod = IsPlayerInRoom(ClientID) && GameServer()->m_apPlayers[ClientID]->GetTeam() != TEAM_SPECTATORS ? -1 : 0;
+	int MaxPlayers = GameWorld()->Team() == 0 ? Config()->m_SvMaxClients : Config()->m_SvRoomMaxSize;
+
+	bool CanJoin = TeamMod + m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] < MaxPlayers;
+
+	if(!CanJoin && SendReason)
+	{
+		char aBuf[128];
+		str_format(aBuf, sizeof(aBuf), "Only %d active players are allowed in this room", MaxPlayers);
+		GameServer()->SendBroadcast(aBuf, ClientID);
+	}
+	return CanJoin;
 }
 
 int IGameController::ClampTeam(int Team) const
@@ -1941,7 +2094,7 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 
 int IGameController::GetStartTeam()
 {
-	if(Config()->m_SvTournamentMode)
+	if(Config()->m_SvTournamentMode || (GameWorld()->Team() == 0 && Config()->m_SvRoom == 2))
 		return TEAM_SPECTATORS;
 
 	// determine new team
@@ -1952,8 +2105,10 @@ int IGameController::GetStartTeam()
 		Team = m_aTeamSize[TEAM_RED] > m_aTeamSize[TEAM_BLUE] ? TEAM_BLUE : TEAM_RED;
 	}
 
+	int MaxPlayers = GameWorld()->Team() == 0 ? Config()->m_SvMaxClients : Config()->m_SvRoomMaxSize;
+
 	// check if there're enough player slots left
-	if(m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] < Config()->m_SvMaxClients - Config()->m_SvSpectatorSlots)
+	if(m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] < MaxPlayers)
 	{
 		++m_aTeamSize[Team];
 		dbg_msg("game", "team size increased to %d, team='%d', ddrteam='%d'", m_aTeamSize[Team], Team, GameWorld()->Team());
@@ -2057,6 +2212,19 @@ void IGameController::EndVote(bool SendInfo)
 bool IGameController::IsVoting()
 {
 	return m_VoteCloseTime > 0;
+}
+
+struct CVoteOptionServer *IGameController::GetVoteOption(int Index)
+{
+	CVoteOptionServer *pCurrent;
+	for(pCurrent = m_pVoteOptionFirst;
+		Index > 0 && pCurrent;
+		Index--, pCurrent = pCurrent->m_pNext)
+		;
+
+	if(Index > 0)
+		return 0;
+	return pCurrent;
 }
 
 void IGameController::SendVoteSet(int ClientID) const

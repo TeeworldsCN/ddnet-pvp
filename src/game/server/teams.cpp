@@ -14,12 +14,11 @@ CGameTeams::CGameTeams()
 {
 	m_pGameContext = nullptr;
 	mem_zero(m_aTeamInstances, sizeof(m_aTeamInstances));
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		m_aTeamState[i] = TEAMSTATE_EMPTY;
-		m_aTeamLocked[i] = false;
-		m_aInvited[i] = 0;
-	}
+	mem_zero(m_aRoomVotes, sizeof(m_aRoomVotes));
+	mem_zero(m_aTeamState, sizeof(m_aTeamState));
+	mem_zero(m_aTeamLocked, sizeof(m_aTeamLocked));
+	mem_zero(m_aInvited, sizeof(m_aInvited));
+	m_NumRooms = 0;
 }
 
 CGameTeams::~CGameTeams()
@@ -128,7 +127,17 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 		}
 	}
 
-	m_Core.Team(ClientID, Team);
+	switch(State)
+	{
+	case TEAM_REASON_DISCONNECT:
+		m_Core.Leave(ClientID);
+		break;
+	case TEAM_REASON_CONNECT:
+		m_Core.Join(ClientID, Team);
+		break;
+	default:
+		m_Core.Team(ClientID, Team);
+	}
 
 	if(OldTeam != Team)
 	{
@@ -150,21 +159,13 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 		ResetSwitchers(Team);
 	}
 
+	UpdateVotes();
 	return true;
 }
 
 int CGameTeams::Count(int Team) const
 {
-	if(Team == TEAM_SUPER)
-		return -1;
-
-	int Count = 0;
-
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-		if(m_Core.Team(i) == Team)
-			Count++;
-
-	return Count;
+	return m_Core.Count(Team);
 }
 
 void CGameTeams::ChangeTeamState(int Team, int State)
@@ -239,7 +240,7 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	}
 	else
 		for(auto GameType : m_GameTypes)
-			if(str_comp(GameType.pName, pGameName) == 0)
+			if(str_comp_nocase(GameType.pName, pGameName) == 0)
 				Type = GameType;
 
 	if(!Type.pGameType)
@@ -252,7 +253,7 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	if(false)
 		return false;
 #define REGISTER_GAME_TYPE(TYPE, CLASS) \
-	else if(str_comp(#TYPE, Type.pGameType) == 0) \
+	else if(str_comp_nocase(#TYPE, Type.pGameType) == 0) \
 		Game = new CLASS();
 #include "gamemodes.h"
 #undef REGISTER_GAME_TYPE
@@ -269,6 +270,7 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	m_aTeamInstances[Team].m_IsCreated = true;
 	m_aTeamInstances[Team].m_Init = false;
 	m_aTeamInstances[Team].m_Entities = 0;
+	m_aTeamInstances[Team].m_Creator = Asker;
 
 	if(Type.pSettings && Type.pSettings[0])
 	{
@@ -416,7 +418,7 @@ void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 void CGameTeams::OnSnap(int SnappingClient)
 {
 	CPlayer *pPlayer = GameServer()->m_apPlayers[SnappingClient];
-	int ShowOthers = pPlayer->m_ShowOthers;
+	int ShowOthers = pPlayer->m_ShowOthers || (m_Core.Team(SnappingClient) == 0 && g_Config.m_SvRoom == 2);
 
 	int SnapAs = SnappingClient;
 	if(pPlayer->IsSpectating() && pPlayer->m_SpectatorID != SPEC_FREEVIEW)
@@ -492,7 +494,7 @@ void CGameTeams::SetDefaultGameType(const char *pGameType, const char *pSettings
 	if(false)
 		return;
 #define REGISTER_GAME_TYPE(TYPE, CLASS) \
-	else if(str_comp(#TYPE, pGameType) == 0) \
+	else if(str_comp_nocase(#TYPE, pGameType) == 0) \
 	{ \
 		m_DefaultGameType.pGameType = #TYPE; \
 		IsValidGameType = true; \
@@ -517,6 +519,50 @@ void CGameTeams::SetDefaultGameType(const char *pGameType, const char *pSettings
 	m_DefaultGameType.IsFile = IsFile;
 }
 
+void CGameTeams::UpdateVotes()
+{
+	m_NumRooms = 0;
+
+	if(!g_Config.m_SvRoomVotes)
+	{
+		if(m_aRoomVotes[m_NumRooms][0])
+		{
+			CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;
+			GameServer()->Server()->SendPackMsg(&VoteClearOptionsMsg, MSGFLAG_VITAL, -1);
+			for(auto &pPlayer : GameServer()->m_apPlayers)
+				if(pPlayer)
+					pPlayer->m_SendVoteIndex = 0;
+			m_aRoomVotes[m_NumRooms][0] = 0;
+		}
+		return;
+	}
+
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		int RoomSize = m_Core.Count(i);
+		IGameController *pController = m_aTeamInstances[i].m_pController;
+
+		if(!pController || (RoomSize == 0 && !(g_Config.m_SvRoom == 1 && i == 0)))
+			continue;
+
+		if(m_aTeamInstances[i].m_Creator < 0)
+			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "☉ Room %d: ♙%d [%s]", i, m_Core.Count(i), pController->GetGameType());
+		else
+			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "☉ Room %d: ♙%d [%s] ♔%s", i, m_Core.Count(i), pController->GetGameType(), GameServer()->Server()->ClientName(m_aTeamInstances[i].m_Creator));
+		m_NumRooms++;
+	}
+
+	if(m_NumRooms < MAX_CLIENTS)
+		m_aRoomVotes[m_NumRooms][0] = 0;
+
+	// reset sending of vote options
+	CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;
+	GameServer()->Server()->SendPackMsg(&VoteClearOptionsMsg, MSGFLAG_VITAL, -1);
+	for(auto &pPlayer : GameServer()->m_apPlayers)
+		if(pPlayer)
+			pPlayer->m_SendVoteIndex = 0;
+}
+
 void CGameTeams::AddGameType(const char *pGameType, const char *pName, const char *pSettings, bool IsFile)
 {
 	SGameType Type;
@@ -525,7 +571,7 @@ void CGameTeams::AddGameType(const char *pGameType, const char *pName, const cha
 	if(false)
 		return;
 #define REGISTER_GAME_TYPE(TYPE, CLASS) \
-	else if(str_comp(#TYPE, pGameType) == 0) \
+	else if(str_comp_nocase(#TYPE, pGameType) == 0) \
 	{ \
 		Type.pGameType = #TYPE; \
 		IsValidGameType = true; \

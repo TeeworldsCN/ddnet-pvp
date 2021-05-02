@@ -758,7 +758,7 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	Msg.m_ClientID = m_ClientID;
 	Msg.m_Team = m_Team;
 	Msg.m_Silent = !DoChatMsg;
-	Msg.m_CooldownTick = m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay;
+	Msg.m_CooldownTick = m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay;
 
 	// Update team info for sixup
 	for(int i = 0; i < MAX_CLIENTS; i++)
@@ -803,7 +803,7 @@ void CPlayer::SendCurrentTeamInfo()
 		Msg.m_ClientID = pPlayer->m_ClientID;
 		Msg.m_Team = pPlayer->m_Team;
 		Msg.m_Silent = true;
-		Msg.m_CooldownTick = pPlayer->m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay;
+		Msg.m_CooldownTick = pPlayer->m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay;
 		if(GameServer()->GetDDRaceTeam(i) != GameServer()->GetDDRaceTeam(m_ClientID) && !m_ShowOthers)
 			Msg.m_Team = TEAM_SPECTATORS;
 

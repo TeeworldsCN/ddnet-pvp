@@ -4,6 +4,7 @@
 
 #include <engine/shared/config.h>
 #include <game/teamscore.h>
+#include <game/voting.h>
 
 #include <utility>
 #include <vector>
@@ -15,6 +16,7 @@ struct SGameInstance
 	unsigned int m_Entities;
 	class IGameController *m_pController;
 	class CGameWorld *m_pWorld;
+	int m_Creator;
 };
 
 struct SGameType
@@ -27,9 +29,8 @@ struct SGameType
 
 enum
 {
-	ENTITIES_PER_TICK = 25,
+	ENTITIES_PER_TICK = 1,
 };
-
 class CGameTeams
 {
 	SGameInstance m_aTeamInstances[MAX_CLIENTS];
@@ -116,6 +117,10 @@ public:
 	void OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
 	void OnSnap(int SnappingClient);
 	void OnPostSnap();
+
+	void UpdateVotes();
+	char m_aRoomVotes[MAX_CLIENTS][VOTE_DESC_LENGTH];
+	int m_NumRooms;
 
 	static void SetDefaultGameType(const char *pGameType, const char *pSettings, bool IsFile);
 	static void AddGameType(const char *pGameType, const char *pName, const char *pSettings, bool IsFile);

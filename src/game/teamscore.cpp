@@ -19,7 +19,21 @@ int CTeamsCore::Team(int ClientID) const
 
 void CTeamsCore::Team(int ClientID, int Team)
 {
+	m_TeamSize[m_Team[ClientID]]--;
+	m_TeamSize[Team]++;
 	m_Team[ClientID] = Team;
+}
+
+void CTeamsCore::Join(int ClientID, int Team)
+{
+	m_Team[ClientID] = Team;
+	m_TeamSize[Team]++;
+}
+
+void CTeamsCore::Leave(int ClientID)
+{
+	m_TeamSize[m_Team[ClientID]]--;
+	m_Team[ClientID] = TEAM_FLOCK;
 }
 
 bool CTeamsCore::CanKeepHook(int ClientID1, int ClientID2) const
@@ -46,5 +60,6 @@ void CTeamsCore::Reset()
 	{
 		m_Team[i] = TEAM_FLOCK;
 		m_IsSolo[i] = false;
+		m_TeamSize[i] = 0;
 	}
 }
