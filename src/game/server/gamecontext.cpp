@@ -1714,55 +1714,93 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if(str_comp_nocase(pMsg->m_Type, "option") == 0)
 			{
 				int Authed = Server()->GetAuthedState(ClientID);
-				CVoteOptionServer *pOption = m_pVoteOptionFirst;
-				while(pOption)
+
+				if(str_startswith(pMsg->m_Value, "☉"))
 				{
-					if(str_comp_nocase(pMsg->m_Value, pOption->m_aDescription) == 0)
-					{
-						if(!Console()->LineIsValid(pOption->m_aCommand))
-						{
-							SendChatTarget(ClientID, "Invalid option");
-							return;
-						}
-						if((str_find(pOption->m_aCommand, "sv_map ") != 0 || str_find(pOption->m_aCommand, "change_map ") != 0) && RateLimitPlayerMapVote(ClientID))
-						{
-							return;
-						}
-
-						IsRoomVote = str_startswith(pOption->m_aCommand, "setting ");
-
-						if(IsRoomVote)
-							str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change room setting '%s' (%s)", Server()->ClientName(ClientID),
-								pOption->m_aDescription, aReason);
-						else
-							str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientID),
-								pOption->m_aDescription, aReason);
-						str_format(aDesc, sizeof(aDesc), "%s", pOption->m_aDescription);
-						str_format(aCmd, sizeof(aCmd), "%s", pOption->m_aCommand);
-						m_LastMapVote = time_get();
-						break;
-					}
-
-					pOption = pOption->m_pNext;
+					// is room vote
+					Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "vote description cannot starts with the reserved icon 'U+2609' for room list");
+					return;
 				}
-
-				if(!pOption)
+				else
 				{
-					if(Authed != AUTHED_ADMIN) // allow admins to call any vote they want
+					CVoteOptionServer *pOption;
+					IConsole *pConsole;
+					if(str_startswith(pMsg->m_Value, "☐"))
 					{
-						str_format(aChatmsg, sizeof(aChatmsg), "'%s' isn't an option on this server", pMsg->m_Value);
-						SendChatTarget(ClientID, aChatmsg);
-						return;
+						// is instance vote
+						SGameInstance Instance = PlayerGameInstance(ClientID);
+						if(!Instance.m_Init)
+						{
+							SendChatTarget(ClientID, "Room is not ready");
+							return;
+						}
+
+						IsRoomVote = true;
+						pOption = Instance.m_pController->m_pVoteOptionFirst;
+						pConsole = Instance.m_pController->InstanceConsole();
 					}
 					else
 					{
-						str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s'", Server()->ClientName(ClientID), pMsg->m_Value);
-						str_format(aDesc, sizeof(aDesc), "%s", pMsg->m_Value);
-						str_format(aCmd, sizeof(aCmd), "%s", pMsg->m_Value);
+						pOption = m_pVoteOptionFirst;
+						pConsole = Console();
 					}
-				}
 
-				m_VoteType = VOTE_TYPE_OPTION;
+					while(pOption)
+					{
+						if(str_comp_nocase(pMsg->m_Value, pOption->m_aDescription) == 0)
+						{
+							if(!pConsole->LineIsValid(pOption->m_aCommand))
+							{
+								SendChatTarget(ClientID, "Invalid option");
+								return;
+							}
+							if((str_find(pOption->m_aCommand, "sv_map ") != 0 || str_find(pOption->m_aCommand, "change_map ") != 0) && RateLimitPlayerMapVote(ClientID))
+							{
+								return;
+							}
+
+							if(str_startswith(pOption->m_aCommand, "setting "))
+							{
+								IsRoomVote = true;
+								str_format(aCmd, sizeof(aCmd), "%s", pOption->m_aCommand + 8);
+							}
+							else
+							{
+								str_format(aCmd, sizeof(aCmd), "%s", pOption->m_aCommand);
+							}
+							str_format(aDesc, sizeof(aDesc), "%s", pOption->m_aDescription);
+
+							if(IsRoomVote)
+								str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change room setting '%s' (%s)", Server()->ClientName(ClientID),
+									pOption->m_aDescription, aReason);
+							else
+								str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientID),
+									pOption->m_aDescription, aReason);
+							m_LastMapVote = time_get();
+							break;
+						}
+
+						pOption = pOption->m_pNext;
+					}
+
+					if(!pOption)
+					{
+						if(Authed != AUTHED_ADMIN) // allow admins to call any vote they want
+						{
+							str_format(aChatmsg, sizeof(aChatmsg), "'%s' isn't an option on this server", pMsg->m_Value);
+							SendChatTarget(ClientID, aChatmsg);
+							return;
+						}
+						else
+						{
+							str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s'", Server()->ClientName(ClientID), pMsg->m_Value);
+							str_format(aDesc, sizeof(aDesc), "%s", pMsg->m_Value);
+							str_format(aCmd, sizeof(aCmd), "%s", pMsg->m_Value);
+						}
+					}
+
+					m_VoteType = VOTE_TYPE_OPTION;
+				}
 			}
 			else if(str_comp_nocase(pMsg->m_Type, "kick") == 0)
 			{
@@ -1864,14 +1902,14 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 				if(!g_Config.m_SvVoteKickBantime || GetDDRaceTeam(KickID))
 				{
-					str_format(aCmd, sizeof(aCmd), "setting vote_kick %d kick %d Kicked by vote", KickID, KickID);
+					str_format(aCmd, sizeof(aCmd), "vote_kick %d kick %d Kicked by vote", KickID, KickID);
 					str_format(aDesc, sizeof(aDesc), "Kick '%s'", Server()->ClientName(KickID));
 				}
 				else
 				{
 					char aAddrStr[NETADDR_MAXSTRSIZE] = {0};
 					Server()->GetClientAddr(KickID, aAddrStr, sizeof(aAddrStr));
-					str_format(aCmd, sizeof(aCmd), "setting vote_kick %d ban %s %d Banned by vote", KickID, aAddrStr, g_Config.m_SvVoteKickBantime);
+					str_format(aCmd, sizeof(aCmd), "vote_kick %d ban %s %d Banned by vote", KickID, aAddrStr, g_Config.m_SvVoteKickBantime);
 					str_format(aDesc, sizeof(aDesc), "Ban '%s'", Server()->ClientName(KickID));
 				}
 				IsRoomVote = true;
@@ -1913,7 +1951,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				str_format(aSixupDesc, sizeof(aSixupDesc), "%2d: %s", SpectateID, Server()->ClientName(SpectateID));
 				str_format(aChatmsg, sizeof(aChatmsg), "'%s' called for vote to move '%s' to spectators (%s)", Server()->ClientName(ClientID), Server()->ClientName(SpectateID), aReason);
 				str_format(aDesc, sizeof(aDesc), "Move '%s' to spectators", Server()->ClientName(SpectateID));
-				str_format(aCmd, sizeof(aCmd), "setting vote_command set_team %d -1 %d", SpectateID, g_Config.m_SvVoteSpectateRejoindelay);
+				str_format(aCmd, sizeof(aCmd), "vote_command set_team %d -1 %d", SpectateID, g_Config.m_SvVoteSpectateRejoindelay);
 				IsRoomVote = true;
 				m_VoteType = VOTE_TYPE_SPECTATE;
 				m_VoteVictim = SpectateID;
@@ -1936,7 +1974,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 						Instance.m_pController->SetVoteType(m_VoteType);
 						if(m_VoteType == VOTE_TYPE_KICK || m_VoteType == VOTE_TYPE_SPECTATE)
 							Instance.m_pController->SetVoteVictim(m_VoteVictim);
-						Instance.m_pController->CallVote(ClientID, aDesc, aCmd + 8, aReason, aChatmsg, aSixupDesc[0] ? aSixupDesc : 0);
+						Instance.m_pController->CallVote(ClientID, aDesc, aCmd, aReason, aChatmsg, aSixupDesc[0] ? aSixupDesc : 0);
 					}
 				}
 				else if(str_comp(aCmd, "info") != 0)
