@@ -131,6 +131,7 @@ class CGameContext : public IGameServer
 
 	// pvp commands
 	static void ConSetDefaultGameType(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetDefaultGameTypeFile(IConsole::IResult *pResult, void *pUserData);
 	static void ConAddGameType(IConsole::IResult *pResult, void *pUserData);
 	static void ConAddGameTypeFile(IConsole::IResult *pResult, void *pUserData);
 	static void ConRoomSetting(IConsole::IResult *pResult, void *pUserData);

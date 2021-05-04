@@ -673,12 +673,17 @@ void CGameContext::ConSetDefaultGameType(IConsole::IResult *pResult, void *pUser
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
-	if(pResult->NumArguments() > 2)
-		pSelf->Teams()->SetDefaultGameType(pResult->GetString(0), pResult->GetString(1), false);
-	else if(pResult->NumArguments() == 2)
+	if(pResult->NumArguments() == 2)
 		pSelf->Teams()->SetDefaultGameType(pResult->GetString(0), pResult->GetString(1), false);
 	else
 		pSelf->Teams()->SetDefaultGameType(pResult->GetString(0), nullptr, false);
+}
+
+void CGameContext::ConSetDefaultGameTypeFile(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	pSelf->Teams()->SetDefaultGameType(pResult->GetString(0), pResult->GetString(1), true);
 }
 
 void CGameContext::ConAddGameType(IConsole::IResult *pResult, void *pUserData)

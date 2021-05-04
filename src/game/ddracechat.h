@@ -24,15 +24,15 @@ CHAT_COMMAND("spec", "?r[player name]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConToggle
 CHAT_COMMAND("dnd", "", CFGFLAG_CHAT | CFGFLAG_SERVER | CFGFLAG_NONTEEHISTORIC, ConDND, this, "Toggle Do Not Disturb (no chat and server messages)")
 CHAT_COMMAND("timeout", "?s[code]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConTimeout, this, "Set timeout protection code s")
 
-CHAT_COMMAND("team", "?i[id] ?r[gametype]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConJoinOrCreateTeam, this, "Lets you join room i (shows your room id if left blank)")
-CHAT_COMMAND("room", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConJoinOrCreateTeam, this, "Shows your room number")
-CHAT_COMMAND("join", "i[id]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConJoinTeam, this, "Lets you join room i")
-CHAT_COMMAND("create", "?r[gametype]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConCreateTeam, this, "Creates a new room with specified gametype")
-CHAT_COMMAND("lock", "?i['0'|'1']", CFGFLAG_CHAT | CFGFLAG_SERVER, ConLockTeam, this, "Toggle team lock so no one else can join and so the team restarts when a player dies. /lock 0 to unlock, /lock 1 to lock.")
-CHAT_COMMAND("unlock", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConUnlockTeam, this, "Unlock a team")
+CHAT_COMMAND("team", "?i[id] ?r[gametype]", CFGFLAG_CHAT | CFGFLAG_SERVER | CFGFLAG_NO_CONSENT, ConJoinOrCreateTeam, this, "Lets you join room i (shows your room id if left blank)")
+CHAT_COMMAND("room", "", CFGFLAG_CHAT | CFGFLAG_SERVER | CFGFLAG_NO_CONSENT, ConJoinOrCreateTeam, this, "Shows your room number")
+CHAT_COMMAND("join", "i[id]", CFGFLAG_CHAT | CFGFLAG_SERVER | CFGFLAG_NO_CONSENT, ConJoinTeam, this, "Lets you join room i")
+CHAT_COMMAND("create", "?r[gametype]", CFGFLAG_CHAT | CFGFLAG_SERVER | CFGFLAG_NO_CONSENT, ConCreateTeam, this, "Creates a new room with specified gametype")
+CHAT_COMMAND("lock", "?i['0'|'1']", CFGFLAG_CHAT | CFGFLAG_SERVER | CFGFLAG_NO_CONSENT, ConLockTeam, this, "Toggle team lock so no one else can join and so the team restarts when a player dies. /lock 0 to unlock, /lock 1 to lock.")
+CHAT_COMMAND("unlock", "", CFGFLAG_CHAT | CFGFLAG_SERVER | CFGFLAG_NO_CONSENT, ConUnlockTeam, this, "Unlock a team")
 CHAT_COMMAND("invite", "r[player name]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConInviteTeam, this, "Invite a person to a locked team")
 
-CHAT_COMMAND("showothers", "?i['0'|'1'|'2']", CFGFLAG_CHAT | CFGFLAG_SERVER, ConShowOthers, this, "Whether to show other teams by default, (2 = with distracting stuff)")
+CHAT_COMMAND("showothers", "?i['0'|'1'|'2']", CFGFLAG_CHAT | CFGFLAG_SERVER | CFGFLAG_NO_CONSENT, ConShowOthers, this, "Whether to show other teams by default, (2 = with distracting stuff)")
 // CHAT_COMMAND("specteam", "?i['0'|'1']", CFGFLAG_CHAT | CFGFLAG_SERVER, ConSpecTeam, this, "Whether to show players in other rooms when spectating (on by default), optional i = 0 for off else for on")
 
 CHAT_COMMAND("setting", "?r[command]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConInstanceCommand, this, "Invoke a command in current room (i.e. you can change room settings)")

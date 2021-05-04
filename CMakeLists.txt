@@ -2138,6 +2138,7 @@ set_src(TOOLS GLOB src/tools
   map_convert_07.cpp
   map_diff.cpp
   map_extract.cpp
+  map_merge.cpp
   map_optimize.cpp
   map_replace_image.cpp
   map_resave.cpp
@@ -2394,6 +2395,7 @@ set(CPACK_TARGETS
   map_convert_07
   map_diff
   map_extract
+  map_merge
 )
 if(STEAMAPI_KIND STREQUAL SHARED)
   list(APPEND CPACK_TARGETS ${TARGET_STEAMAPI})

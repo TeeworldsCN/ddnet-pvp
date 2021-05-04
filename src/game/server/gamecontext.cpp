@@ -203,7 +203,7 @@ void CGameContext::CallVote(int ClientID, const char *pDesc, const char *pCmd, c
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
 		SGameInstance Instance = GameInstance(i);
-		if(Instance.m_Init && Instance.m_pController->IsVoting())
+		if(Instance.m_IsCreated && Instance.m_pController->IsVoting())
 		{
 			Instance.m_pController->EndVote(false);
 			Instance.m_pController->SendChatTarget(-1, "This room's vote has been cancelled due to a server vote being called");
@@ -1688,7 +1688,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		}
 		else if(MsgID == NETMSGTYPE_CL_CALLVOTE)
 		{
-			if(RateLimitPlayerVote(ClientID) || m_VoteCloseTime)
+			if(m_VoteCloseTime)
 				return;
 
 			m_apPlayers[ClientID]->UpdatePlaytime();
@@ -1709,7 +1709,8 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				str_copy(aReason, pMsg->m_Reason, sizeof(aReason));
 			}
 
-			bool IsRoomVote = false;
+			bool IsInstanceVote = false;
+			bool IsNoConsent = false;
 
 			if(str_comp_nocase(pMsg->m_Type, "option") == 0)
 			{
@@ -1718,7 +1719,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				if(str_startswith(pMsg->m_Value, "☉"))
 				{
 					// is room vote
-					Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "vote description cannot starts with the reserved icon 'U+2609' for room list");
+
 					return;
 				}
 				else
@@ -1735,7 +1736,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 							return;
 						}
 
-						IsRoomVote = true;
+						IsInstanceVote = true;
 						pOption = Instance.m_pController->m_pVoteOptionFirst;
 						pConsole = Instance.m_pController->InstanceConsole();
 					}
@@ -1761,7 +1762,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 							if(str_startswith(pOption->m_aCommand, "setting "))
 							{
-								IsRoomVote = true;
+								IsInstanceVote = true;
 								str_format(aCmd, sizeof(aCmd), "%s", pOption->m_aCommand + 8);
 							}
 							else
@@ -1770,13 +1771,27 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 							}
 							str_format(aDesc, sizeof(aDesc), "%s", pOption->m_aDescription);
 
-							if(IsRoomVote)
+							if(IsInstanceVote)
 								str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change room setting '%s' (%s)", Server()->ClientName(ClientID),
 									pOption->m_aDescription, aReason);
 							else
 								str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientID),
 									pOption->m_aDescription, aReason);
 							m_LastMapVote = time_get();
+
+							if(!str_find(aCmd, ";"))
+							{
+								const char *args = str_find(aCmd, " ");
+								if(args)
+									*(char *)args = '\0';
+
+								const IConsole::CCommandInfo *pInfo = pConsole->GetCommandInfo(aCmd, CFGFLAG_NO_CONSENT, false);
+								if(pInfo && pInfo->m_Flags & CFGFLAG_NO_CONSENT)
+									IsNoConsent = true;
+
+								if(args)
+									*(char *)args = ' ';
+							}
 							break;
 						}
 
@@ -1912,7 +1927,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					str_format(aCmd, sizeof(aCmd), "vote_kick %d ban %s %d Banned by vote", KickID, aAddrStr, g_Config.m_SvVoteKickBantime);
 					str_format(aDesc, sizeof(aDesc), "Ban '%s'", Server()->ClientName(KickID));
 				}
-				IsRoomVote = true;
+				IsInstanceVote = true;
 				m_apPlayers[ClientID]->m_Last_KickVote = time_get();
 				m_VoteType = VOTE_TYPE_KICK;
 				m_VoteVictim = KickID;
@@ -1952,14 +1967,17 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				str_format(aChatmsg, sizeof(aChatmsg), "'%s' called for vote to move '%s' to spectators (%s)", Server()->ClientName(ClientID), Server()->ClientName(SpectateID), aReason);
 				str_format(aDesc, sizeof(aDesc), "Move '%s' to spectators", Server()->ClientName(SpectateID));
 				str_format(aCmd, sizeof(aCmd), "vote_command set_team %d -1 %d", SpectateID, g_Config.m_SvVoteSpectateRejoindelay);
-				IsRoomVote = true;
+				IsInstanceVote = true;
 				m_VoteType = VOTE_TYPE_SPECTATE;
 				m_VoteVictim = SpectateID;
 			}
 
+			if(!IsNoConsent && RateLimitPlayerVote(ClientID))
+				return;
+
 			if(aCmd[0])
 			{
-				if(IsRoomVote)
+				if(IsInstanceVote)
 				{
 					SGameInstance Instance = PlayerGameInstance(ClientID);
 					if(!Instance.m_Init)
@@ -1974,12 +1992,19 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 						Instance.m_pController->SetVoteType(m_VoteType);
 						if(m_VoteType == VOTE_TYPE_KICK || m_VoteType == VOTE_TYPE_SPECTATE)
 							Instance.m_pController->SetVoteVictim(m_VoteVictim);
-						Instance.m_pController->CallVote(ClientID, aDesc, aCmd, aReason, aChatmsg, aSixupDesc[0] ? aSixupDesc : 0);
+
+						if(IsNoConsent)
+							Instance.m_pController->InstanceConsole()->ExecuteLine(aCmd, ClientID);
+						else
+							Instance.m_pController->CallVote(ClientID, aDesc, aCmd, aReason, aChatmsg, aSixupDesc[0] ? aSixupDesc : 0);
 					}
 				}
 				else if(str_comp(aCmd, "info") != 0)
 				{
-					CallVote(ClientID, aDesc, aCmd, aReason, aChatmsg, aSixupDesc[0] ? aSixupDesc : 0);
+					if(IsNoConsent)
+						Console()->ExecuteLine(aCmd, ClientID);
+					else
+						CallVote(ClientID, aDesc, aCmd, aReason, aChatmsg, aSixupDesc[0] ? aSixupDesc : 0);
 				}
 			}
 		}
@@ -2885,6 +2910,7 @@ void CGameContext::OnConsoleInit()
 
 	// backwards compatible
 	Console()->Register("sv_gametype", "s[gametype] ?r[settings]", CFGFLAG_SERVER, ConSetDefaultGameType, this, "Set a default gametype for room 0. The default game type won't be avalible for room id >1");
+	Console()->Register("sv_gametypefile", "s[gametype] r[filename]", CFGFLAG_SERVER, ConSetDefaultGameTypeFile, this, "Set a default gametype for room 0. The default game type won't be avalible for room id >1");
 	Console()->Register("add_gametype", "s[name] ?s[gametype] ?r[settings]", CFGFLAG_SERVER, ConAddGameType, this, "Register an gametype for rooms. First register will be the default for room 0");
 	Console()->Register("add_gametypefile", "s[name] s[gametype] r[filename]", CFGFLAG_SERVER, ConAddGameTypeFile, this, "Register an gametype for rooms. First register will be the default for room 0");
 	Console()->Register("room_setting", "i[room] ?r[settings]", CFGFLAG_SERVER, ConRoomSetting, this, "Invoke a command in a specified room");
