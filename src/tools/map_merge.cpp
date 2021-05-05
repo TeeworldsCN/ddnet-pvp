@@ -9,6 +9,10 @@
 #define STB_RECT_PACK_IMPLEMENTATION
 #include <engine/external/stb/stb_rect_pack.h>
 
+#define MAP_PADDING_X 24
+#define MAP_PADDING_Y 16
+#define MAP_TILESIZE 32
+
 struct SMapImage
 {
 	int m_Width;
@@ -16,6 +20,7 @@ struct SMapImage
 	int m_External;
 	char *m_pName;
 	void *m_pData;
+	int m_DataSize;
 	int m_Index;
 };
 
@@ -26,27 +31,21 @@ struct SLayer
 	int m_Height;
 	int m_Flags;
 
+	int m_NumQuads;
+
 	CColor m_Color;
 	int m_ColorEnv;
 	int m_ColorEnvOffset;
 
 	int m_Image;
-	CTile *m_pTiles;
+	void *m_pData;
+	int m_DataSize;
 
 	int m_aName[3];
-
-	CTeleTile *m_pTele;
-	CSpeedupTile *m_pSpeedup;
-	CTile *m_pFront;
-	CSwitchTile *m_pSwitch;
-	CTuneTile *m_pTune;
-
-	int Order;
 };
 
 struct SLayerGroup
 {
-	int m_Version;
 	int m_OffsetX;
 	int m_OffsetY;
 	int m_ParallaxX;
@@ -63,15 +62,171 @@ struct SLayerGroup
 	std::vector<SLayer *> m_vLayers;
 };
 
+int SaveGameLayer(CDataFileWriter &DataFileOut, int Width, int Height, void *pTiles, int &LayerCount, int Type)
+{
+	if(!pTiles)
+		return 0;
+
+	CMapItemLayerTilemap Item;
+	Item.m_Version = 3;
+
+	Item.m_Layer.m_Version = 0;
+	Item.m_Layer.m_Flags = 0;
+	Item.m_Layer.m_Type = LAYERTYPE_TILES;
+
+	Item.m_Color = {0, 0, 0, 0};
+	Item.m_ColorEnv = -1;
+	Item.m_ColorEnvOffset = 0;
+
+	Item.m_Width = Width;
+	Item.m_Height = Height;
+
+	Item.m_Image = -1;
+	Item.m_Tele = -1;
+	Item.m_Speedup = -1;
+	Item.m_Front = -1;
+	Item.m_Switch = -1;
+	Item.m_Tune = -1;
+
+	void *pEmptyData = malloc(Width * Height * sizeof(CTile));
+	mem_zero(pEmptyData, Width * Height * sizeof(CTile));
+
+	if(Type == TILESLAYERFLAG_GAME)
+	{
+		Item.m_Flags = TILESLAYERFLAG_GAME;
+		Item.m_Data = DataFileOut.AddData(Width * Height * sizeof(CTile), pTiles);
+		StrToInts(Item.m_aName, sizeof(Item.m_aName) / sizeof(int), "Game");
+	}
+	else if(Type == TILESLAYERFLAG_FRONT)
+	{
+		Item.m_Flags = TILESLAYERFLAG_FRONT;
+		Item.m_Data = DataFileOut.AddData(Width * Height * sizeof(CTile), pEmptyData);
+		StrToInts(Item.m_aName, sizeof(Item.m_aName) / sizeof(int), "Front");
+		Item.m_Front = DataFileOut.AddData(Width * Height * sizeof(CTile), pTiles);
+	}
+	else if(Type == TILESLAYERFLAG_TUNE)
+	{
+		Item.m_Flags = TILESLAYERFLAG_TUNE;
+		Item.m_Data = DataFileOut.AddData(Width * Height * sizeof(CTile), pEmptyData);
+		StrToInts(Item.m_aName, sizeof(Item.m_aName) / sizeof(int), "Tune");
+		Item.m_Tune = DataFileOut.AddData(Width * Height * sizeof(CTuneTile), pTiles);
+	}
+	else if(Type == TILESLAYERFLAG_TELE)
+	{
+		Item.m_Flags = TILESLAYERFLAG_TELE;
+		Item.m_Data = DataFileOut.AddData(Width * Height * sizeof(CTile), pEmptyData);
+		StrToInts(Item.m_aName, sizeof(Item.m_aName) / sizeof(int), "Tele");
+		Item.m_Tele = DataFileOut.AddData(Width * Height * sizeof(CTeleTile), pTiles);
+	}
+	else if(Type == TILESLAYERFLAG_SPEEDUP)
+	{
+		Item.m_Flags = TILESLAYERFLAG_SPEEDUP;
+		Item.m_Data = DataFileOut.AddData(Width * Height * sizeof(CTile), pEmptyData);
+		StrToInts(Item.m_aName, sizeof(Item.m_aName) / sizeof(int), "Speedup");
+		Item.m_Speedup = DataFileOut.AddData(Width * Height * sizeof(CSpeedupTile), pTiles);
+	}
+	else if(Type == TILESLAYERFLAG_SWITCH)
+	{
+		Item.m_Flags = TILESLAYERFLAG_SWITCH;
+		Item.m_Data = DataFileOut.AddData(Width * Height * sizeof(CTile), pEmptyData);
+		StrToInts(Item.m_aName, sizeof(Item.m_aName) / sizeof(int), "Switch");
+		Item.m_Switch = DataFileOut.AddData(Width * Height * sizeof(CSwitchTile), pTiles);
+	}
+	else
+	{
+		free(pEmptyData);
+		return 0;
+	}
+
+	dbg_msg("map_merge", "saving layer %d (%dx%d) type=%d, flags=%d, img=%d", LayerCount, Item.m_Width, Item.m_Height, Item.m_Layer.m_Type, Item.m_Flags, Item.m_Image);
+	DataFileOut.AddItem(MAPITEMTYPE_LAYER, LayerCount++, sizeof(Item), &Item);
+	free(pEmptyData);
+	return 1;
+}
+
+int SaveLayers(CDataFileWriter &DataFileOut, std::vector<SLayer *> &vLayers, int &LayerCount)
+{
+	int NumGroupLayer = 0;
+	for(auto &pLayer : vLayers)
+	{
+		if(pLayer->m_Layer.m_Type == LAYERTYPE_TILES)
+		{
+			CMapItemLayerTilemap Item;
+			Item.m_Version = 3;
+
+			Item.m_Layer.m_Version = 0;
+			Item.m_Layer.m_Flags = pLayer->m_Layer.m_Flags;
+			Item.m_Layer.m_Type = pLayer->m_Layer.m_Type;
+
+			Item.m_Color = pLayer->m_Color;
+			Item.m_ColorEnv = pLayer->m_ColorEnv;
+			Item.m_ColorEnvOffset = pLayer->m_ColorEnvOffset;
+
+			Item.m_Width = pLayer->m_Width;
+			Item.m_Height = pLayer->m_Height;
+			Item.m_Flags = pLayer->m_Flags;
+
+			Item.m_Image = pLayer->m_Image;
+
+			// TODO: ddnet layers
+			Item.m_Tele = -1;
+			Item.m_Speedup = -1;
+			Item.m_Front = -1;
+			Item.m_Switch = -1;
+			Item.m_Tune = -1;
+
+			Item.m_Data = DataFileOut.AddData(pLayer->m_DataSize, pLayer->m_pData);
+
+			Item.m_aName[0] = pLayer->m_aName[0];
+			Item.m_aName[1] = pLayer->m_aName[1];
+			Item.m_aName[2] = pLayer->m_aName[2];
+
+			dbg_msg("map_merge", "saving layer %d (%dx%d) type=%d, flags=%d, img=%d", LayerCount, Item.m_Width, Item.m_Height, Item.m_Layer.m_Type, Item.m_Flags, Item.m_Image);
+			DataFileOut.AddItem(MAPITEMTYPE_LAYER, LayerCount++, sizeof(Item), &Item);
+			// automapper is skipped, since it won't work afterwards anyway
+			NumGroupLayer++;
+		}
+	}
+	return NumGroupLayer;
+}
+
+void SaveGroups(CDataFileWriter &DataFileOut, std::vector<SLayerGroup *> &Groups, int &LayerCount, int &GroupCount)
+{
+	for(auto &pGroup : Groups)
+	{
+		CMapItemGroup GItem;
+		GItem.m_Version = CMapItemGroup::CURRENT_VERSION;
+		GItem.m_ParallaxX = pGroup->m_ParallaxX;
+		GItem.m_ParallaxY = pGroup->m_ParallaxY;
+		GItem.m_OffsetX = pGroup->m_OffsetX;
+		GItem.m_OffsetY = pGroup->m_OffsetY;
+		GItem.m_UseClipping = pGroup->m_UseClipping;
+		GItem.m_ClipX = pGroup->m_ClipX;
+		GItem.m_ClipY = pGroup->m_ClipY;
+		GItem.m_ClipW = pGroup->m_ClipW;
+		GItem.m_ClipH = pGroup->m_ClipH;
+		GItem.m_aName[0] = pGroup->m_aName[0];
+		GItem.m_aName[1] = pGroup->m_aName[1];
+		GItem.m_aName[2] = pGroup->m_aName[2];
+		GItem.m_StartLayer = LayerCount;
+		GItem.m_NumLayers = SaveLayers(DataFileOut, pGroup->m_vLayers, LayerCount);
+		dbg_msg("map_merge", "saving group %d containing layers %d-%d, isclip=%d, off=%d:%d, para=%d:%d, clip=%d:%d:%d:%d", GroupCount, GItem.m_StartLayer, GItem.m_StartLayer + GItem.m_NumLayers - 1, GItem.m_UseClipping, GItem.m_OffsetX, GItem.m_OffsetY, GItem.m_ParallaxX, GItem.m_ParallaxY, GItem.m_ClipX, GItem.m_ClipY, GItem.m_ClipW, GItem.m_ClipH);
+		DataFileOut.AddItem(MAPITEMTYPE_GROUP, GroupCount++, sizeof(GItem), &GItem);
+	}
+}
+
 bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 {
 	// Preload data & packing
-	CDataFileReader aDataFiles[NumMaps];
-	stbrp_rect aRects[NumMaps];
+	CDataFileReader **ppDataFiles = (CDataFileReader **)malloc(NumMaps * sizeof(CDataFileReader *));
+	stbrp_rect *pRects = (stbrp_rect *)malloc(NumMaps * sizeof(stbrp_rect));
+
 	int MaxMapWidth = 0;
 	for(int MapIndex = 0; MapIndex < NumMaps; MapIndex++)
 	{
-		CDataFileReader &DataFile = aDataFiles[MapIndex];
+		ppDataFiles[MapIndex] = new CDataFileReader();
+		CDataFileReader &DataFile = *ppDataFiles[MapIndex];
+
 		if(!DataFile.Open(pStorage, pMapNames[MapIndex], IStorage::TYPE_ABSOLUTE))
 		{
 			dbg_msg("map_merge", "error opening map '%s'", pMapNames[MapIndex]);
@@ -96,11 +251,12 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 			}
 		}
 
-		aRects[MapIndex].w = MapWidth;
-		aRects[MapIndex].h = MapHeight;
-		aRects[MapIndex].was_packed = false;
+		pRects[MapIndex].id = 0;
+		pRects[MapIndex].w = MapWidth + MAP_PADDING_X * 2;
+		pRects[MapIndex].h = MapHeight + MAP_PADDING_Y * 2;
+		pRects[MapIndex].was_packed = false;
 
-		MaxMapWidth = maximum(MapWidth, MaxMapWidth);
+		MaxMapWidth = maximum(MapWidth + MAP_PADDING_X * 2, MaxMapWidth);
 		dbg_msg("map_merge", "size of map %s: %dx%d", pMapNames[MapIndex], MapWidth, MapHeight);
 	}
 
@@ -114,7 +270,7 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 	stbrp_context Packer;
 	stbrp_init_target(&Packer, MaxWidth, 10000, apPackerStorage, MaxWidth);
 
-	bool PackingSuccess = stbrp_pack_rects(&Packer, aRects, NumMaps);
+	bool PackingSuccess = stbrp_pack_rects(&Packer, pRects, NumMaps);
 	free(apPackerStorage);
 	if(!PackingSuccess)
 	{
@@ -126,239 +282,335 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 	int MaxMapHeight = 0;
 	for(int MapIndex = 0; MapIndex < NumMaps; MapIndex++)
 	{
-		dbg_msg("map_merge", "%s at %d, %d", pMapNames[MapIndex], aRects[MapIndex].x, aRects[MapIndex].y);
-		MaxMapWidth = maximum(aRects[MapIndex].x + aRects[MapIndex].w, MaxMapWidth);
-		MaxMapHeight = maximum(aRects[MapIndex].y + aRects[MapIndex].h, MaxMapHeight);
+		dbg_msg("map_merge", "%s at %d, %d", pMapNames[MapIndex], pRects[MapIndex].x, pRects[MapIndex].y);
+
+		MaxMapWidth = maximum(pRects[MapIndex].x + pRects[MapIndex].w - MAP_PADDING_X * 2, MaxMapWidth);
+		MaxMapHeight = maximum(pRects[MapIndex].y + pRects[MapIndex].h - MAP_PADDING_Y * 2, MaxMapHeight);
 	}
 
 	dbg_msg("map_merge", "mega map final size: %d x %d", MaxMapWidth, MaxMapHeight);
-	return true;
-	// std::vector<SLayerGroup *> PreGameGroupGroups; // store groups before game groups
-	// std::vector<SLayerGroup *> PreGameLayerGroups; // store new groups grouping layers in game group before the first game layer
-	// SLayerGroup GameLayerGroup; // store the game layer
-	// std::vector<SLayerGroup *> PostGameLayerGroups; // store new groups grouping layers in game group after the second game layer
-	// std::vector<SLayerGroup *> PostGameGroupGroups; // store groups after game groups
 
-	// int NumImages = 0;
-	// int NumSounds = 0;
+	std::vector<SLayerGroup *> PreGameGroupGroups; // store groups before game groups
+	std::vector<SLayerGroup *> PostGameGroupGroups; // store groups after game groups
 
-	// std::vector<SMapImage> MapImages;
+	// Game Group layers
+	CTile *pGameTiles = (CTile *)malloc(MaxMapWidth * MaxMapHeight * sizeof(CTile));
+	mem_zero(pGameTiles, MaxMapWidth * MaxMapHeight * sizeof(CTile));
+	CTeleTile *pTeleTiles = nullptr;
+	CSpeedupTile *pSpeedupTiles = nullptr;
+	CTile *pFrontTiles = nullptr;
+	CSwitchTile *pSwitchTiles = nullptr;
+	CTuneTile *pTuneTiles = (CTuneTile *)malloc(MaxMapWidth * MaxMapHeight * sizeof(CTuneTile));
+	mem_zero(pTuneTiles, MaxMapWidth * MaxMapHeight * sizeof(CTuneTile));
 
-	// CDataFileWriter DataFileOut;
-	// if(!DataFileOut.Open(pStorage, pOutName))
-	// {
-	// 	dbg_msg("map_merge", "failed to open file '%s'...", pOutName);
-	// 	return false;
-	// }
+	int NumImages = 0;
+	int NumSounds = 0;
 
-	// // merge maps
-	// for(int MapIndex = 0; MapIndex < NumMaps; MapIndex++)
-	// {
-	// 	CDataFileReader *pDataFile = new CDataFileReader();
+	std::vector<SMapImage> MapImages;
 
-	// 	if(!pDataFile->Open(pStorage, pMapNames[MapIndex], IStorage::TYPE_ABSOLUTE))
-	// 	{
-	// 		dbg_msg("map_merge", "error opening map '%s'", pMapNames[MapIndex]);
-	// 		return false;
-	// 	}
+	CDataFileWriter DataFileOut;
+	if(!DataFileOut.Open(pStorage, pOutName))
+	{
+		dbg_msg("map_merge", "failed to open file '%s'...", pOutName);
+		return false;
+	}
 
-	// 	// load images
-	// 	std::vector<int> ImageIDMap;
-	// 	{
-	// 		int Start, Num;
-	// 		pDataFile->GetType(MAPITEMTYPE_IMAGE, &Start, &Num);
-	// 		ImageIDMap.resize(Num);
+	// merge maps
+	for(int MapIndex = 0; MapIndex < NumMaps; MapIndex++)
+	{
+		CDataFileReader &DataFile = *ppDataFiles[MapIndex];
 
-	// 		for(int i = 0; i < Num; i++)
-	// 		{
-	// 			CMapItemImage *pItem = (CMapItemImage *)pDataFile->GetItem(Start + i, 0, 0);
-	// 			char *pName = (char *)pDataFile->GetData(pItem->m_ImageName);
+		// load images
+		std::vector<int> ImageIDMap;
+		{
+			int Start, Num;
+			DataFile.GetType(MAPITEMTYPE_IMAGE, &Start, &Num);
+			ImageIDMap.resize(Num);
 
-	// 			bool ImageAlreadyExists = false;
-	// 			for(auto &Image : MapImages)
-	// 			{
-	// 				if(Image.m_External == pItem->m_External && str_comp(Image.m_pName, pName) == 0)
-	// 				{
-	// 					ImageIDMap[i] = Image.m_Index;
-	// 					ImageAlreadyExists = true;
-	// 					break;
-	// 				}
-	// 			}
+			for(int i = 0; i < Num; i++)
+			{
+				CMapItemImage *pItem = (CMapItemImage *)DataFile.GetItem(Start + i, 0, 0);
+				char *pName = (char *)DataFile.GetData(pItem->m_ImageName);
 
-	// 			if(ImageAlreadyExists)
-	// 			{
-	// 				// save memory (probably)
-	// 				pDataFile->UnloadData(pItem->m_ImageName);
-	// 				pDataFile->UnloadData(pItem->m_ImageData);
-	// 				continue;
-	// 			}
+				bool ImageAlreadyExists = false;
+				for(auto &Image : MapImages)
+				{
+					if(Image.m_External == pItem->m_External && str_comp(Image.m_pName, pName) == 0)
+					{
+						ImageIDMap[i] = Image.m_Index;
+						ImageAlreadyExists = true;
+						break;
+					}
+				}
 
-	// 			SMapImage Image;
-	// 			Image.m_External = pItem->m_External;
-	// 			Image.m_Width = pItem->m_Width;
-	// 			Image.m_Height = pItem->m_Height;
-	// 			Image.m_pName = pName;
-	// 			if(Image.m_External)
-	// 				Image.m_pData = nullptr;
-	// 			else
-	// 				Image.m_pData = pDataFile->GetData(pItem->m_ImageData);
-	// 			Image.m_Index = NumImages++;
+				if(ImageAlreadyExists)
+				{
+					// save memory (probably)
+					DataFile.UnloadData(pItem->m_ImageName);
+					DataFile.UnloadData(pItem->m_ImageData);
+					continue;
+				}
 
-	// 			MapImages.push_back(Image);
-	// 		}
-	// 	}
+				SMapImage Image;
+				Image.m_External = pItem->m_External;
+				Image.m_Width = pItem->m_Width;
+				Image.m_Height = pItem->m_Height;
+				Image.m_pName = pName;
+				if(Image.m_External)
+					Image.m_pData = nullptr;
+				else
+				{
+					Image.m_pData = DataFile.GetData(pItem->m_ImageData);
+					Image.m_DataSize = DataFile.GetDataSize(pItem->m_ImageData);
+				}
 
-	// 	// load groups
-	// 	int LayersStart, LayersNum;
-	// 	pDataFile->GetType(MAPITEMTYPE_LAYER, &LayersStart, &LayersNum);
+				Image.m_Index = NumImages++;
+				ImageIDMap[i] = Image.m_Index;
 
-	// 	int Start, Num;
-	// 	pDataFile->GetType(MAPITEMTYPE_GROUP, &Start, &Num);
+				MapImages.push_back(Image);
+			}
+		}
 
-	// 	for(int g = 0; g < Num; g++)
-	// 	{
-	// 		CMapItemGroup *pGItem = (CMapItemGroup *)pDataFile->GetItem(Start + g, 0, 0);
-	// 		bool IsGameGroup = false;
+		// load groups
+		int LayersStart, LayersNum;
+		DataFile.GetType(MAPITEMTYPE_LAYER, &LayersStart, &LayersNum);
 
-	// 		if(pGItem->m_Version < 1 || pGItem->m_Version > CMapItemGroup::CURRENT_VERSION)
-	// 			continue;
+		int Start, Num;
+		DataFile.GetType(MAPITEMTYPE_GROUP, &Start, &Num);
 
-	// 		SLayerGroup *pLayerGroup = new SLayerGroup();
-	// 		pLayerGroup->m_ParallaxX = pGItem->m_ParallaxX;
-	// 		pLayerGroup->m_ParallaxY = pGItem->m_ParallaxY;
-	// 		pLayerGroup->m_OffsetX = pGItem->m_OffsetX;
-	// 		pLayerGroup->m_OffsetY = pGItem->m_OffsetY;
+		int PaddedMapPositionX = (int)pRects[MapIndex].x - MAP_PADDING_X;
+		int PaddedMapPositionY = (int)pRects[MapIndex].y - MAP_PADDING_Y;
+		int MapPositionX = pRects[MapIndex].x;
+		int MapPositionY = pRects[MapIndex].y;
+		int MapPositionW = pRects[MapIndex].w - MAP_PADDING_X * 2;
+		int MapPositionH = pRects[MapIndex].h - MAP_PADDING_Y * 2;
 
-	// 		if(pGItem->m_Version >= 2)
-	// 		{
-	// 			pLayerGroup->m_UseClipping = pGItem->m_UseClipping;
-	// 			pLayerGroup->m_ClipX = pGItem->m_ClipX;
-	// 			pLayerGroup->m_ClipY = pGItem->m_ClipY;
-	// 			pLayerGroup->m_ClipW = pGItem->m_ClipW;
-	// 			pLayerGroup->m_ClipH = pGItem->m_ClipH;
-	// 		}
-	// 		else
-	// 		{
-	// 			pLayerGroup->m_UseClipping = true;
-	// 			pLayerGroup->m_ClipX = 0;
-	// 			pLayerGroup->m_ClipY = 0;
-	// 			pLayerGroup->m_ClipW = 0;
-	// 			pLayerGroup->m_ClipH = 0;
-	// 		}
+		auto *pCurrentGroupGroup = &PreGameGroupGroups;
 
-	// 		if(pGItem->m_Version >= 3)
-	// 		{
-	// 			pLayerGroup->m_aName[0] = pGItem->m_aName[0];
-	// 			pLayerGroup->m_aName[1] = pGItem->m_aName[1];
-	// 			pLayerGroup->m_aName[2] = pGItem->m_aName[2];
-	// 		}
-	// 		else
-	// 		{
-	// 			StrToInts(pLayerGroup->m_aName, sizeof(pLayerGroup->m_aName) / sizeof(int), "");
-	// 		}
-	// 		for(int l = 0; l < pGItem->m_NumLayers; l++)
-	// 		{
-	// 			CMapItemLayer *pLayerItem = (CMapItemLayer *)pDataFile->GetItem(LayersStart + pGItem->m_StartLayer + l, 0, 0);
-	// 			if(!pLayerItem)
-	// 				continue;
+		for(int g = 0; g < Num; g++)
+		{
+			CMapItemGroup *pGItem = (CMapItemGroup *)DataFile.GetItem(Start + g, 0, 0);
 
-	// 			if(pLayerItem->m_Type == LAYERTYPE_TILES)
-	// 			{
-	// 				CMapItemLayerTilemap *pTilemapItem = (CMapItemLayerTilemap *)pLayerItem;
-	// 				if(pTilemapItem->m_Flags)
-	// 					IsGameGroup = true;
+			if(pGItem->m_Version < 1 || pGItem->m_Version > CMapItemGroup::CURRENT_VERSION)
+				continue;
 
-	// 				CMapItemLayerTilemap Item;
-	// 				Item.m_Version = 3;
-	// 				Item.m_Layer.m_Version = 0;
-	// 				Item.m_Layer.m_Flags = pTilemapItem->m_Layer.m_Flags;
-	// 				Item.m_Layer.m_Type = pTilemapItem->m_Layer.m_Type;
+			SLayerGroup *pLayerGroup = new SLayerGroup();
+			pLayerGroup->m_ParallaxX = pGItem->m_ParallaxX;
+			pLayerGroup->m_ParallaxY = pGItem->m_ParallaxY;
+			pLayerGroup->m_OffsetX = pGItem->m_OffsetX - (MapPositionX * pGItem->m_ParallaxX / (float)100) * MAP_TILESIZE;
+			pLayerGroup->m_OffsetY = pGItem->m_OffsetY - (MapPositionY * pGItem->m_ParallaxY / (float)100) * MAP_TILESIZE;
 
-	// 				Item.m_Color = pTilemapItem->m_Color;
-	// 				Item.m_ColorEnv = -1;
-	// 				Item.m_ColorEnvOffset = 0;
+			pLayerGroup->m_UseClipping = true;
+			if(pGItem->m_Version >= 2 && pGItem->m_UseClipping)
+			{
+				pLayerGroup->m_ClipX = pGItem->m_ClipX;
+				pLayerGroup->m_ClipY = pGItem->m_ClipY;
+				pLayerGroup->m_ClipW = pGItem->m_ClipW;
+				pLayerGroup->m_ClipH = pGItem->m_ClipH;
+			}
+			else
+			{
+				pLayerGroup->m_ClipX = -MAP_PADDING_X * MAP_TILESIZE;
+				pLayerGroup->m_ClipY = -MAP_PADDING_Y * MAP_TILESIZE;
+				pLayerGroup->m_ClipW = (MapPositionW + MAP_PADDING_X * 2) * MAP_TILESIZE;
+				pLayerGroup->m_ClipH = (MapPositionH + MAP_PADDING_Y * 2) * MAP_TILESIZE;
+			}
 
-	// 				Item.m_Width = pTilemapItem->m_Width;
-	// 				Item.m_Height = pTilemapItem->m_Height;
-	// 				Item.m_Flags = pTilemapItem->m_Flags & TILESLAYERFLAG_GAME;
+			pLayerGroup->m_ClipX += MapPositionX * MAP_TILESIZE;
+			pLayerGroup->m_ClipY += MapPositionY * MAP_TILESIZE;
 
-	// 				Item.m_Image = pTilemapItem->m_Image >= 0 ? ImageIDMap[pTilemapItem->m_Image] : -1;
+			if(pGItem->m_Version >= 3)
+			{
+				pLayerGroup->m_aName[0] = pGItem->m_aName[0];
+				pLayerGroup->m_aName[1] = pGItem->m_aName[1];
+				pLayerGroup->m_aName[2] = pGItem->m_aName[2];
+			}
+			else
+			{
+				StrToInts(pLayerGroup->m_aName, sizeof(pLayerGroup->m_aName) / sizeof(int), pMapNames[MapIndex]);
+			}
 
-	// 				Item.m_Tele = -1;
-	// 				Item.m_Speedup = -1;
-	// 				Item.m_Front = -1;
-	// 				Item.m_Switch = -1;
-	// 				Item.m_Tune = -1;
+			for(int l = 0; l < pGItem->m_NumLayers; l++)
+			{
+				CMapItemLayer *pLayerItem = (CMapItemLayer *)DataFile.GetItem(LayersStart + pGItem->m_StartLayer + l, 0, 0);
+				if(!pLayerItem)
+					continue;
 
-	// 				void *pData = pDataFile->GetData(pTilemapItem->m_Data);
-	// 				// unsigned int Size = pDataFile->GetDataSize(pTilemapItem->m_Data);
+				if(pLayerItem->m_Type == LAYERTYPE_TILES)
+				{
+					bool IsGameLayer = false;
+					CMapItemLayerTilemap *pTilemapItem = (CMapItemLayerTilemap *)pLayerItem;
+					if(pTilemapItem->m_Flags)
+					{
+						if(pTilemapItem->m_Flags & TILESLAYERFLAG_GAME)
+						{
+							if(pLayerGroup->m_vLayers.size() > 0)
+							{
+								pCurrentGroupGroup->push_back(pLayerGroup);
 
-	// 				if(pTilemapItem->m_Version >= 3)
-	// 				{
-	// 					Item.m_aName[0] = pTilemapItem->m_aName[0];
-	// 					Item.m_aName[1] = pTilemapItem->m_aName[1];
-	// 					Item.m_aName[2] = pTilemapItem->m_aName[2];
-	// 				}
-	// 				else
-	// 				{
-	// 					StrToInts(Item.m_aName, sizeof(Item.m_aName) / sizeof(int), "Layer");
-	// 				}
+								SLayerGroup *pNewLayerGroup = new SLayerGroup();
+								pNewLayerGroup->m_OffsetX = pLayerGroup->m_OffsetX;
+								pNewLayerGroup->m_OffsetY = pLayerGroup->m_OffsetY;
+								pNewLayerGroup->m_ParallaxX = pLayerGroup->m_ParallaxX;
+								pNewLayerGroup->m_ParallaxY = pLayerGroup->m_ParallaxY;
+								pNewLayerGroup->m_UseClipping = pLayerGroup->m_UseClipping;
+								pNewLayerGroup->m_ClipX = pLayerGroup->m_ClipX;
+								pNewLayerGroup->m_ClipY = pLayerGroup->m_ClipY;
+								pNewLayerGroup->m_ClipW = pLayerGroup->m_ClipW;
+								pNewLayerGroup->m_ClipH = pLayerGroup->m_ClipH;
+								pNewLayerGroup->m_aName[0] = pLayerGroup->m_aName[0];
+								pNewLayerGroup->m_aName[1] = pLayerGroup->m_aName[1];
+								pNewLayerGroup->m_aName[2] = pLayerGroup->m_aName[2];
+								pLayerGroup = pNewLayerGroup;
+							}
+							pCurrentGroupGroup = &PostGameGroupGroups;
+						}
+						IsGameLayer = true;
+					}
 
-	// 				Item.m_Data = DataFileOut.AddData((size_t)Item.m_Width * Item.m_Height * sizeof(CTile), pData);
-	// 			}
-	// 		}
-	// 	}
+					SLayer *pLayer = new SLayer();
+					pLayer->m_pData = DataFile.GetData(pTilemapItem->m_Data);
+					pLayer->m_DataSize = DataFile.GetDataSize(pTilemapItem->m_Data);
+					pLayer->m_Layer.m_Flags = pTilemapItem->m_Layer.m_Flags;
+					pLayer->m_Layer.m_Type = pTilemapItem->m_Layer.m_Type;
+					pLayer->m_Width = pTilemapItem->m_Width;
+					pLayer->m_Height = pTilemapItem->m_Height;
+					pLayer->m_Color = pTilemapItem->m_Color;
+					// TODO: save env
+					pLayer->m_ColorEnv = -1; // pTilemapItem->m_ColorEnv;
+					pLayer->m_ColorEnvOffset = 0; // pTilemapItem->m_ColorEnvOffset;
+					pLayer->m_Flags = pTilemapItem->m_Flags;
+					pLayer->m_Image = pTilemapItem->m_Image >= 0 ? ImageIDMap[pTilemapItem->m_Image] : -1;
 
-	// 	DataFiles.push_back(pDataFile);
-	// }
+					if(pTilemapItem->m_Layer.m_Version >= 3)
+					{
+						pLayer->m_aName[0] = pTilemapItem->m_aName[0];
+						pLayer->m_aName[1] = pTilemapItem->m_aName[1];
+						pLayer->m_aName[2] = pTilemapItem->m_aName[2];
+					}
+					else
+					{
+						StrToInts(pLayer->m_aName, sizeof(pLayer->m_aName) / sizeof(int), "");
+					}
 
-	// // save map
-	// {
-	// 	// save version
-	// 	CMapItemVersion Item;
-	// 	Item.m_Version = 1;
-	// 	DataFileOut.AddItem(MAPITEMTYPE_VERSION, 0, sizeof(Item), &Item);
-	// }
-	// {
-	// 	// save info
-	// 	// TODO: merge credits?
-	// 	CMapItemInfoSettings Item;
-	// 	Item.m_Version = 1;
-	// 	Item.m_Author = -1;
-	// 	Item.m_MapVersion = -1;
-	// 	Item.m_Credits = -1;
-	// 	Item.m_License = -1;
-	// 	Item.m_Settings = -1;
-	// 	DataFileOut.AddItem(MAPITEMTYPE_INFO, 0, sizeof(Item), &Item);
-	// }
-	// {
-	// 	// save images
-	// 	for(auto &Image : MapImages)
-	// 	{
-	// 		CMapItemImage Item;
-	// 		Item.m_Version = 1;
+					if(!IsGameLayer)
+						pLayerGroup->m_vLayers.push_back(pLayer);
+					else
+					{
+						if(pTilemapItem->m_Flags & TILESLAYERFLAG_GAME)
+						{
+							CTile *pTiles = (CTile *)pLayer->m_pData;
+							for(int y = 0; y < pLayer->m_Height; y++)
+								for(int x = 0; x < pLayer->m_Width; x++)
+								{
+									int MapX = MapPositionX + x;
+									int MapY = MapPositionY + y;
+									int TargetIndex = MapY * MaxMapWidth + MapX;
 
-	// 		Item.m_Width = Image.m_Width;
-	// 		Item.m_Height = Image.m_Height;
-	// 		Item.m_External = Image.m_External;
-	// 		Item.m_ImageName = DataFileOut.AddData(str_length(Image.m_pName) + 1, Image.m_pName);
-	// 		if(Image.m_External)
-	// 			Item.m_ImageData = -1;
-	// 		else
-	// 			Item.m_ImageData = DataFileOut.AddData(Item.m_Width * Item.m_Height * 4, Image.m_pData);
-	// 		DataFileOut.AddItem(MAPITEMTYPE_IMAGE, Image.m_Index, sizeof(Item), &Item);
-	// 	}
-	// }
-	// DataFileOut.Finish();
+									CTile Tile = pTiles[y * pLayer->m_Width + x];
+									pGameTiles[TargetIndex] = Tile;
+									if(Tile.m_Index >= ENTITY_OFFSET)
+									{
+										pTuneTiles[TargetIndex].m_Type = TILE_MEGAMAP_INDEX;
+										pTuneTiles[TargetIndex].m_Number = MapIndex + 1;
+									}
+								}
+							DataFile.UnloadData(pTilemapItem->m_Data);
+						}
+						free(pLayer);
+					};
+				}
+			}
 
-	// // free data
-	// for(auto &pDataFile : DataFiles)
-	// {
-	// 	pDataFile->Close();
-	// 	delete pDataFile;
-	// }
+			if(pLayerGroup->m_vLayers.size() > 0)
+				pCurrentGroupGroup->push_back(pLayerGroup);
+		}
+	}
 
-	// return true;
+	// save map
+	{
+		// save version
+		CMapItemVersion Item;
+		Item.m_Version = 1;
+		DataFileOut.AddItem(MAPITEMTYPE_VERSION, 0, sizeof(Item), &Item);
+	}
+	{
+		// save info
+		// TODO: merge credits?
+		CMapItemInfoSettings Item;
+		Item.m_Version = 1;
+		Item.m_Author = -1;
+		Item.m_MapVersion = -1;
+		Item.m_Credits = -1;
+		Item.m_License = -1;
+		Item.m_Settings = -1;
+		DataFileOut.AddItem(MAPITEMTYPE_INFO, 0, sizeof(Item), &Item);
+	}
+	{
+		// save images
+		for(auto &Image : MapImages)
+		{
+			CMapItemImage Item;
+			Item.m_Version = 1;
+
+			Item.m_Width = Image.m_Width;
+			Item.m_Height = Image.m_Height;
+			Item.m_External = Image.m_External;
+			Item.m_ImageName = DataFileOut.AddData(str_length(Image.m_pName) + 1, Image.m_pName);
+			if(Image.m_External)
+				Item.m_ImageData = -1;
+			else
+				Item.m_ImageData = DataFileOut.AddData(Image.m_DataSize, Image.m_pData);
+			dbg_msg("map_merge", "saving image %d (%dx%d), external=%d, name=%s", Image.m_Index, Image.m_Width, Image.m_Height, Image.m_External, Image.m_pName);
+			DataFileOut.AddItem(MAPITEMTYPE_IMAGE, Image.m_Index, sizeof(Item), &Item);
+		}
+
+		// save groups
+		int LayerCount = 0;
+		int GroupCount = 0;
+
+		// Game groupg
+		SaveGroups(DataFileOut, PreGameGroupGroups, LayerCount, GroupCount);
+
+		CMapItemGroup GameGroup;
+		StrToInts(GameGroup.m_aName, sizeof(GameGroup.m_aName) / sizeof(int), "Game");
+		GameGroup.m_Version = CMapItemGroup::CURRENT_VERSION;
+		GameGroup.m_ParallaxX = 100;
+		GameGroup.m_ParallaxY = 100;
+		GameGroup.m_OffsetX = 0;
+		GameGroup.m_OffsetY = 0;
+		GameGroup.m_UseClipping = false;
+		GameGroup.m_ClipX = 0;
+		GameGroup.m_ClipY = 0;
+		GameGroup.m_ClipW = 0;
+		GameGroup.m_ClipH = 0;
+
+		GameGroup.m_StartLayer = LayerCount;
+		GameGroup.m_NumLayers = 0;
+		GameGroup.m_NumLayers += SaveGameLayer(DataFileOut, MaxMapWidth, MaxMapHeight, pGameTiles, LayerCount, TILESLAYERFLAG_GAME);
+		GameGroup.m_NumLayers += SaveGameLayer(DataFileOut, MaxMapWidth, MaxMapHeight, pTeleTiles, LayerCount, TILESLAYERFLAG_TELE);
+		GameGroup.m_NumLayers += SaveGameLayer(DataFileOut, MaxMapWidth, MaxMapHeight, pSpeedupTiles, LayerCount, TILESLAYERFLAG_SPEEDUP);
+		GameGroup.m_NumLayers += SaveGameLayer(DataFileOut, MaxMapWidth, MaxMapHeight, pFrontTiles, LayerCount, TILESLAYERFLAG_FRONT);
+		GameGroup.m_NumLayers += SaveGameLayer(DataFileOut, MaxMapWidth, MaxMapHeight, pSwitchTiles, LayerCount, TILESLAYERFLAG_SWITCH);
+		GameGroup.m_NumLayers += SaveGameLayer(DataFileOut, MaxMapWidth, MaxMapHeight, pTuneTiles, LayerCount, TILESLAYERFLAG_TUNE);
+		dbg_msg("map_merge", "saving group %d containing layers %d-%d, isclip=%d, off=%d:%d, para=%d:%d, clip=%d:%d:%d:%d", GroupCount, GameGroup.m_StartLayer, GameGroup.m_StartLayer + GameGroup.m_NumLayers - 1, GameGroup.m_UseClipping, GameGroup.m_OffsetX, GameGroup.m_OffsetY, GameGroup.m_ParallaxX, GameGroup.m_ParallaxY, GameGroup.m_ClipX, GameGroup.m_ClipY, GameGroup.m_ClipW, GameGroup.m_ClipH);
+		DataFileOut.AddItem(MAPITEMTYPE_GROUP, GroupCount++, sizeof(GameGroup), &GameGroup);
+
+		SaveGroups(DataFileOut, PostGameGroupGroups, LayerCount, GroupCount);
+		DataFileOut.Finish();
+
+		// free data
+		for(int i = 0; i < NumMaps; i++)
+		{
+			ppDataFiles[i]->Close();
+			delete ppDataFiles[i];
+		}
+
+		free(ppDataFiles);
+		free(pRects);
+
+		// return true;
+	}
 }
 
 int main(int argc, char *argv[])
