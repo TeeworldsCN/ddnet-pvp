@@ -74,7 +74,7 @@ int SaveGameLayer(CDataFileWriter &DataFileOut, int Width, int Height, void *pTi
 	Item.m_Layer.m_Flags = 0;
 	Item.m_Layer.m_Type = LAYERTYPE_TILES;
 
-	Item.m_Color = {0, 0, 0, 0};
+	Item.m_Color = {255, 255, 255, 255};
 	Item.m_ColorEnv = -1;
 	Item.m_ColorEnvOffset = 0;
 
@@ -181,9 +181,29 @@ int SaveLayers(CDataFileWriter &DataFileOut, std::vector<SLayer *> &vLayers, int
 			Item.m_aName[1] = pLayer->m_aName[1];
 			Item.m_aName[2] = pLayer->m_aName[2];
 
-			dbg_msg("map_merge", "saving layer %d (%dx%d) type=%d, flags=%d, img=%d", LayerCount, Item.m_Width, Item.m_Height, Item.m_Layer.m_Type, Item.m_Flags, Item.m_Image);
+			dbg_msg("map_merge", "saving tile layer %d (%dx%d) flags=%d, img=%d", LayerCount, Item.m_Width, Item.m_Height, Item.m_Layer.m_Type, Item.m_Flags, Item.m_Image);
 			DataFileOut.AddItem(MAPITEMTYPE_LAYER, LayerCount++, sizeof(Item), &Item);
 			// automapper is skipped, since it won't work afterwards anyway
+			NumGroupLayer++;
+		}
+		else if(pLayer->m_Layer.m_Type == LAYERTYPE_QUADS)
+		{
+			CMapItemLayerQuads Item;
+			Item.m_Version = 2;
+			Item.m_Layer.m_Version = 0;
+			Item.m_Layer.m_Flags = pLayer->m_Layer.m_Flags;
+			Item.m_Layer.m_Type = pLayer->m_Layer.m_Type;
+			Item.m_Image = pLayer->m_Image;
+
+			Item.m_aName[0] = pLayer->m_aName[0];
+			Item.m_aName[1] = pLayer->m_aName[1];
+			Item.m_aName[2] = pLayer->m_aName[2];
+
+			Item.m_NumQuads = pLayer->m_NumQuads;
+			Item.m_Data = DataFileOut.AddData(pLayer->m_DataSize, pLayer->m_pData);
+
+			dbg_msg("map_merge", "saving quad layer %d, img=%d, num_quads=%d", LayerCount, Item.m_Image, Item.m_NumQuads);
+			DataFileOut.AddItem(MAPITEMTYPE_LAYER, LayerCount++, sizeof(Item), &Item);
 			NumGroupLayer++;
 		}
 	}
@@ -307,6 +327,8 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 	int NumSounds = 0;
 
 	std::vector<SMapImage> MapImages;
+	std::vector<CEnvPoint> EnvPoints;
+	std::vector<CMapItemEnvelope> Envelopes;
 
 	CDataFileWriter DataFileOut;
 	if(!DataFileOut.Open(pStorage, pOutName))
@@ -371,6 +393,40 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 			}
 		}
 
+		int StartEnvelope = Envelopes.size();
+		// load envelops
+		{
+			CEnvPoint *pPoints = nullptr;
+			{
+				int Start, Num;
+				DataFile.GetType(MAPITEMTYPE_ENVPOINTS, &Start, &Num);
+				if(Num)
+					pPoints = (CEnvPoint *)DataFile.GetItem(Start, 0, 0);
+			}
+
+			int Start, Num;
+			DataFile.GetType(MAPITEMTYPE_ENVELOPE, &Start, &Num);
+			for(int e = 0; e < Num; e++)
+			{
+				CMapItemEnvelope *pItem = (CMapItemEnvelope *)DataFile.GetItem(Start + e, 0, 0);
+				CMapItemEnvelope Item;
+				Item.m_Version = CMapItemEnvelope::CURRENT_VERSION;
+				Item.m_Channels = pItem->m_Channels;
+				Item.m_StartPoint = EnvPoints.size();
+				Item.m_NumPoints = pItem->m_NumPoints;
+				if(pItem->m_aName[0] != -1)
+					StrToInts(Item.m_aName, sizeof(Item.m_aName) / sizeof(int), pMapNames[MapIndex]);
+				else
+					StrToInts(Item.m_aName, sizeof(Item.m_aName) / sizeof(int), "");
+
+				Item.m_Synchronized = pItem->m_Version >= 2 ? pItem->m_Synchronized : false;
+				Envelopes.push_back(Item);
+
+				for(int i = pItem->m_StartPoint; i < pItem->m_StartPoint + pItem->m_NumPoints; i++)
+					EnvPoints.push_back(pPoints[i]);
+			}
+		}
+
 		// load groups
 		int LayersStart, LayersNum;
 		DataFile.GetType(MAPITEMTYPE_LAYER, &LayersStart, &LayersNum);
@@ -378,8 +434,6 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 		int Start, Num;
 		DataFile.GetType(MAPITEMTYPE_GROUP, &Start, &Num);
 
-		int PaddedMapPositionX = (int)pRects[MapIndex].x - MAP_PADDING_X;
-		int PaddedMapPositionY = (int)pRects[MapIndex].y - MAP_PADDING_Y;
 		int MapPositionX = pRects[MapIndex].x;
 		int MapPositionY = pRects[MapIndex].y;
 		int MapPositionW = pRects[MapIndex].w - MAP_PADDING_X * 2;
@@ -476,9 +530,8 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 					pLayer->m_Width = pTilemapItem->m_Width;
 					pLayer->m_Height = pTilemapItem->m_Height;
 					pLayer->m_Color = pTilemapItem->m_Color;
-					// TODO: save env
-					pLayer->m_ColorEnv = -1; // pTilemapItem->m_ColorEnv;
-					pLayer->m_ColorEnvOffset = 0; // pTilemapItem->m_ColorEnvOffset;
+					pLayer->m_ColorEnv = pTilemapItem->m_ColorEnv < 0 ? -1 : StartEnvelope + pTilemapItem->m_ColorEnv;
+					pLayer->m_ColorEnvOffset = pTilemapItem->m_ColorEnvOffset;
 					pLayer->m_Flags = pTilemapItem->m_Flags;
 					pLayer->m_Image = pTilemapItem->m_Image >= 0 ? ImageIDMap[pTilemapItem->m_Image] : -1;
 
@@ -520,6 +573,37 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 						free(pLayer);
 					};
 				}
+				else if(pLayerItem->m_Type == LAYERTYPE_QUADS)
+				{
+					CMapItemLayerQuads *pQuadsItem = (CMapItemLayerQuads *)pLayerItem;
+					SLayer *pLayer = new SLayer();
+					pLayer->m_pData = DataFile.GetData(pQuadsItem->m_Data);
+					pLayer->m_DataSize = DataFile.GetDataSize(pQuadsItem->m_Data);
+					pLayer->m_Layer.m_Flags = pQuadsItem->m_Layer.m_Flags;
+					pLayer->m_Layer.m_Type = pQuadsItem->m_Layer.m_Type;
+					pLayer->m_NumQuads = pQuadsItem->m_NumQuads;
+					pLayer->m_Image = pQuadsItem->m_Image >= 0 ? ImageIDMap[pQuadsItem->m_Image] : -1;
+
+					CQuad *pQuads = (CQuad *)pLayer->m_pData;
+					for(int i = 0; i < pLayer->m_NumQuads; i++)
+					{
+						pQuads[i].m_ColorEnv += pQuads[i].m_ColorEnv < 0 ? 0 : StartEnvelope;
+						pQuads[i].m_PosEnv += pQuads[i].m_PosEnv < 0 ? 0 : StartEnvelope;
+					}
+
+					if(pQuadsItem->m_Layer.m_Version >= 2)
+					{
+						pLayer->m_aName[0] = pQuadsItem->m_aName[0];
+						pLayer->m_aName[1] = pQuadsItem->m_aName[1];
+						pLayer->m_aName[2] = pQuadsItem->m_aName[2];
+					}
+					else
+					{
+						StrToInts(pLayer->m_aName, sizeof(pLayer->m_aName) / sizeof(int), "");
+					}
+
+					pLayerGroup->m_vLayers.push_back(pLayer);
+				}
 			}
 
 			if(pLayerGroup->m_vLayers.size() > 0)
@@ -546,6 +630,7 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 		Item.m_Settings = -1;
 		DataFileOut.AddItem(MAPITEMTYPE_INFO, 0, sizeof(Item), &Item);
 	}
+
 	{
 		// save images
 		for(auto &Image : MapImages)
@@ -564,12 +649,27 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 			dbg_msg("map_merge", "saving image %d (%dx%d), external=%d, name=%s", Image.m_Index, Image.m_Width, Image.m_Height, Image.m_External, Image.m_pName);
 			DataFileOut.AddItem(MAPITEMTYPE_IMAGE, Image.m_Index, sizeof(Item), &Item);
 		}
+	}
 
+	{
+		// save envelopes
+		for(int e = 0; e < Envelopes.size(); e++)
+			DataFileOut.AddItem(MAPITEMTYPE_ENVELOPE, e, sizeof(CMapItemEnvelope), &Envelopes[e]);
+
+		// save points
+		if(EnvPoints.size() < 1)
+			EnvPoints.push_back({0});
+
+		int TotalSize = sizeof(CEnvPoint) * EnvPoints.size();
+		DataFileOut.AddItem(MAPITEMTYPE_ENVPOINTS, 0, TotalSize, EnvPoints.data());
+	}
+
+	{
 		// save groups
 		int LayerCount = 0;
 		int GroupCount = 0;
 
-		// Game groupg
+		// Game group
 		SaveGroups(DataFileOut, PreGameGroupGroups, LayerCount, GroupCount);
 
 		CMapItemGroup GameGroup;
@@ -598,19 +698,18 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 
 		SaveGroups(DataFileOut, PostGameGroupGroups, LayerCount, GroupCount);
 		DataFileOut.Finish();
-
-		// free data
-		for(int i = 0; i < NumMaps; i++)
-		{
-			ppDataFiles[i]->Close();
-			delete ppDataFiles[i];
-		}
-
-		free(ppDataFiles);
-		free(pRects);
-
-		// return true;
 	}
+
+	// free data
+	for(int i = 0; i < NumMaps; i++)
+	{
+		ppDataFiles[i]->Close();
+		delete ppDataFiles[i];
+	}
+
+	free(ppDataFiles);
+	free(pRects);
+	return true;
 }
 
 int main(int argc, char *argv[])
