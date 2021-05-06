@@ -108,6 +108,7 @@ public:
 	int IsTCheckpoint(int Index) const;
 	int IsSpeedup(int Index) const;
 	int IsTune(int Index) const;
+	int IsMapIndex(int Index) const;
 	void GetSpeedup(int Index, vec2 *Dir, int *Force, int *MaxSpeed) const;
 	int IsSwitch(int Index) const;
 	int GetSwitchNumber(int Index) const;

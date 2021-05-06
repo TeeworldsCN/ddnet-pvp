@@ -710,6 +710,13 @@ void CGameContext::ConAddGameTypeFile(IConsole::IResult *pResult, void *pUserDat
 		pSelf->Teams()->AddGameType(pResult->GetString(0), nullptr, nullptr, true);
 }
 
+void CGameContext::ConAddMapName(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	pSelf->Teams()->AddMap(pResult->GetString(0));
+}
+
 void CGameContext::ConRoomSetting(IConsole::IResult *pResult, void *pUserData)
 {
 	// TODO: room settings

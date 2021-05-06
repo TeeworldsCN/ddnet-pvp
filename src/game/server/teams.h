@@ -34,6 +34,9 @@ enum
 class CGameTeams
 {
 	SGameInstance m_aTeamInstances[MAX_CLIENTS];
+	char *m_apWantedGameType[MAX_CLIENTS];
+	bool m_aTeamReload[MAX_CLIENTS];
+	bool m_aTeamMapIndex[MAX_CLIENTS];
 	// TODO: team states is probably redundant
 	int m_aTeamState[MAX_CLIENTS];
 	bool m_aTeamLocked[MAX_CLIENTS];
@@ -54,6 +57,8 @@ class CGameTeams
 
 	// gametypes
 	static std::vector<SGameType> m_GameTypes;
+	static char m_aMapNames[64][128];
+	static int m_NumMaps;
 	static SGameType m_DefaultGameType;
 
 public:
@@ -110,6 +115,7 @@ public:
 	SGameInstance GetGameInstance(int Team);
 	SGameInstance GetPlayerGameInstance(int ClientID);
 	bool CreateGameInstance(int Team, const char *pGameName, int Asker);
+	bool ReloadGameInstance(int Team, const char *pGameName);
 	void DestroyGameInstance(int Team);
 	void OnPlayerConnect(class CPlayer *pPlayer);
 	void OnPlayerDisconnect(class CPlayer *pPlayer, const char *pReason);
@@ -125,6 +131,10 @@ public:
 	static void SetDefaultGameType(const char *pGameType, const char *pSettings, bool IsFile);
 	static void AddGameType(const char *pGameType, const char *pName, const char *pSettings, bool IsFile);
 	static void ClearGameTypes();
+
+	static void ClearMaps();
+	static void AddMap(const char *pMapName);
+	static int GetMapIndex(const char *pMapName);
 };
 
 #endif

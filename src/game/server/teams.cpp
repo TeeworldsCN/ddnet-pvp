@@ -14,6 +14,9 @@ CGameTeams::CGameTeams()
 {
 	m_pGameContext = nullptr;
 	mem_zero(m_aTeamInstances, sizeof(m_aTeamInstances));
+	mem_zero(m_apWantedGameType, sizeof(m_apWantedGameType));
+	mem_zero(m_aTeamReload, sizeof(m_aTeamReload));
+	mem_zero(m_aTeamMapIndex, sizeof(m_aTeamMapIndex));
 	mem_zero(m_aRoomVotes, sizeof(m_aRoomVotes));
 	mem_zero(m_aTeamState, sizeof(m_aTeamState));
 	mem_zero(m_aTeamLocked, sizeof(m_aTeamLocked));
@@ -106,11 +109,6 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 		if(!CreateGameInstance(Team, pGameType, ClientID))
 			return false;
 	}
-
-	// clear score when joining a new room
-	pPlayer->GameReset();
-	// kill character
-	pPlayer->KillCharacter();
 
 	if(Team != OldTeam && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
 	{
@@ -246,6 +244,8 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	if(!Type.pGameType)
 		return false;
 
+	m_apWantedGameType[Team] = Type.pName;
+
 	if(m_aTeamInstances[Team].m_IsCreated)
 		DestroyGameInstance(Team);
 
@@ -284,6 +284,44 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	str_format(aBuf, sizeof(aBuf), "game controller %d is created", Team);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "team", aBuf);
 
+	for(int i = 0; i < MAX_CLIENTS; i++)
+		if(GameServer()->IsPlayerValid(i) && m_Core.Team(i) == Team)
+			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[i], false, false);
+
+	return true;
+}
+
+bool CGameTeams::ReloadGameInstance(int Team, const char *pGameName)
+{
+	SGameType Type;
+	Type.IsFile = false;
+	Type.pGameType = nullptr;
+	Type.pName = nullptr;
+	Type.pSettings = nullptr;
+
+	if(pGameName == nullptr)
+	{
+		if(!m_DefaultGameType.pGameType)
+		{
+			Type.pGameType = "dm";
+			Type.pSettings = nullptr;
+			Type.pName = nullptr;
+		}
+		else
+		{
+			Type = m_DefaultGameType;
+		}
+	}
+	else
+		for(auto GameType : m_GameTypes)
+			if(str_comp_nocase(GameType.pName, pGameName) == 0)
+				Type = GameType;
+
+	if(!Type.pGameType)
+		return false;
+
+	m_apWantedGameType[Team] = Type.pName;
+	m_aTeamReload[Team] = true;
 	return true;
 }
 
@@ -291,6 +329,13 @@ void CGameTeams::DestroyGameInstance(int Team)
 {
 	if(!m_aTeamInstances[Team].m_IsCreated)
 		return;
+
+	for(int i = 0; i < MAX_CLIENTS; i++)
+		if(GameServer()->IsPlayerValid(i) && m_Core.Team(i) == Team)
+		{
+			GameServer()->m_apPlayers[i]->KillCharacter();
+			GameServer()->m_apPlayers[i]->GameReset();
+		}
 
 	delete m_aTeamInstances[Team].m_pController;
 	delete m_aTeamInstances[Team].m_pWorld;
@@ -360,9 +405,17 @@ void CGameTeams::OnTick()
 	{
 		if(m_aTeamInstances[i].m_Init)
 		{
-			m_aTeamInstances[i].m_pWorld->m_Core.m_Tuning[0] = *GameServer()->Tuning();
-			m_aTeamInstances[i].m_pWorld->Tick();
-			m_aTeamInstances[i].m_pController->Tick();
+			if(m_aTeamReload[i])
+			{
+				m_aTeamReload[i] = false;
+				CreateGameInstance(i, m_apWantedGameType[i], m_aTeamInstances[i].m_Creator);
+			}
+			else
+			{
+				m_aTeamInstances[i].m_pWorld->m_Core.m_Tuning[0] = *GameServer()->Tuning();
+				m_aTeamInstances[i].m_pWorld->Tick();
+				m_aTeamInstances[i].m_pController->Tick();
+			}
 		}
 
 		if(m_aTeamInstances[i].m_IsCreated && !m_aTeamInstances[i].m_Init)
@@ -487,6 +540,8 @@ int CGameTeams::FindAEmptyTeam()
 }
 std::vector<SGameType> CGameTeams::m_GameTypes;
 SGameType CGameTeams::m_DefaultGameType = {nullptr, nullptr, nullptr, false};
+char CGameTeams::m_aMapNames[64][128];
+int CGameTeams::m_NumMaps;
 
 void CGameTeams::SetDefaultGameType(const char *pGameType, const char *pSettings, bool IsFile)
 {
@@ -633,4 +688,25 @@ void CGameTeams::ClearGameTypes()
 			free(m_DefaultGameType.pName);
 		m_DefaultGameType.pGameType = nullptr;
 	}
+}
+
+void CGameTeams::ClearMaps()
+{
+	m_NumMaps = 0;
+}
+
+void CGameTeams::AddMap(const char *pMapName)
+{
+	if(m_NumMaps >= 64)
+		return;
+	str_copy(m_aMapNames[m_NumMaps++], pMapName, 128);
+}
+
+int CGameTeams::GetMapIndex(const char *pMapName)
+{
+	for(int i = 0; i < m_NumMaps; i++)
+		if(str_comp_nocase(pMapName, m_aMapNames[i]) == 0)
+			return i + 1;
+
+	return 0;
 }

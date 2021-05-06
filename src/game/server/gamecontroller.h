@@ -21,6 +21,14 @@
 		InstanceConsole()->Register(Command, "?i[value]", Flag, IGameController::IntVariableCommand, pInt, Desc); \
 	}
 
+#define INSTANCE_CONFIG_STR(Pointer, Command, Default, Flag, Desc) \
+	{ \
+		str_copy(Pointer, Default, sizeof(Pointer)); \
+		CStrVariableData *pStr = new CStrVariableData({InstanceConsole(), Pointer, sizeof(Pointer), nullptr}); \
+		m_StrConfigStore.push_back(pStr); \
+		InstanceConsole()->Register(Command, "?r[value]", Flag, IGameController::StrVariableCommand, pStr, Desc); \
+	}
+
 /*
 	Class: Game Controller
 		Controls the main game logic. Keeping track of team and player score,
@@ -129,6 +137,7 @@ class IGameController
 protected:
 	// config variables
 	std::vector<CIntVariableData *> m_IntConfigStore;
+	std::vector<CStrVariableData *> m_StrConfigStore;
 
 	// game
 	int m_GameStartTick;
@@ -267,6 +276,8 @@ public:
 	int m_Timelimit;
 	int m_Roundlimit;
 	int m_TeambalanceTime;
+	char m_aMap[128];
+	int m_MapIndex;
 
 	// events
 	/*

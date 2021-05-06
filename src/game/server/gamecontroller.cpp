@@ -239,6 +239,20 @@ static void ConVoteCommand(IConsole::IResult *pResult, void *pUserData)
 	pSelf->GameServer()->Console()->ExecuteLine(pResult->GetString(0));
 }
 
+static void ConChangeGameType(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	int Room = pSelf->GameWorld()->Team();
+	CGameTeams *pTeams = pSelf->GameServer()->Teams();
+	if(!pTeams->ReloadGameInstance(Room, pResult->GetString(0)))
+	{
+		pSelf->InstanceConsole()->Print(
+			IConsole::OUTPUT_LEVEL_STANDARD,
+			"instance",
+			"Please provide a valid gametype.");
+	}
+}
+
 IGameController::IGameController()
 {
 	m_pGameServer = nullptr;
@@ -311,6 +325,7 @@ IGameController::IGameController()
 	INSTANCE_CONFIG_INT(&m_Timelimit, "timelimit", 0, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Time limit in minutes (0 disables)")
 	INSTANCE_CONFIG_INT(&m_Roundlimit, "roundlimit", 0, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Round limit for game with rounds (0 disables)")
 	INSTANCE_CONFIG_INT(&m_TeambalanceTime, "teambalance_time", 1, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "How many minutes to wait before autobalancing teams")
+	INSTANCE_CONFIG_STR(m_aMap, "map", "dm1", CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Which sub map to use (mega map only)")
 
 	m_pInstanceConsole->Chain("scorelimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("timelimit", ConchainGameInfoUpdate, this);
@@ -318,6 +333,7 @@ IGameController::IGameController()
 
 	m_pInstanceConsole->Chain("cmdlist", ConchainReplyOnly, this);
 
+	m_pInstanceConsole->Register("gametype", "?r[gametype]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConChangeGameType, this, "Change gametype");
 	m_pInstanceConsole->Register("pause", "?i[seconds]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConPause, this, "Pause/unpause game");
 	m_pInstanceConsole->Register("restart", "?i[seconds]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConRestart, this, "Restart in x seconds (0 = abort)");
 	m_pInstanceConsole->Register("set_team_all", "i[team-id]", CFGFLAG_INSTANCE, ConSetTeamAll, this, "Set team of all players to team");
@@ -639,6 +655,9 @@ bool IGameController::OnInternalCharacterTile(CCharacter *pChr, int MapIndex)
 
 void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
 {
+	if(m_MapIndex > 0 && GameServer()->Collision()->IsMapIndex(Index) != m_MapIndex)
+		return;
+
 	if(Index < 0 || OnEntity(Index, Pos, Layer, Flags, Number))
 		return;
 
@@ -2475,7 +2494,7 @@ void IGameController::StrVariableCommand(IConsole::IResult *pResult, void *pUser
 		else
 			str_copy(pData->m_pStr, pString, pData->m_MaxSize);
 
-		if(pResult->m_ClientID != IConsole::CLIENT_ID_GAME)
+		if(pData->m_pOldValue && pResult->m_ClientID != IConsole::CLIENT_ID_GAME)
 			str_copy(pData->m_pOldValue, pData->m_pStr, pData->m_MaxSize);
 	}
 	else

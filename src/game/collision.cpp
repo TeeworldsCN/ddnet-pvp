@@ -765,11 +765,23 @@ int CCollision::IsTune(int Index) const
 	if(Index < 0 || !m_pTune)
 		return 0;
 
-	if(m_pTune[Index].m_Type)
+	if(m_pTune[Index].m_Type == TILE_TUNE)
 		return m_pTune[Index].m_Number;
 
 	return 0;
 }
+
+int CCollision::IsMapIndex(int Index) const
+{
+	if(Index < 0 || !m_pTune)
+		return 0;
+
+	if(m_pTune[Index].m_Type == TILE_MEGAMAP_INDEX)
+		return m_pTune[Index].m_Number;
+
+	return 0;
+}
+
 
 void CCollision::GetSpeedup(int Index, vec2 *Dir, int *Force, int *MaxSpeed) const
 {

@@ -134,6 +134,7 @@ class CGameContext : public IGameServer
 	static void ConSetDefaultGameTypeFile(IConsole::IResult *pResult, void *pUserData);
 	static void ConAddGameType(IConsole::IResult *pResult, void *pUserData);
 	static void ConAddGameTypeFile(IConsole::IResult *pResult, void *pUserData);
+	static void ConAddMapName(IConsole::IResult *pResult, void *pUserData);
 	static void ConRoomSetting(IConsole::IResult *pResult, void *pUserData);
 
 	CGameContext(int Resetting);
