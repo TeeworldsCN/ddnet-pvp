@@ -181,7 +181,7 @@ int SaveLayers(CDataFileWriter &DataFileOut, std::vector<SLayer *> &vLayers, int
 			Item.m_aName[1] = pLayer->m_aName[1];
 			Item.m_aName[2] = pLayer->m_aName[2];
 
-			dbg_msg("map_merge", "saving tile layer %d (%dx%d) flags=%d, img=%d", LayerCount, Item.m_Width, Item.m_Height, Item.m_Layer.m_Type, Item.m_Flags, Item.m_Image);
+			dbg_msg("map_merge", "saving tile layer %d (%dx%d) flags=%d, img=%d", LayerCount, Item.m_Width, Item.m_Height, Item.m_Flags, Item.m_Image);
 			DataFileOut.AddItem(MAPITEMTYPE_LAYER, LayerCount++, sizeof(Item), &Item);
 			// automapper is skipped, since it won't work afterwards anyway
 			NumGroupLayer++;
@@ -654,7 +654,7 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 
 	{
 		// save envelopes
-		for(int e = 0; e < Envelopes.size(); e++)
+		for(unsigned int e = 0; e < Envelopes.size(); e++)
 			DataFileOut.AddItem(MAPITEMTYPE_ENVELOPE, e, sizeof(CMapItemEnvelope), &Envelopes[e]);
 
 		// save points
