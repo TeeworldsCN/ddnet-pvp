@@ -13,11 +13,15 @@
 CGameControllerCTF::CGameControllerCTF() :
 	IGameController()
 {
+	m_pGameType = "CTF";
+	m_GameFlags = IGF_TEAMS | IGF_FLAGS;
+}
+
+void CGameControllerCTF::OnInit()
+{
 	// game
 	m_apFlags[0] = 0;
 	m_apFlags[1] = 0;
-	m_pGameType = "CTF";
-	m_GameFlags = IGF_TEAMS | IGF_FLAGS;
 }
 
 void CGameControllerCTF::OnCharacterSpawn(CCharacter *pChr)

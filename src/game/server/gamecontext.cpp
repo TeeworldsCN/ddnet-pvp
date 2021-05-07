@@ -706,6 +706,7 @@ void CGameContext::OnTick()
 
 	Teams()->OnTick();
 	UpdatePlayerMaps(); // TODO: check if this need to be ticked before controller
+	DoActivityCheck();
 
 	if(m_TeeHistorianActive)
 	{
@@ -2951,7 +2952,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 
 	m_Layers.Init(Kernel());
 	m_Collision.Init(&m_Layers, &m_Prng);
-	m_Teams.Init(this);
 
 	char aMapName[128];
 	int MapSize;
@@ -3013,6 +3013,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 
 	Teams()->ClearMaps();
 	LoadMapSettings();
+	m_Teams.Init(this);
 
 	m_MapBugs.Dump();
 
@@ -3102,10 +3103,13 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 
 	CTile *pFront = 0;
 	CSwitchTile *pSwitch = 0;
+	CSpeedupTile *pSpeedup = 0;
 	if(m_Layers.FrontLayer())
 		pFront = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(m_Layers.FrontLayer()->m_Front);
 	if(m_Layers.SwitchLayer())
 		pSwitch = (CSwitchTile *)Kernel()->RequestInterface<IMap>()->GetData(m_Layers.SwitchLayer()->m_Switch);
+	if(m_Layers.SpeedupLayer())
+		pSpeedup = (CSpeedupTile *)Kernel()->RequestInterface<IMap>()->GetData(m_Layers.SpeedupLayer()->m_Speedup);
 
 	for(int y = 0; y < pTileMap->m_Height; y++)
 	{
@@ -3138,7 +3142,9 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 			{
 				vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
 				//m_pController->OnEntity(Index-ENTITY_OFFSET, Pos);
-				Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_GAME, pTiles[y * pTileMap->m_Width + x].m_Flags);
+				CSpeedupTile SpeedupTile = pSpeedup[y * pTileMap->m_Width + x];
+				bool IsMegaMapIndex = SpeedupTile.m_Type == TILE_MEGAMAP_INDEX;
+				Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_GAME, pTiles[y * pTileMap->m_Width + x].m_Flags, IsMegaMapIndex ? SpeedupTile.m_MaxSpeed : 0);
 			}
 
 			if(pFront)
@@ -3167,7 +3173,9 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				if(Index >= ENTITY_OFFSET)
 				{
 					vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
-					Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_FRONT, pFront[y * pTileMap->m_Width + x].m_Flags);
+					CSpeedupTile SpeedupTile = pSpeedup[y * pTileMap->m_Width + x];
+					bool IsMegaMapIndex = SpeedupTile.m_Type == TILE_MEGAMAP_INDEX;
+					Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_FRONT, pFront[y * pTileMap->m_Width + x].m_Flags, IsMegaMapIndex ? SpeedupTile.m_MaxSpeed : 0);
 				}
 			}
 			if(pSwitch)
@@ -3178,7 +3186,9 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				if(Index >= ENTITY_OFFSET)
 				{
 					vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
-					Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_SWITCH, pSwitch[y * pTileMap->m_Width + x].m_Flags, pSwitch[y * pTileMap->m_Width + x].m_Number);
+					CSpeedupTile SpeedupTile = pSpeedup[y * pTileMap->m_Width + x];
+					bool IsMegaMapIndex = SpeedupTile.m_Type == TILE_MEGAMAP_INDEX;
+					Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_SWITCH, pSwitch[y * pTileMap->m_Width + x].m_Flags, IsMegaMapIndex ? SpeedupTile.m_MaxSpeed : 0, pSwitch[y * pTileMap->m_Width + x].m_Number);
 				}
 			}
 		}
@@ -4066,5 +4076,54 @@ void CGameContext::UpdatePlayerMaps()
 				pMap[rMap[k]] = -1;
 		}
 		pMap[VANILLA_MAX_CLIENTS - 1] = -1; // player with empty name to say chat msgs
+	}
+}
+
+void CGameContext::DoActivityCheck()
+{
+	if(Config()->m_SvInactiveKickTime == 0)
+		return;
+
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+#ifdef CONF_DEBUG
+		if(g_Config.m_DbgDummies)
+		{
+			if(i >= MAX_CLIENTS - g_Config.m_DbgDummies)
+				break;
+		}
+#endif
+
+		SGameInstance Instance = PlayerGameInstance(i);
+		if(!Instance.m_Init)
+			continue;
+
+		if(IsClientPlayer(i) &&
+			Server()->GetAuthedState(i) == AUTHED_NO && (m_apPlayers[i]->m_InactivityTickCounter > Config()->m_SvInactiveKickTime * Server()->TickSpeed() * 60))
+		{
+			if(m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS)
+			{
+				if(Config()->m_SvInactiveKickSpec)
+					Server()->Kick(i, "Kicked for inactivity");
+			}
+			else
+			{
+				switch(Config()->m_SvInactiveKick)
+				{
+				case 0:
+				case 1:
+				{
+					// move player to spectator
+					Instance.m_pController->DoTeamChange(m_apPlayers[i], TEAM_SPECTATORS);
+				}
+				break;
+				case 2:
+				{
+					// kick the player
+					Server()->Kick(i, "Kicked for inactivity");
+				}
+				}
+			}
+		}
 	}
 }

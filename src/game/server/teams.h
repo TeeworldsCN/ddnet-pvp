@@ -29,13 +29,17 @@ struct SGameType
 
 enum
 {
-	ENTITIES_PER_TICK = 1,
+	ENTITIES_PER_TICK = 25,
+
+	RELOAD_TYPE_NO = 0,
+	RELOAD_TYPE_HARD = 1,
+	RELOAD_TYPE_SOFT = 2,
 };
 class CGameTeams
 {
 	SGameInstance m_aTeamInstances[MAX_CLIENTS];
 	char *m_apWantedGameType[MAX_CLIENTS];
-	bool m_aTeamReload[MAX_CLIENTS];
+	int m_aTeamReload[MAX_CLIENTS];
 	bool m_aTeamMapIndex[MAX_CLIENTS];
 	// TODO: team states is probably redundant
 	int m_aTeamState[MAX_CLIENTS];
@@ -51,6 +55,7 @@ class CGameTeams
 		vec2 Pos;
 		int Layer;
 		int Flags;
+		int MegaMapIndex;
 		int Number;
 	};
 	std::vector<SEntity> m_Entities;
@@ -115,12 +120,13 @@ public:
 	SGameInstance GetGameInstance(int Team);
 	SGameInstance GetPlayerGameInstance(int ClientID);
 	bool CreateGameInstance(int Team, const char *pGameName, int Asker);
-	bool ReloadGameInstance(int Team, const char *pGameName);
+	void ReloadGameInstance(int Team);
+	bool RecreateGameInstance(int Team, const char *pGameName);
 	void DestroyGameInstance(int Team);
 	void OnPlayerConnect(class CPlayer *pPlayer);
 	void OnPlayerDisconnect(class CPlayer *pPlayer, const char *pReason);
 	void OnTick();
-	void OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
+	void OnEntity(int Index, vec2 Pos, int Layer, int Flags, int MegaMapIndex, int Number = 0);
 	void OnSnap(int SnappingClient);
 	void OnPostSnap();
 

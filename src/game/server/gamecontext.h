@@ -298,6 +298,7 @@ public:
 	bool RateLimitPlayerMapVote(int ClientID);
 
 	void UpdatePlayerMaps();
+	void DoActivityCheck();
 
 private:
 	bool m_VoteWillPass;

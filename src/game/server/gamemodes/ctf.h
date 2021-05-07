@@ -22,6 +22,7 @@ public:
 	CGameControllerCTF();
 
 	// event
+	virtual void OnInit() override;
 	virtual void OnCharacterSpawn(class CCharacter *pChr) override;
 	virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon) override;
 	virtual void OnFlagReset(class CFlag *pFlag) override;

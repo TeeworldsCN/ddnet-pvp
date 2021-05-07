@@ -239,12 +239,33 @@ static void ConVoteCommand(IConsole::IResult *pResult, void *pUserData)
 	pSelf->GameServer()->Console()->ExecuteLine(pResult->GetString(0));
 }
 
+static void ConChangeMap(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	int Room = pSelf->GameWorld()->Team();
+	CGameTeams *pTeams = pSelf->GameServer()->Teams();
+	const char *pMapName = pResult->GetString(0);
+	int MapIndex = pTeams->GetMapIndex(pResult->GetString(0));
+	if(MapIndex == 0)
+	{
+		char aBuf[512];
+		str_format(aBuf, sizeof(aBuf), "Cannot find map '%s'", pMapName);
+		pSelf->InstanceConsole()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "instance", aBuf);
+		return;
+	}
+
+	if(pSelf->m_MapIndex == MapIndex)
+		return;
+	pSelf->m_MapIndex = MapIndex;
+	pTeams->ReloadGameInstance(Room);
+}
+
 static void ConChangeGameType(IConsole::IResult *pResult, void *pUserData)
 {
 	IGameController *pSelf = (IGameController *)pUserData;
 	int Room = pSelf->GameWorld()->Team();
 	CGameTeams *pTeams = pSelf->GameServer()->Teams();
-	if(!pTeams->ReloadGameInstance(Room, pResult->GetString(0)))
+	if(!pTeams->RecreateGameInstance(Room, pResult->GetString(0)))
 	{
 		pSelf->InstanceConsole()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
@@ -261,6 +282,7 @@ IGameController::IGameController()
 	m_pWorld = nullptr;
 	m_pInstanceConsole = new CConsole(CFGFLAG_INSTANCE);
 	m_ChatResponseTargetID = -1;
+	m_MapIndex = 0;
 
 	// balancing
 	m_aTeamSize[TEAM_RED] = 0;
@@ -284,11 +306,6 @@ IGameController::IGameController()
 	m_GameInfo.m_MatchNum = 0;
 	m_GameInfo.m_ScoreLimit = 0;
 	m_GameInfo.m_TimeLimit = 0;
-
-	// spawn
-	m_aNumSpawnPoints[0] = 0;
-	m_aNumSpawnPoints[1] = 0;
-	m_aNumSpawnPoints[2] = 0;
 
 	// vote
 	m_VotePos = 0;
@@ -325,7 +342,6 @@ IGameController::IGameController()
 	INSTANCE_CONFIG_INT(&m_Timelimit, "timelimit", 0, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Time limit in minutes (0 disables)")
 	INSTANCE_CONFIG_INT(&m_Roundlimit, "roundlimit", 0, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Round limit for game with rounds (0 disables)")
 	INSTANCE_CONFIG_INT(&m_TeambalanceTime, "teambalance_time", 1, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "How many minutes to wait before autobalancing teams")
-	INSTANCE_CONFIG_STR(m_aMap, "map", "dm1", CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Which sub map to use (mega map only)")
 
 	m_pInstanceConsole->Chain("scorelimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("timelimit", ConchainGameInfoUpdate, this);
@@ -333,6 +349,7 @@ IGameController::IGameController()
 
 	m_pInstanceConsole->Chain("cmdlist", ConchainReplyOnly, this);
 
+	m_pInstanceConsole->Register("map", "?r[name]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConChangeMap, this, "Change map");
 	m_pInstanceConsole->Register("gametype", "?r[gametype]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConChangeGameType, this, "Change gametype");
 	m_pInstanceConsole->Register("pause", "?i[seconds]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConPause, this, "Pause/unpause game");
 	m_pInstanceConsole->Register("restart", "?i[seconds]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConRestart, this, "Restart in x seconds (0 = abort)");
@@ -357,51 +374,6 @@ IGameController::~IGameController()
 	delete m_pVoteOptionHeap;
 }
 
-void IGameController::DoActivityCheck()
-{
-	if(Config()->m_SvInactiveKickTime == 0)
-		return;
-
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-#ifdef CONF_DEBUG
-		if(g_Config.m_DbgDummies)
-		{
-			if(i >= MAX_CLIENTS - g_Config.m_DbgDummies)
-				break;
-		}
-#endif
-		if(GameServer()->IsClientPlayer(i) &&
-			Server()->GetAuthedState(i) == AUTHED_NO && (GameServer()->m_apPlayers[i]->m_InactivityTickCounter > Config()->m_SvInactiveKickTime * Server()->TickSpeed() * 60))
-		{
-			if(GameServer()->m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS)
-			{
-				if(Config()->m_SvInactiveKickSpec)
-					Server()->Kick(i, "Kicked for inactivity");
-			}
-			else
-			{
-				switch(Config()->m_SvInactiveKick)
-				{
-				case 0:
-				case 1:
-				{
-					// move player to spectator
-					DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
-				}
-				break;
-				case 2:
-				{
-					// kick the player
-					Server()->Kick(i, "Kicked for inactivity");
-				}
-				}
-			}
-		}
-	}
-}
-
-// TODO: maybe move these out too?
 bool IGameController::GetPlayersReadyState(int WithoutID)
 {
 	for(int i = 0; i < MAX_CLIENTS; ++i)
@@ -542,6 +514,10 @@ void IGameController::DoTeamBalance()
 }
 
 // virtual events
+void IGameController::OnInit()
+{
+}
+
 void IGameController::OnPlayerJoin(CPlayer *pPlayer)
 {
 }
@@ -653,9 +629,9 @@ bool IGameController::OnInternalCharacterTile(CCharacter *pChr, int MapIndex)
 	return false;
 }
 
-void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
+void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags, int MegaMapIndex, int Number)
 {
-	if(m_MapIndex > 0 && GameServer()->Collision()->IsMapIndex(Index) != m_MapIndex)
+	if(m_MapIndex > 0 && MegaMapIndex != m_MapIndex)
 		return;
 
 	if(Index < 0 || OnEntity(Index, Pos, Layer, Flags, Number))
@@ -1722,9 +1698,6 @@ void IGameController::Tick()
 		}
 	}
 
-	// check for inactive players
-	DoActivityCheck();
-
 	if((m_GameState == IGS_GAME_RUNNING || m_GameState == IGS_GAME_PAUSED) && !GameWorld()->m_ResetRequested)
 	{
 		// win check
@@ -2071,10 +2044,11 @@ int IGameController::ClampTeam(int Team) const
 void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 {
 	Team = ClampTeam(Team);
-	if(Team == pPlayer->GetTeam())
+	int OldTeam = pPlayer->GetTeam();
+
+	if(Team == OldTeam)
 		return;
 
-	int OldTeam = pPlayer->GetTeam();
 	pPlayer->SetTeam(Team, DoChatMsg);
 
 	int ClientID = pPlayer->GetCID();
@@ -2087,7 +2061,7 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 	if(OldTeam != TEAM_SPECTATORS)
 	{
 		--m_aTeamSize[OldTeam];
-		dbg_msg("game", "team size decreased to %d, team='%d', ddrteam='%d'", m_aTeamSize[OldTeam], Team, GameWorld()->Team());
+		dbg_msg("game", "team size decreased to %d, team='%d', ddrteam='%d'", m_aTeamSize[OldTeam], OldTeam, GameWorld()->Team());
 		m_UnbalancedTick = TBALANCE_CHECK;
 	}
 	if(Team != TEAM_SPECTATORS)
@@ -2157,13 +2131,26 @@ bool IGameController::IsPlayerInRoom(int ClientID) const
 	return GameServer()->IsPlayerValid(ClientID) && GameServer()->GetPlayerDDRTeam(ClientID) == GameWorld()->Team();
 }
 
-void IGameController::InitController(int Team, class CGameContext *pGameServer, class CGameWorld *pWorld)
+void IGameController::InitController(class CGameContext *pGameServer, class CGameWorld *pWorld)
 {
 	m_pGameServer = pGameServer;
 	m_pConfig = m_pGameServer->Config();
 	m_pServer = m_pGameServer->Server();
 	m_pWorld = pWorld;
 	m_GameStartTick = m_pServer->Tick();
+
+	// game
+	m_MatchCount = 0;
+	m_RoundCount = 0;
+	m_SuddenDeath = 0;
+	m_aTeamscore[TEAM_RED] = 0;
+	m_aTeamscore[TEAM_BLUE] = 0;
+
+	// spawn
+	m_aNumSpawnPoints[0] = 0;
+	m_aNumSpawnPoints[1] = 0;
+	m_aNumSpawnPoints[2] = 0;
+
 	if(m_Warmup)
 		SetGameState(IGS_WARMUP_USER, m_Warmup);
 	else
@@ -2171,6 +2158,9 @@ void IGameController::InitController(int Team, class CGameContext *pGameServer, 
 	m_GameInfo.m_ScoreLimit = m_Scorelimit;
 	m_GameInfo.m_TimeLimit = m_Timelimit;
 	m_GameInfo.m_MatchNum = m_Roundlimit;
+	m_GameInfo.m_MatchCurrent = m_MatchCount + 1;
+
+	OnInit();
 }
 
 void IGameController::CallVote(int ClientID, const char *pDesc, const char *pCmd, const char *pReason, const char *pChatmsg, const char *pSixupDesc)

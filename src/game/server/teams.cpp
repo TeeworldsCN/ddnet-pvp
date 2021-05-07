@@ -216,6 +216,14 @@ SGameInstance CGameTeams::GetPlayerGameInstance(int ClientID)
 	return m_aTeamInstances[m_Core.Team(ClientID)];
 }
 
+void CGameTeams::ReloadGameInstance(int Team)
+{
+	if(!m_aTeamInstances[Team].m_IsCreated)
+		return;
+
+	m_aTeamReload[Team] = RELOAD_TYPE_SOFT;
+}
+
 bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 {
 	SGameType Type;
@@ -266,7 +274,8 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	CGameWorld *pWorld = new CGameWorld(Team, m_pGameContext);
 	m_aTeamInstances[Team].m_pWorld = pWorld;
 	m_aTeamInstances[Team].m_pController = Game;
-	m_aTeamInstances[Team].m_pController->InitController(Team, m_pGameContext, pWorld);
+	m_aTeamInstances[Team].m_pController->m_MapIndex = m_NumMaps > 0 ? 1 : 0;
+	m_aTeamInstances[Team].m_pController->InitController(m_pGameContext, pWorld);
 	m_aTeamInstances[Team].m_IsCreated = true;
 	m_aTeamInstances[Team].m_Init = false;
 	m_aTeamInstances[Team].m_Entities = 0;
@@ -291,7 +300,7 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	return true;
 }
 
-bool CGameTeams::ReloadGameInstance(int Team, const char *pGameName)
+bool CGameTeams::RecreateGameInstance(int Team, const char *pGameName)
 {
 	SGameType Type;
 	Type.IsFile = false;
@@ -321,7 +330,7 @@ bool CGameTeams::ReloadGameInstance(int Team, const char *pGameName)
 		return false;
 
 	m_apWantedGameType[Team] = Type.pName;
-	m_aTeamReload[Team] = true;
+	m_aTeamReload[Team] = RELOAD_TYPE_HARD;
 	return true;
 }
 
@@ -405,10 +414,27 @@ void CGameTeams::OnTick()
 	{
 		if(m_aTeamInstances[i].m_Init)
 		{
-			if(m_aTeamReload[i])
+			if(m_aTeamReload[i] == RELOAD_TYPE_HARD)
 			{
-				m_aTeamReload[i] = false;
+				m_aTeamReload[i] = RELOAD_TYPE_NO;
 				CreateGameInstance(i, m_apWantedGameType[i], m_aTeamInstances[i].m_Creator);
+			}
+			else if(m_aTeamReload[i] == RELOAD_TYPE_SOFT)
+			{
+				m_aTeamReload[i] = RELOAD_TYPE_NO;
+
+				for(int p = 0; p < MAX_CLIENTS; p++)
+					if(GameServer()->IsPlayerValid(p) && m_Core.Team(p) == i)
+					{
+						GameServer()->m_apPlayers[p]->KillCharacter();
+						GameServer()->m_apPlayers[p]->GameReset();
+					}
+
+				delete m_aTeamInstances[i].m_pWorld;
+				m_aTeamInstances[i].m_Entities = 0;
+				m_aTeamInstances[i].m_Init = false;
+				m_aTeamInstances[i].m_pWorld = new CGameWorld(i, m_pGameContext);
+				m_aTeamInstances[i].m_pController->InitController(m_pGameContext, m_aTeamInstances[i].m_pWorld);
 			}
 			else
 			{
@@ -436,7 +462,7 @@ void CGameTeams::OnTick()
 					if(m_aTeamInstances[i].m_Entities < m_Entities.size())
 					{
 						auto E = m_Entities[m_aTeamInstances[i].m_Entities];
-						m_aTeamInstances[i].m_pController->OnInternalEntity(E.Index, E.Pos, E.Layer, E.Flags, E.Number);
+						m_aTeamInstances[i].m_pController->OnInternalEntity(E.Index, E.Pos, E.Layer, E.Flags, E.MegaMapIndex, E.Number);
 						m_aTeamInstances[i].m_Entities++;
 						NumProcessed++;
 					}
@@ -457,13 +483,14 @@ void CGameTeams::OnTick()
 	}
 }
 
-void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
+void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int MegaMapIndex, int Number)
 {
 	SEntity Ent;
 	Ent.Index = Index;
 	Ent.Pos = Pos;
 	Ent.Layer = Layer;
 	Ent.Flags = Flags;
+	Ent.MegaMapIndex = MegaMapIndex;
 	Ent.Number = Number;
 	m_Entities.push_back(Ent);
 }

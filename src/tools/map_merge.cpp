@@ -317,11 +317,11 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 	CTile *pGameTiles = (CTile *)malloc(MaxMapWidth * MaxMapHeight * sizeof(CTile));
 	mem_zero(pGameTiles, MaxMapWidth * MaxMapHeight * sizeof(CTile));
 	CTeleTile *pTeleTiles = nullptr;
-	CSpeedupTile *pSpeedupTiles = nullptr;
+	CSpeedupTile *pSpeedupTiles = (CSpeedupTile *)malloc(MaxMapWidth * MaxMapHeight * sizeof(CSpeedupTile));
 	CTile *pFrontTiles = nullptr;
 	CSwitchTile *pSwitchTiles = nullptr;
-	CTuneTile *pTuneTiles = (CTuneTile *)malloc(MaxMapWidth * MaxMapHeight * sizeof(CTuneTile));
-	mem_zero(pTuneTiles, MaxMapWidth * MaxMapHeight * sizeof(CTuneTile));
+	CTuneTile *pTuneTiles = nullptr;
+	mem_zero(pSpeedupTiles, MaxMapWidth * MaxMapHeight * sizeof(CSpeedupTile));
 
 	int NumImages = 0;
 	int NumSounds = 0;
@@ -564,8 +564,9 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 									pGameTiles[TargetIndex] = Tile;
 									if(Tile.m_Index >= ENTITY_OFFSET)
 									{
-										pTuneTiles[TargetIndex].m_Type = TILE_MEGAMAP_INDEX;
-										pTuneTiles[TargetIndex].m_Number = MapIndex + 1;
+										pSpeedupTiles[TargetIndex].m_Type = TILE_MEGAMAP_INDEX;
+										pSpeedupTiles[TargetIndex].m_Force = 0;
+										pSpeedupTiles[TargetIndex].m_MaxSpeed = MapIndex + 1;
 									}
 								}
 							DataFile.UnloadData(pTilemapItem->m_Data);

@@ -754,6 +754,9 @@ int CCollision::IsSpeedup(int Index) const
 	if(Index < 0 || !m_pSpeedup)
 		return 0;
 
+	if(m_pSpeedup[Index].m_Type != TILE_BOOST)
+		return 0;
+
 	if(m_pSpeedup[Index].m_Force > 0)
 		return Index;
 
@@ -771,22 +774,14 @@ int CCollision::IsTune(int Index) const
 	return 0;
 }
 
-int CCollision::IsMapIndex(int Index) const
-{
-	if(Index < 0 || !m_pTune)
-		return 0;
-
-	if(m_pTune[Index].m_Type == TILE_MEGAMAP_INDEX)
-		return m_pTune[Index].m_Number;
-
-	return 0;
-}
-
-
 void CCollision::GetSpeedup(int Index, vec2 *Dir, int *Force, int *MaxSpeed) const
 {
 	if(Index < 0 || !m_pSpeedup)
 		return;
+
+	if(m_pSpeedup[Index].m_Type != TILE_BOOST)
+		return;
+
 	float Angle = m_pSpeedup[Index].m_Angle * (pi / 180.0f);
 	*Force = m_pSpeedup[Index].m_Force;
 	*Dir = vec2(cos(Angle), sin(Angle));
@@ -918,7 +913,7 @@ bool CCollision::TileExists(int Index) const
 		return true;
 	if(m_pTele && (m_pTele[Index].m_Type == TILE_TELEIN || m_pTele[Index].m_Type == TILE_TELEINEVIL || m_pTele[Index].m_Type == TILE_TELECHECKINEVIL || m_pTele[Index].m_Type == TILE_TELECHECK || m_pTele[Index].m_Type == TILE_TELECHECKIN))
 		return true;
-	if(m_pSpeedup && m_pSpeedup[Index].m_Force > 0)
+	if(m_pSpeedup && m_pSpeedup[Index].m_Type == TILE_BOOST && m_pSpeedup[Index].m_Force > 0)
 		return true;
 	if(m_pDoor && m_pDoor[Index].m_Index)
 		return true;
@@ -1080,11 +1075,11 @@ int CCollision::GetIndex(vec2 PrevPos, vec2 Pos) const
 	{
 		int Nx = clamp((int)Pos.x / 32, 0, m_Width - 1);
 		int Ny = clamp((int)Pos.y / 32, 0, m_Height - 1);
-
+		int Index = Ny * m_Width + Nx;
 		if((m_pTele) ||
-			(m_pSpeedup && m_pSpeedup[Ny * m_Width + Nx].m_Force > 0))
+			(m_pSpeedup && m_pSpeedup[Index].m_Type == TILE_BOOST && m_pSpeedup[Index].m_Force > 0))
 		{
-			return Ny * m_Width + Nx;
+			return Index;
 		}
 	}
 
@@ -1099,10 +1094,11 @@ int CCollision::GetIndex(vec2 PrevPos, vec2 Pos) const
 		Tmp = mix(PrevPos, Pos, a);
 		Nx = clamp((int)Tmp.x / 32, 0, m_Width - 1);
 		Ny = clamp((int)Tmp.y / 32, 0, m_Height - 1);
+		int Index = Ny * m_Width + Nx;
 		if((m_pTele) ||
-			(m_pSpeedup && m_pSpeedup[Ny * m_Width + Nx].m_Force > 0))
+			(m_pSpeedup && m_pSpeedup[Index].m_Type == TILE_BOOST && m_pSpeedup[Index].m_Force > 0))
 		{
-			return Ny * m_Width + Nx;
+			return Index;
 		}
 	}
 

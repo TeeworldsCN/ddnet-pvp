@@ -42,7 +42,6 @@ class IGameController
 	class CGameWorld *m_pWorld;
 	class IConsole *m_pInstanceConsole;
 
-	void DoActivityCheck();
 	bool GetPlayersReadyState(int WithoutID = -1);
 	void SetPlayersReadyState(bool ReadyState);
 	void CheckReadyStates(int WithoutID = -1);
@@ -187,6 +186,15 @@ protected:
 
 	// event
 	/*
+		Function: OnInit
+			Called when the controller is initialized or reloaded.
+			When this is called, pWorld is garanteed to be empty and
+				all existing entities has already been destroyed.
+
+			You should reset any pointers to entities during OnInit.
+	*/
+	virtual void OnInit();
+	/*
 		Function: OnPlayerJoin
 			Called when a player joins the game controlled by this controller.
 			This is called before the player's character is spawned.
@@ -295,7 +303,7 @@ public:
 	int OnInternalCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
 	void OnInternalCharacterSpawn(class CCharacter *pChr);
 	bool OnInternalCharacterTile(class CCharacter *pChr, int MapIndex);
-	void OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
+	void OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags, int MegaMapIndex, int Number);
 
 	void OnReset();
 
@@ -387,7 +395,7 @@ public:
 	// DDRace
 	int GetPlayerTeam(int ClientID) const;
 	bool IsPlayerInRoom(int ClientID) const;
-	void InitController(int Team, class CGameContext *pGameServer, class CGameWorld *pWorld);
+	void InitController(class CGameContext *pGameServer, class CGameWorld *pWorld);
 
 	// vote
 	class CHeap *m_pVoteOptionHeap;
