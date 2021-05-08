@@ -43,6 +43,13 @@ void CWeapon::Tick()
 
 void CWeapon::HandleFire(vec2 Direction)
 {
+	if(m_Ammo == 0)
+	{
+		m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
+		GameWorld()->CreateSound(Pos(), SOUND_WEAPON_NOAMMO);
+		return;
+	}
+
 	Fire(Direction);
 	if(m_Ammo > 0)
 		m_Ammo -= 1;

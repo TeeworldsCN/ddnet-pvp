@@ -77,7 +77,7 @@ public:
 	bool IncreaseHealth(int Amount);
 	bool IncreaseArmor(int Amount);
 
-	bool GiveWeapon(int Slot, CWeapon *pWeapon, int Ammo = -1);
+	bool GiveWeapon(int Slot, int Type, int Ammo = -1);
 	void GiveNinja();
 	void RemoveNinja();
 	void SetEndlessHook(bool Enable);

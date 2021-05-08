@@ -11,6 +11,7 @@ private:
 	class CGameContext *m_pGameServer;
 	class CGameWorld *m_pGameWorld;
 	class IServer *m_pServer;
+	int m_WeaponTypeID;
 
 protected:
 	int m_Ammo;
@@ -33,6 +34,8 @@ public:
 	class CGameContext *GameServer() { return m_pGameServer; }
 	class CGameWorld *GameWorld() { return m_pGameWorld; }
 	class IServer *Server() { return m_pServer; }
+	vec2 Pos() { return m_pOwnerChar->m_Pos; }
+	float GetProximityRadius() { return m_pOwnerChar->GetProximityRadius(); }
 
 	virtual void OnEquip(){};
 	virtual void OnUnequip(){};
@@ -49,6 +52,9 @@ public:
 	bool IsReloading() { return m_ReloadTimer != 0; };
 	void Reload() { m_ReloadTimer = 0; };
 	bool IsEmpty() { return m_Ammo == 0; };
+
+	void SetTypeID(int Type) { m_WeaponTypeID = Type; }
+	int GetTypeID() { return m_WeaponTypeID; }
 };
 
 #endif // GAME_SERVER_WEAPON_H

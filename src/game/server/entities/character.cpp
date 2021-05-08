@@ -13,8 +13,8 @@
 #include "projectile.h"
 
 #include "light.h"
-// #include <game/server/score.h>
 #include <game/server/teams.h>
+#include <game/server/weapons.h>
 
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
 
@@ -2149,7 +2149,7 @@ bool CCharacter::UnFreeze()
 	return false;
 }
 
-bool CCharacter::GiveWeapon(int Slot, CWeapon *pWeapon, int Ammo)
+bool CCharacter::GiveWeapon(int Slot, int Type, int Ammo)
 {
 	// if(Weapon == WEAPON_NINJA)
 	// {
@@ -2160,15 +2160,37 @@ bool CCharacter::GiveWeapon(int Slot, CWeapon *pWeapon, int Ammo)
 	// 	return true;
 	// }
 
-	if(m_apWeaponSlot[Slot])
-		delete m_apWeaponSlot[Slot];
+	// TODO: separate remove, add ammo and this
 
-	if(pWeapon == nullptr)
+	if(Type == WEAPON_TYPE_NONE)
+	{
+		if(m_apWeaponSlot[Slot])
+		{
+			delete m_apWeaponSlot[Slot];
+			m_apWeaponSlot[Slot] = nullptr;
+		}
 		if(m_ActiveWeaponSlot == Slot)
 			m_ActiveWeaponSlot = WEAPON_GUN;
+	}
+#define REGISTER_WEAPON(WEAPTYPE, CLASS) \
+	else if(Type == WEAPTYPE) \
+	{ \
+		if(m_apWeaponSlot[Slot] && m_apWeaponSlot[Slot]->GetTypeID() != Type) \
+		{ \
+			delete m_apWeaponSlot[Slot]; \
+			m_apWeaponSlot[Slot] = nullptr; \
+		} \
+		else \
+		{ \
+			m_apWeaponSlot[Slot] = new CLASS(this); \
+			m_apWeaponSlot[Slot]->SetTypeID(WEAPTYPE); \
+		} \
+	}
+#include <game/server/weapons.h>
+#undef REGISTER_WEAPON
 
-	m_apWeaponSlot[Slot] = pWeapon;
-	pWeapon->SetAmmo(Ammo);
+	m_apWeaponSlot[Slot]->SetAmmo(Ammo);
+
 	return true;
 }
 

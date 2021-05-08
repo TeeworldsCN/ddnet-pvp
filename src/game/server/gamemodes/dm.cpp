@@ -3,8 +3,7 @@
 #include "dm.h"
 
 #include <game/server/entities/character.h>
-#include <game/server/weapon.h>
-#include <game/server/weapons/pistol.h>
+#include <game/server/weapons.h>
 
 CGameControllerDM::CGameControllerDM() :
 	IGameController()
@@ -17,5 +16,5 @@ void CGameControllerDM::OnCharacterSpawn(CCharacter *pChr)
 	pChr->IncreaseHealth(10);
 
 	// pChr->GiveWeapon(WEAPON_HAMMER, -1);
-	pChr->GiveWeapon(WEAPON_GUN, new CPistol(pChr), 10);
+	pChr->GiveWeapon(WEAPON_GUN, WEAPON_TYPE_PISTOL, 10);
 }

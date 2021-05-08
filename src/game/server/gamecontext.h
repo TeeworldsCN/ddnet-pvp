@@ -10,6 +10,7 @@
 #include <game/layers.h>
 #include <game/mapbugs.h>
 #include <game/server/teams.h>
+// #include <game/server/weapons.h>
 #include <game/voting.h>
 
 #include <base/tl/array.h>
@@ -47,6 +48,15 @@ enum
 {
 	NUM_TUNEZONES = 256
 };
+
+// enum
+// {
+// 	WEAPON_TYPE_UNKNOWN = 0,
+// #define REGISTER_WEAPON(WEAPTYPE, CLASS) \
+// 	WEAPON_TYPE_WEAPTYPE,
+// #include <game/server/weapons.h>
+// #undef REGISTER_WEAPON
+// };
 
 enum
 {

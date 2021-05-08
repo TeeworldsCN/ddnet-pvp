@@ -13,7 +13,7 @@ void CPistol::Fire(vec2 Direction)
 {
 	int Lifetime = Character()->CurrentTuning()->m_GunLifetime * Server()->TickSpeed();
 
-	vec2 ProjStartPos = Character()->m_Pos + Direction * Character()->GetProximityRadius() * 0.75f;
+	vec2 ProjStartPos = Pos() + Direction * GetProximityRadius() * 0.75f;
 
 	CProjectile *pProj = new CProjectile(
 		GameWorld(),
