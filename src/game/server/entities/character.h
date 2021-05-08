@@ -5,6 +5,7 @@
 
 #include <engine/antibot.h>
 #include <game/server/entity.h>
+#include <game/server/weapon.h>
 
 class CAntibot;
 class CGameTeams;
@@ -23,8 +24,12 @@ enum
 
 enum
 {
-	AMMO_UNLIMITED = -1,
-	AMMO_REMOVE = -2
+	AMMO_UNLIMITED = -1
+};
+
+enum
+{
+	NUM_WEAPON_SLOTS = NUM_WEAPONS - 1,
 };
 
 class CCharacter : public CEntity
@@ -36,6 +41,7 @@ public:
 	static const int ms_PhysSize = 28;
 
 	CCharacter(CGameWorld *pWorld);
+	~CCharacter();
 
 	virtual void Reset();
 	virtual void Destroy();
@@ -51,9 +57,10 @@ public:
 	void HandleWeaponSwitch();
 	void DoWeaponSwitch();
 
+	class CWeapon *CurrentWeapon();
 	void HandleWeapons();
-	void HandleNinja();
-	void HandleJetpack();
+	// void HandleNinja();
+	// void HandleJetpack();
 
 	void OnPredictedInput(CNetObj_PlayerInput *pNewInput);
 	void OnDirectInput(CNetObj_PlayerInput *pNewInput);
@@ -70,7 +77,7 @@ public:
 	bool IncreaseHealth(int Amount);
 	bool IncreaseArmor(int Amount);
 
-	bool GiveWeapon(int Weapon, int Ammo);
+	bool GiveWeapon(int Slot, CWeapon *pWeapon, int Ammo = -1);
 	void GiveNinja();
 	void RemoveNinja();
 	void SetEndlessHook(bool Enable);
@@ -90,23 +97,14 @@ private:
 	bool m_Disabled;
 	int m_NeededFaketuning;
 
-	// weapon info
-	CEntity *m_apHitObjects[10];
-	int m_NumObjectsHit;
+	CWeapon *m_pPowerupWeapon;
+	CWeapon *m_apOverrideWeaponSlot[NUM_WEAPONS - 1];
+	CWeapon *m_apWeaponSlot[NUM_WEAPONS - 1];
 
-	struct WeaponStat
-	{
-		int m_AmmoRegenStart;
-		int m_Ammo;
-		int m_Ammocost;
-		bool m_Got;
+	int m_LastWeaponSlot;
+	int m_QueuedWeaponSlot;
+	int m_ActiveWeaponSlot;
 
-	} m_aWeapons[NUM_WEAPONS];
-
-	int m_LastWeapon;
-	int m_QueuedWeapon;
-
-	int m_ReloadTimer;
 	int m_AttackTick;
 
 	int m_DamageTaken;
@@ -177,7 +175,6 @@ public:
 	bool Freeze(int Time);
 	bool Freeze();
 	bool UnFreeze();
-	void GiveAllWeapons();
 	void ResetPickups();
 	int m_DDRaceState;
 	int Team();
@@ -242,20 +239,20 @@ public:
 	int m_WeaponChangeTick;
 
 	// Setters/Getters because i don't want to modify vanilla vars access modifiers
-	int GetLastWeapon() { return m_LastWeapon; };
-	void SetLastWeapon(int LastWeap) { m_LastWeapon = LastWeap; };
-	int GetActiveWeapon() { return m_Core.m_ActiveWeapon; };
-	void SetActiveWeapon(int ActiveWeap) { m_Core.m_ActiveWeapon = ActiveWeap; };
+	int GetLastWeapon() { return m_LastWeaponSlot; };
+	void SetLastWeapon(int LastWeap) { m_LastWeaponSlot = LastWeap; };
+	int GetActiveWeapon() { return m_ActiveWeaponSlot; };
+	void SetActiveWeapon(int ActiveWeap) { m_ActiveWeaponSlot = ActiveWeap; };
 	void SetLastAction(int LastAction) { m_LastAction = LastAction; };
 	int GetArmor() { return m_Armor; };
 	void SetArmor(int Armor) { m_Armor = Armor; };
 	CCharacterCore GetCore() { return m_Core; };
 	void SetCore(CCharacterCore Core) { m_Core = Core; };
 	CCharacterCore *Core() { return &m_Core; };
-	bool GetWeaponGot(int Type) { return m_aWeapons[Type].m_Got; };
-	void SetWeaponGot(int Type, bool Value) { m_aWeapons[Type].m_Got = Value; };
-	int GetWeaponAmmo(int Type) { return m_aWeapons[Type].m_Ammo; };
-	void SetWeaponAmmo(int Type, int Value) { m_aWeapons[Type].m_Ammo = Value; };
+	// bool GetWeaponGot(int Type) { return m_aWeapons[Type].m_Got; };
+	// void SetWeaponGot(int Type, bool Value) { m_aWeapons[Type].m_Got = Value; };
+	// int GetWeaponAmmo(int Type) { return m_apWeaponSlot[Type]->GetAmmo(); };
+	// void SetWeaponAmmo(int Type, int Value) { m_apWeaponSlot[Type]->SetAmmo(Value); };
 	bool IsAlive() { return m_Alive; };
 	void SetNinjaActivationDir(vec2 ActivationDir) { m_Ninja.m_ActivationDir = ActivationDir; };
 	void SetNinjaActivationTick(int ActivationTick) { m_Ninja.m_ActivationTick = ActivationTick; };

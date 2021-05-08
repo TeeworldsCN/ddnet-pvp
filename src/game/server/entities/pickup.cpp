@@ -104,23 +104,23 @@ void CPickup::Tick()
 
 			case POWERUP_WEAPON:
 
-				if(m_Subtype >= 0 && m_Subtype < NUM_WEAPONS && pChr->GetWeaponAmmo(m_Subtype) != -1)
-				{
-					if(pChr->GiveWeapon(m_Subtype, g_pData->m_Weapons.m_aId[m_Subtype].m_Maxammo))
-					{
-						RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
+				// if(m_Subtype >= 0 && m_Subtype < NUM_WEAPONS && pChr->GetWeaponAmmo(m_Subtype) != -1)
+				// {
+				// if(pChr->GiveWeapon(m_Subtype, g_pData->m_Weapons.m_aId[m_Subtype].m_Maxammo))
+				// {
+				// 	RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 
-						if(m_Subtype == WEAPON_GRENADE)
-							GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE, Mask);
-						else if(m_Subtype == WEAPON_SHOTGUN)
-							GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
-						else if(m_Subtype == WEAPON_LASER)
-							GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
+				// 	if(m_Subtype == WEAPON_GRENADE)
+				// 		GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE, Mask);
+				// 	else if(m_Subtype == WEAPON_SHOTGUN)
+				// 		GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
+				// 	else if(m_Subtype == WEAPON_LASER)
+				// 		GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
 
-						if(pChr->GetPlayer())
-							GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);
-					}
-				}
+				// 	if(pChr->GetPlayer())
+				// 		GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);
+				// }
+				// }
 				break;
 
 			case POWERUP_NINJA:

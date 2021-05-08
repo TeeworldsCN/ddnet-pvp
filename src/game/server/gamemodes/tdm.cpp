@@ -21,8 +21,8 @@ void CGameControllerTDM::OnCharacterSpawn(CCharacter *pChr)
 {
 	pChr->IncreaseHealth(10);
 
-	pChr->GiveWeapon(WEAPON_HAMMER, -1);
-	pChr->GiveWeapon(WEAPON_GUN, 10);
+	// pChr->GiveWeapon(WEAPON_HAMMER, -1);
+	// pChr->GiveWeapon(WEAPON_GUN, 10);
 }
 
 int CGameControllerTDM::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)

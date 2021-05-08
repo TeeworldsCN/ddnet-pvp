@@ -2053,6 +2053,18 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   teehistorian.h
   teeinfo.cpp
   teeinfo.h
+  weapons/hammer.cpp
+  weapons/hammer.h
+  weapons/laser.cpp
+  weapons/laser.h
+  weapons/ninja.cpp
+  weapons/ninja.h
+  weapons/pistol.cpp
+  weapons/pistol.h
+  weapons/shotgun.cpp
+  weapons/shotgun.h
+  weapon.cpp
+  weapon.h
 )
 set(GAME_GENERATED_SERVER
   "src/game/generated/server_data.cpp"

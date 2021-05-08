@@ -88,12 +88,6 @@ void CGameContext::ConKillPlayer(IConsole::IResult *pResult, void *pUserData)
 	}
 }
 
-void CGameContext::ConNinja(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->ModifyWeapons(pResult, pUserData, WEAPON_NINJA, false);
-}
-
 void CGameContext::ConEndlessHook(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -170,24 +164,6 @@ void CGameContext::ConUnDeep(IConsole::IResult *pResult, void *pUserData)
 		pChr->m_DeepFreeze = false;
 }
 
-void CGameContext::ConShotgun(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->ModifyWeapons(pResult, pUserData, WEAPON_SHOTGUN, false);
-}
-
-void CGameContext::ConGrenade(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->ModifyWeapons(pResult, pUserData, WEAPON_GRENADE, false);
-}
-
-void CGameContext::ConLaser(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->ModifyWeapons(pResult, pUserData, WEAPON_LASER, false);
-}
-
 void CGameContext::ConJetpack(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -196,83 +172,12 @@ void CGameContext::ConJetpack(IConsole::IResult *pResult, void *pUserData)
 		pChr->m_Jetpack = true;
 }
 
-void CGameContext::ConWeapons(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->ModifyWeapons(pResult, pUserData, -1, false);
-}
-
-void CGameContext::ConUnShotgun(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->ModifyWeapons(pResult, pUserData, WEAPON_SHOTGUN, true);
-}
-
-void CGameContext::ConUnGrenade(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->ModifyWeapons(pResult, pUserData, WEAPON_GRENADE, true);
-}
-
-void CGameContext::ConUnLaser(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->ModifyWeapons(pResult, pUserData, WEAPON_LASER, true);
-}
-
 void CGameContext::ConUnJetpack(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	CCharacter *pChr = pSelf->GetPlayerChar(pResult->m_ClientID);
 	if(pChr)
 		pChr->m_Jetpack = false;
-}
-
-void CGameContext::ConUnWeapons(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->ModifyWeapons(pResult, pUserData, -1, true);
-}
-
-void CGameContext::ConAddWeapon(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->ModifyWeapons(pResult, pUserData, pResult->GetInteger(0), false);
-}
-
-void CGameContext::ConRemoveWeapon(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->ModifyWeapons(pResult, pUserData, pResult->GetInteger(0), true);
-}
-
-void CGameContext::ModifyWeapons(IConsole::IResult *pResult, void *pUserData,
-	int Weapon, bool Remove)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	CCharacter *pChr = GetPlayerChar(pResult->m_ClientID);
-	if(!pChr)
-		return;
-
-	if(clamp(Weapon, -1, NUM_WEAPONS - 1) != Weapon)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
-			"invalid weapon id");
-		return;
-	}
-
-	if(Weapon == -1)
-	{
-		pChr->GiveWeapon(WEAPON_SHOTGUN, Remove ? AMMO_REMOVE : AMMO_UNLIMITED);
-		pChr->GiveWeapon(WEAPON_GRENADE, Remove ? AMMO_REMOVE : AMMO_UNLIMITED);
-		pChr->GiveWeapon(WEAPON_LASER, Remove ? AMMO_REMOVE : AMMO_UNLIMITED);
-	}
-	else
-	{
-		pChr->GiveWeapon(Weapon, Remove ? AMMO_REMOVE : AMMO_UNLIMITED);
-	}
-
-	pChr->m_DDRaceState = DDRACE_CHEAT;
 }
 
 void CGameContext::ConToTeleporter(IConsole::IResult *pResult, void *pUserData)
