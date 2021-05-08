@@ -16,6 +16,9 @@ CWeapon::CWeapon(CCharacter *pOwnerChar)
 
 void CWeapon::Tick()
 {
+	if(m_ReloadTimer > 0)
+		m_ReloadTimer--;
+
 	// ammo regen
 	if(m_AmmoRegenTime)
 	{

@@ -357,312 +357,302 @@ void CCharacter::HandleWeaponSwitch()
 	DoWeaponSwitch();
 }
 
-// void CCharacter::FireWeapon()
-// {
-// 	CWeapon *pCurrentWeapon = m_pPowerupWeapon;
+void CCharacter::FireWeapon()
+{
+	CWeapon *pCurrentWeapon = CurrentWeapon();
 
-// 	if(!m_pPowerupWeapon)
-// 	{
-// 		pCurrentWeapon = m_apWeaponSlot[m_ActiveWeaponSlot];
-// 		if(!pCurrentWeapon)
-// 			return;
+	if(pCurrentWeapon->IsReloading())
+	{
+		if(m_LatestInput.m_Fire & 1)
+		{
+			Antibot()->OnHammerFireReloading(m_pPlayer->GetCID());
+		}
+		return;
+	}
 
-// 		if(m_apOverrideWeaponSlot[m_ActiveWeaponSlot])
-// 			pCurrentWeapon = m_apOverrideWeaponSlot[m_ActiveWeaponSlot];
-// 	}
+	DoWeaponSwitch();
+	vec2 Direction = normalize(vec2(m_LatestInput.m_TargetX, m_LatestInput.m_TargetY));
 
-// 	if(pCurrentWeapon->IsReloading())
-// 	{
-// 		if(m_LatestInput.m_Fire & 1)
-// 		{
-// 			Antibot()->OnHammerFireReloading(m_pPlayer->GetCID());
-// 		}
-// 		return;
-// 	}
+	// bool FullAuto = false;
+	// if(m_ActiveWeaponSlot == WEAPON_GRENADE || m_ActiveWeaponSlot == WEAPON_SHOTGUN || m_ActiveWeaponSlot == WEAPON_LASER)
+	// 	FullAuto = true;
+	// if(m_Jetpack && m_ActiveWeaponSlot == WEAPON_GUN)
+	// 	FullAuto = true;
+	// // allow firing directly after coming out of freeze or being unfrozen
+	// // by something
+	// if(m_FrozenLastTick)
+	// 	FullAuto = true;
 
-// 	DoWeaponSwitch();
-// 	vec2 Direction = normalize(vec2(m_LatestInput.m_TargetX, m_LatestInput.m_TargetY));
+	// // don't fire hammer when player is deep and sv_deepfly is disabled
+	// if(!g_Config.m_SvDeepfly && m_ActiveWeaponSlot == WEAPON_HAMMER && m_DeepFreeze)
+	// 	return;
 
-// 	// bool FullAuto = false;
-// 	// if(m_ActiveWeaponSlot == WEAPON_GRENADE || m_ActiveWeaponSlot == WEAPON_SHOTGUN || m_ActiveWeaponSlot == WEAPON_LASER)
-// 	// 	FullAuto = true;
-// 	// if(m_Jetpack && m_ActiveWeaponSlot == WEAPON_GUN)
-// 	// 	FullAuto = true;
-// 	// // allow firing directly after coming out of freeze or being unfrozen
-// 	// // by something
-// 	// if(m_FrozenLastTick)
-// 	// 	FullAuto = true;
+	// // check if we gonna fire
+	bool WillFire = false;
+	if(CountInput(m_LatestPrevInput.m_Fire, m_LatestInput.m_Fire).m_Presses)
+		WillFire = true;
 
-// 	// // don't fire hammer when player is deep and sv_deepfly is disabled
-// 	// if(!g_Config.m_SvDeepfly && m_ActiveWeaponSlot == WEAPON_HAMMER && m_DeepFreeze)
-// 	// 	return;
+	// if(FullAuto && (m_LatestInput.m_Fire & 1) && m_aWeapons[m_ActiveWeaponSlot].m_Ammo)
+	// 	WillFire = true;
 
-// 	// // check if we gonna fire
-// 	// bool WillFire = false;
-// 	// if(CountInput(m_LatestPrevInput.m_Fire, m_LatestInput.m_Fire).m_Presses)
-// 	// 	WillFire = true;
+	if(!WillFire)
+		return;
 
-// 	// if(FullAuto && (m_LatestInput.m_Fire & 1) && m_aWeapons[m_ActiveWeaponSlot].m_Ammo)
-// 	// 	WillFire = true;
+	// if(m_FreezeTime)
+	// {
+	// 	// Timer stuff to avoid shrieking orchestra caused by unfreeze-plasma
+	// 	// if(m_PainSoundTimer <= 0 && !(m_LatestPrevInput.m_Fire & 1))
+	// 	// {
+	// 	// 	m_PainSoundTimer = 1 * Server()->TickSpeed();
+	// 	// 	GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+	// 	// }
+	// 	return;
+	// }
 
-// 	// if(!WillFire)
-// 	// 	return;
+	// // check for ammo
+	// if(!m_aWeapons[m_ActiveWeaponSlot].m_Ammo)
+	// {
+	// 	// 125ms is a magical limit of how fast a human can click
+	// 	m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
+	// 	GameWorld()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO);
+	// 	return;
+	// }
 
-// 	// if(m_FreezeTime)
-// 	// {
-// 	// 	// Timer stuff to avoid shrieking orchestra caused by unfreeze-plasma
-// 	// 	// if(m_PainSoundTimer <= 0 && !(m_LatestPrevInput.m_Fire & 1))
-// 	// 	// {
-// 	// 	// 	m_PainSoundTimer = 1 * Server()->TickSpeed();
-// 	// 	// 	GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
-// 	// 	// }
-// 	// 	return;
-// 	// }
+	// vec2 ProjStartPos = m_Pos + Direction * GetProximityRadius() * 0.75f;
 
-// 	// // check for ammo
-// 	// if(!m_aWeapons[m_ActiveWeaponSlot].m_Ammo)
-// 	// {
-// 	// 	// 125ms is a magical limit of how fast a human can click
-// 	// 	m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
-// 	// 	GameWorld()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO);
-// 	// 	return;
-// 	// }
+	// switch(m_ActiveWeaponSlot)
+	// {
+	// case WEAPON_HAMMER:
+	// {
+	// 	// reset objects Hit
+	// 	m_NumObjectsHit = 0;
+	// 	GameWorld()->CreateSound(m_Pos, SOUND_HAMMER_FIRE);
 
-// 	// vec2 ProjStartPos = m_Pos + Direction * GetProximityRadius() * 0.75f;
+	// 	Antibot()->OnHammerFire(m_pPlayer->GetCID());
 
-// 	// switch(m_ActiveWeaponSlot)
-// 	// {
-// 	// case WEAPON_HAMMER:
-// 	// {
-// 	// 	// reset objects Hit
-// 	// 	m_NumObjectsHit = 0;
-// 	// 	GameWorld()->CreateSound(m_Pos, SOUND_HAMMER_FIRE);
+	// 	if(m_Hit & DISABLE_HIT_HAMMER)
+	// 		break;
 
-// 	// 	Antibot()->OnHammerFire(m_pPlayer->GetCID());
+	// 	CCharacter *apEnts[MAX_CLIENTS];
+	// 	int Hits = 0;
+	// 	int Num = GameWorld()->FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, (CEntity **)apEnts,
+	// 		MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 
-// 	// 	if(m_Hit & DISABLE_HIT_HAMMER)
-// 	// 		break;
+	// 	for(int i = 0; i < Num; ++i)
+	// 	{
+	// 		CCharacter *pTarget = apEnts[i];
 
-// 	// 	CCharacter *apEnts[MAX_CLIENTS];
-// 	// 	int Hits = 0;
-// 	// 	int Num = GameWorld()->FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, (CEntity **)apEnts,
-// 	// 		MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+	// 		//if ((pTarget == this) || GameServer()->Collision()->IntersectLine(ProjStartPos, pTarget->m_Pos, NULL, NULL))
+	// 		if((pTarget == this || (pTarget->IsAlive() && !CanCollide(pTarget->GetPlayer()->GetCID()))))
+	// 			continue;
 
-// 	// 	for(int i = 0; i < Num; ++i)
-// 	// 	{
-// 	// 		CCharacter *pTarget = apEnts[i];
+	// 		// set his velocity to fast upward (for now)
+	// 		if(length(pTarget->m_Pos - ProjStartPos) > 0.0f)
+	// 			GameWorld()->CreateHammerHit(pTarget->m_Pos - normalize(pTarget->m_Pos - ProjStartPos) * GetProximityRadius() * 0.5f);
+	// 		else
+	// 			GameWorld()->CreateHammerHit(ProjStartPos);
 
-// 	// 		//if ((pTarget == this) || GameServer()->Collision()->IntersectLine(ProjStartPos, pTarget->m_Pos, NULL, NULL))
-// 	// 		if((pTarget == this || (pTarget->IsAlive() && !CanCollide(pTarget->GetPlayer()->GetCID()))))
-// 	// 			continue;
+	// 		vec2 Dir;
+	// 		if(length(pTarget->m_Pos - m_Pos) > 0.0f)
+	// 			Dir = normalize(pTarget->m_Pos - m_Pos);
+	// 		else
+	// 			Dir = vec2(0.f, -1.f);
 
-// 	// 		// set his velocity to fast upward (for now)
-// 	// 		if(length(pTarget->m_Pos - ProjStartPos) > 0.0f)
-// 	// 			GameWorld()->CreateHammerHit(pTarget->m_Pos - normalize(pTarget->m_Pos - ProjStartPos) * GetProximityRadius() * 0.5f);
-// 	// 		else
-// 	// 			GameWorld()->CreateHammerHit(ProjStartPos);
+	// 		float Strength;
+	// 		if(!m_TuneZone)
+	// 			Strength = GameServer()->Tuning()->m_HammerStrength;
+	// 		else
+	// 			Strength = GameServer()->TuningList()[m_TuneZone].m_HammerStrength;
 
-// 	// 		vec2 Dir;
-// 	// 		if(length(pTarget->m_Pos - m_Pos) > 0.0f)
-// 	// 			Dir = normalize(pTarget->m_Pos - m_Pos);
-// 	// 		else
-// 	// 			Dir = vec2(0.f, -1.f);
+	// 		vec2 Temp = pTarget->m_Core.m_Vel + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f;
+	// 		Temp = ClampVel(pTarget->m_MoveRestrictions, Temp);
+	// 		Temp -= pTarget->m_Core.m_Vel;
 
-// 	// 		float Strength;
-// 	// 		if(!m_TuneZone)
-// 	// 			Strength = GameServer()->Tuning()->m_HammerStrength;
-// 	// 		else
-// 	// 			Strength = GameServer()->TuningList()[m_TuneZone].m_HammerStrength;
+	// 		pTarget->TakeDamage((vec2(0.f, -1.0f) + Temp) * Strength, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
+	// 			m_pPlayer->GetCID(), m_ActiveWeaponSlot);
 
-// 	// 		vec2 Temp = pTarget->m_Core.m_Vel + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f;
-// 	// 		Temp = ClampVel(pTarget->m_MoveRestrictions, Temp);
-// 	// 		Temp -= pTarget->m_Core.m_Vel;
+	// 		Antibot()->OnHammerHit(m_pPlayer->GetCID());
 
-// 	// 		pTarget->TakeDamage((vec2(0.f, -1.0f) + Temp) * Strength, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
-// 	// 			m_pPlayer->GetCID(), m_ActiveWeaponSlot);
+	// 		Hits++;
+	// 	}
 
-// 	// 		Antibot()->OnHammerHit(m_pPlayer->GetCID());
+	// 	// if we Hit anything, we have to wait for the reload
+	// 	if(Hits)
+	// 		m_ReloadTimer = Server()->TickSpeed() / 3;
+	// }
+	// break;
 
-// 	// 		Hits++;
-// 	// 	}
+	// case WEAPON_GUN:
+	// {
+	// 	if(!m_Jetpack || !m_pPlayer->m_NinjaJetpack || m_Core.m_HasTelegunGun)
+	// 	{
+	// 		int Lifetime;
+	// 		if(!m_TuneZone)
+	// 			Lifetime = (int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GunLifetime);
+	// 		else
+	// 			Lifetime = (int)(Server()->TickSpeed() * GameServer()->TuningList()[m_TuneZone].m_GunLifetime);
 
-// 	// 	// if we Hit anything, we have to wait for the reload
-// 	// 	if(Hits)
-// 	// 		m_ReloadTimer = Server()->TickSpeed() / 3;
-// 	// }
-// 	// break;
+	// 		CProjectile *pProj = new CProjectile(
+	// 			GameWorld(),
+	// 			WEAPON_GUN, //Type
+	// 			m_pPlayer->GetCID(), //Owner
+	// 			ProjStartPos, //Pos
+	// 			Direction, //Dir
+	// 			Lifetime, //Span
+	// 			g_pData->m_Weapons.m_Gun.m_pBase->m_Damage, //Damage
+	// 			0, //Explosive
+	// 			0, //Force
+	// 			-1, //SoundImpact
+	// 			false //Freeze
+	// 		);
 
-// 	// case WEAPON_GUN:
-// 	// {
-// 	// 	if(!m_Jetpack || !m_pPlayer->m_NinjaJetpack || m_Core.m_HasTelegunGun)
-// 	// 	{
-// 	// 		int Lifetime;
-// 	// 		if(!m_TuneZone)
-// 	// 			Lifetime = (int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GunLifetime);
-// 	// 		else
-// 	// 			Lifetime = (int)(Server()->TickSpeed() * GameServer()->TuningList()[m_TuneZone].m_GunLifetime);
+	// 		// pack the Projectile and send it to the client Directly
+	// 		CNetObj_Projectile p;
+	// 		pProj->FillInfo(&p);
 
-// 	// 		CProjectile *pProj = new CProjectile(
-// 	// 			GameWorld(),
-// 	// 			WEAPON_GUN, //Type
-// 	// 			m_pPlayer->GetCID(), //Owner
-// 	// 			ProjStartPos, //Pos
-// 	// 			Direction, //Dir
-// 	// 			Lifetime, //Span
-// 	// 			g_pData->m_Weapons.m_Gun.m_pBase->m_Damage, //Damage
-// 	// 			0, //Explosive
-// 	// 			0, //Force
-// 	// 			-1, //SoundImpact
-// 	// 			false //Freeze
-// 	// 		);
+	// 		CMsgPacker Msg(NETMSGTYPE_SV_EXTRAPROJECTILE);
+	// 		Msg.AddInt(1);
+	// 		for(unsigned i = 0; i < sizeof(CNetObj_Projectile) / sizeof(int); i++)
+	// 			Msg.AddInt(((int *)&p)[i]);
 
-// 	// 		// pack the Projectile and send it to the client Directly
-// 	// 		CNetObj_Projectile p;
-// 	// 		pProj->FillInfo(&p);
+	// 		Server()->SendMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
+	// 		GameWorld()->CreateSound(m_Pos, SOUND_GUN_FIRE);
+	// 	}
+	// }
+	// break;
 
-// 	// 		CMsgPacker Msg(NETMSGTYPE_SV_EXTRAPROJECTILE);
-// 	// 		Msg.AddInt(1);
-// 	// 		for(unsigned i = 0; i < sizeof(CNetObj_Projectile) / sizeof(int); i++)
-// 	// 			Msg.AddInt(((int *)&p)[i]);
+	// case WEAPON_SHOTGUN:
+	// {
+	// 	if(!m_PullingShotgun)
+	// 	{
+	// 		int ShotSpread = 2;
 
-// 	// 		Server()->SendMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
-// 	// 		GameWorld()->CreateSound(m_Pos, SOUND_GUN_FIRE);
-// 	// 	}
-// 	// }
-// 	// break;
+	// 		CMsgPacker Msg(NETMSGTYPE_SV_EXTRAPROJECTILE);
+	// 		Msg.AddInt(ShotSpread * 2 + 1);
 
-// 	// case WEAPON_SHOTGUN:
-// 	// {
-// 	// 	if(!m_PullingShotgun)
-// 	// 	{
-// 	// 		int ShotSpread = 2;
+	// 		for(int i = -ShotSpread; i <= ShotSpread; ++i)
+	// 		{
+	// 			float Spreading[] = {-0.185f, -0.070f, 0, 0.070f, 0.185f};
+	// 			float a = angle(Direction);
+	// 			a += Spreading[i + 2];
+	// 			float v = 1 - (absolute(i) / (float)ShotSpread);
+	// 			float Speed = mix((float)GameServer()->Tuning()->m_ShotgunSpeeddiff, 1.0f, v);
+	// 			CProjectile *pProj = new CProjectile(
+	// 				GameWorld(),
+	// 				WEAPON_SHOTGUN, //Type
+	// 				m_pPlayer->GetCID(), //Owner
+	// 				ProjStartPos, //Pos
+	// 				vec2(cosf(a), sinf(a)) * Speed, //Dir
+	// 				(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_ShotgunLifetime), //Span
+	// 				g_pData->m_Weapons.m_Shotgun.m_pBase->m_Damage, //Damage
+	// 				0, //Explosive
+	// 				0, //Force
+	// 				-1, //SoundImpact
+	// 				false //Freeze
+	// 			);
 
-// 	// 		CMsgPacker Msg(NETMSGTYPE_SV_EXTRAPROJECTILE);
-// 	// 		Msg.AddInt(ShotSpread * 2 + 1);
+	// 			// pack the Projectile and send it to the client Directly
+	// 			CNetObj_Projectile p;
+	// 			pProj->FillInfo(&p);
 
-// 	// 		for(int i = -ShotSpread; i <= ShotSpread; ++i)
-// 	// 		{
-// 	// 			float Spreading[] = {-0.185f, -0.070f, 0, 0.070f, 0.185f};
-// 	// 			float a = angle(Direction);
-// 	// 			a += Spreading[i + 2];
-// 	// 			float v = 1 - (absolute(i) / (float)ShotSpread);
-// 	// 			float Speed = mix((float)GameServer()->Tuning()->m_ShotgunSpeeddiff, 1.0f, v);
-// 	// 			CProjectile *pProj = new CProjectile(
-// 	// 				GameWorld(),
-// 	// 				WEAPON_SHOTGUN, //Type
-// 	// 				m_pPlayer->GetCID(), //Owner
-// 	// 				ProjStartPos, //Pos
-// 	// 				vec2(cosf(a), sinf(a)) * Speed, //Dir
-// 	// 				(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_ShotgunLifetime), //Span
-// 	// 				g_pData->m_Weapons.m_Shotgun.m_pBase->m_Damage, //Damage
-// 	// 				0, //Explosive
-// 	// 				0, //Force
-// 	// 				-1, //SoundImpact
-// 	// 				false //Freeze
-// 	// 			);
+	// 			for(unsigned i = 0; i < sizeof(CNetObj_Projectile) / sizeof(int); i++)
+	// 				Msg.AddInt(((int *)&p)[i]);
+	// 		}
 
-// 	// 			// pack the Projectile and send it to the client Directly
-// 	// 			CNetObj_Projectile p;
-// 	// 			pProj->FillInfo(&p);
+	// 		Server()->SendMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
 
-// 	// 			for(unsigned i = 0; i < sizeof(CNetObj_Projectile) / sizeof(int); i++)
-// 	// 				Msg.AddInt(((int *)&p)[i]);
-// 	// 		}
+	// 		GameWorld()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE);
+	// 	}
+	// 	else
+	// 	{
+	// 		float LaserReach;
+	// 		if(!m_TuneZone)
+	// 			LaserReach = GameServer()->Tuning()->m_LaserReach;
+	// 		else
+	// 			LaserReach = GameServer()->TuningList()[m_TuneZone].m_LaserReach;
 
-// 	// 		Server()->SendMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
+	// 		new CLaser(GameWorld(), m_Pos, Direction, LaserReach, m_pPlayer->GetCID(), WEAPON_SHOTGUN);
+	// 		GameWorld()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE);
+	// 	}
+	// }
+	// break;
 
-// 	// 		GameWorld()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE);
-// 	// 	}
-// 	// 	else
-// 	// 	{
-// 	// 		float LaserReach;
-// 	// 		if(!m_TuneZone)
-// 	// 			LaserReach = GameServer()->Tuning()->m_LaserReach;
-// 	// 		else
-// 	// 			LaserReach = GameServer()->TuningList()[m_TuneZone].m_LaserReach;
+	// case WEAPON_GRENADE:
+	// {
+	// 	int Lifetime;
+	// 	if(!m_TuneZone)
+	// 		Lifetime = (int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GrenadeLifetime);
+	// 	else
+	// 		Lifetime = (int)(Server()->TickSpeed() * GameServer()->TuningList()[m_TuneZone].m_GrenadeLifetime);
 
-// 	// 		new CLaser(GameWorld(), m_Pos, Direction, LaserReach, m_pPlayer->GetCID(), WEAPON_SHOTGUN);
-// 	// 		GameWorld()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE);
-// 	// 	}
-// 	// }
-// 	// break;
+	// 	CProjectile *pProj = new CProjectile(
+	// 		GameWorld(),
+	// 		WEAPON_GRENADE, //Type
+	// 		m_pPlayer->GetCID(), //Owner
+	// 		ProjStartPos, //Pos
+	// 		Direction, //Dir
+	// 		Lifetime, //Span
+	// 		g_pData->m_Weapons.m_Grenade.m_pBase->m_Damage, //Damage
+	// 		true, //Explosive
+	// 		0, //Force
+	// 		SOUND_GRENADE_EXPLODE, //SoundImpact
+	// 		false //Freeze
+	// 	);
 
-// 	// case WEAPON_GRENADE:
-// 	// {
-// 	// 	int Lifetime;
-// 	// 	if(!m_TuneZone)
-// 	// 		Lifetime = (int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GrenadeLifetime);
-// 	// 	else
-// 	// 		Lifetime = (int)(Server()->TickSpeed() * GameServer()->TuningList()[m_TuneZone].m_GrenadeLifetime);
+	// 	// pack the Projectile and send it to the client Directly
+	// 	CNetObj_Projectile p;
+	// 	pProj->FillInfo(&p);
 
-// 	// 	CProjectile *pProj = new CProjectile(
-// 	// 		GameWorld(),
-// 	// 		WEAPON_GRENADE, //Type
-// 	// 		m_pPlayer->GetCID(), //Owner
-// 	// 		ProjStartPos, //Pos
-// 	// 		Direction, //Dir
-// 	// 		Lifetime, //Span
-// 	// 		g_pData->m_Weapons.m_Grenade.m_pBase->m_Damage, //Damage
-// 	// 		true, //Explosive
-// 	// 		0, //Force
-// 	// 		SOUND_GRENADE_EXPLODE, //SoundImpact
-// 	// 		false //Freeze
-// 	// 	);
+	// 	CMsgPacker Msg(NETMSGTYPE_SV_EXTRAPROJECTILE);
+	// 	Msg.AddInt(1);
+	// 	for(unsigned i = 0; i < sizeof(CNetObj_Projectile) / sizeof(int); i++)
+	// 		Msg.AddInt(((int *)&p)[i]);
+	// 	Server()->SendMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
 
-// 	// 	// pack the Projectile and send it to the client Directly
-// 	// 	CNetObj_Projectile p;
-// 	// 	pProj->FillInfo(&p);
+	// 	GameWorld()->CreateSound(m_Pos, SOUND_GRENADE_FIRE);
+	// }
+	// break;
 
-// 	// 	CMsgPacker Msg(NETMSGTYPE_SV_EXTRAPROJECTILE);
-// 	// 	Msg.AddInt(1);
-// 	// 	for(unsigned i = 0; i < sizeof(CNetObj_Projectile) / sizeof(int); i++)
-// 	// 		Msg.AddInt(((int *)&p)[i]);
-// 	// 	Server()->SendMsg(&Msg, MSGFLAG_VITAL, m_pPlayer->GetCID());
+	// case WEAPON_LASER:
+	// {
+	// 	float LaserReach;
+	// 	if(!m_TuneZone)
+	// 		LaserReach = GameServer()->Tuning()->m_LaserReach;
+	// 	else
+	// 		LaserReach = GameServer()->TuningList()[m_TuneZone].m_LaserReach;
 
-// 	// 	GameWorld()->CreateSound(m_Pos, SOUND_GRENADE_FIRE);
-// 	// }
-// 	// break;
+	// 	new CLaser(GameWorld(), m_Pos, Direction, LaserReach, m_pPlayer->GetCID(), WEAPON_LASER);
+	// 	GameWorld()->CreateSound(m_Pos, SOUND_LASER_FIRE);
+	// }
+	// break;
 
-// 	// case WEAPON_LASER:
-// 	// {
-// 	// 	float LaserReach;
-// 	// 	if(!m_TuneZone)
-// 	// 		LaserReach = GameServer()->Tuning()->m_LaserReach;
-// 	// 	else
-// 	// 		LaserReach = GameServer()->TuningList()[m_TuneZone].m_LaserReach;
+	// case WEAPON_NINJA:
+	// {
+	// 	// reset Hit objects
+	// 	m_NumObjectsHit = 0;
 
-// 	// 	new CLaser(GameWorld(), m_Pos, Direction, LaserReach, m_pPlayer->GetCID(), WEAPON_LASER);
-// 	// 	GameWorld()->CreateSound(m_Pos, SOUND_LASER_FIRE);
-// 	// }
-// 	// break;
+	// 	m_Ninja.m_ActivationDir = Direction;
+	// 	m_Ninja.m_CurrentMoveTime = g_pData->m_Weapons.m_Ninja.m_Movetime * Server()->TickSpeed() / 1000;
+	// 	m_Ninja.m_OldVelAmount = length(m_Core.m_Vel);
 
-// 	// case WEAPON_NINJA:
-// 	// {
-// 	// 	// reset Hit objects
-// 	// 	m_NumObjectsHit = 0;
+	// 	GameWorld()->CreateSound(m_Pos, SOUND_NINJA_FIRE);
+	// }
+	// break;
+	// }
 
-// 	// 	m_Ninja.m_ActivationDir = Direction;
-// 	// 	m_Ninja.m_CurrentMoveTime = g_pData->m_Weapons.m_Ninja.m_Movetime * Server()->TickSpeed() / 1000;
-// 	// 	m_Ninja.m_OldVelAmount = length(m_Core.m_Vel);
+	m_AttackTick = Server()->Tick();
+	pCurrentWeapon->HandleFire(Direction);
 
-// 	// 	GameWorld()->CreateSound(m_Pos, SOUND_NINJA_FIRE);
-// 	// }
-// 	// break;
-// 	// }
-
-// 	m_AttackTick = Server()->Tick();
-// 	pCurrentWeapon->HandleFire(Direction);
-
-// 	// if(!m_ReloadTimer)
-// 	// {
-// 	// 	float FireDelay;
-// 	// 	if(!m_TuneZone)
-// 	// 		GameServer()->Tuning()->Get(38 + m_ActiveWeaponSlot, &FireDelay);
-// 	// 	else
-// 	// 		GameServer()->TuningList()[m_TuneZone].Get(38 + m_ActiveWeaponSlot, &FireDelay);
-// 	// 	m_ReloadTimer = FireDelay * Server()->TickSpeed() / 1000;
-// 	// }
-// }
+	// if(!m_ReloadTimer)
+	// {
+	// 	float FireDelay;
+	// 	if(!m_TuneZone)
+	// 		GameServer()->Tuning()->Get(38 + m_ActiveWeaponSlot, &FireDelay);
+	// 	else
+	// 		GameServer()->TuningList()[m_TuneZone].Get(38 + m_ActiveWeaponSlot, &FireDelay);
+	// 	m_ReloadTimer = FireDelay * Server()->TickSpeed() / 1000;
+	// }
+}
 
 CWeapon *CCharacter::CurrentWeapon()
 {
@@ -694,24 +684,10 @@ void CCharacter::HandleWeapons()
 	if(!pCurrentWeapon)
 		return;
 
-	bool IsReloading = pCurrentWeapon->IsReloading();
-
 	pCurrentWeapon->Tick();
 
-	if(IsReloading)
-	{
-		if(m_LatestInput.m_Fire & 1)
-		{
-			Antibot()->OnHammerFireReloading(m_pPlayer->GetCID());
-		}
-		return;
-	}
-
-	DoWeaponSwitch();
-	vec2 Direction = normalize(vec2(m_LatestInput.m_TargetX, m_LatestInput.m_TargetY));
-
 	// fire Weapon, if wanted
-	// FireWeapon();
+	FireWeapon();
 
 	return;
 }
@@ -775,7 +751,7 @@ void CCharacter::OnDirectInput(CNetObj_PlayerInput *pNewInput)
 	if(m_NumInputs > 2 && m_pPlayer->GetTeam() != TEAM_SPECTATORS)
 	{
 		HandleWeaponSwitch();
-		// FireWeapon();
+		FireWeapon();
 	}
 
 	mem_copy(&m_LatestPrevPrevInput, &m_LatestPrevInput, sizeof(m_LatestInput));
@@ -2192,6 +2168,7 @@ bool CCharacter::GiveWeapon(int Slot, CWeapon *pWeapon, int Ammo)
 			m_ActiveWeaponSlot = WEAPON_GUN;
 
 	m_apWeaponSlot[Slot] = pWeapon;
+	pWeapon->SetAmmo(Ammo);
 	return true;
 }
 

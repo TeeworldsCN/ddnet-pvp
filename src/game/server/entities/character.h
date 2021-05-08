@@ -263,6 +263,8 @@ public:
 	bool HasTelegunGun() { return m_Core.m_HasTelegunGun; };
 	bool HasTelegunGrenade() { return m_Core.m_HasTelegunGrenade; };
 	bool HasTelegunLaser() { return m_Core.m_HasTelegunLaser; };
+
+	CTuningParams *CurrentTuning() { return m_TuneZone ? &GameServer()->TuningList()[m_TuneZone] : GameServer()->Tuning(); }
 };
 
 enum

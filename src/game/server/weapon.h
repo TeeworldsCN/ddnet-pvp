@@ -2,6 +2,7 @@
 #define GAME_SERVER_WEAPON_H
 
 #include <game/server/entities/character.h>
+#include <game/server/player.h>
 
 class CWeapon
 {
@@ -28,6 +29,7 @@ public:
 	void HandleFire(vec2 Direction);
 
 	virtual void Tick();
+	CCharacter *Character() { return m_pOwnerChar; }
 	class CGameContext *GameServer() { return m_pGameServer; }
 	class CGameWorld *GameWorld() { return m_pGameWorld; }
 	class IServer *Server() { return m_pServer; }
@@ -49,4 +51,4 @@ public:
 	bool IsEmpty() { return m_Ammo == 0; };
 };
 
-#endif
+#endif // GAME_SERVER_WEAPON_H
