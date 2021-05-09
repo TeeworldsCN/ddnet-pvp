@@ -688,21 +688,21 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 		else
 			Dir = 3;
 		float Deg = Dir * (pi / 2);
-		CProjectile *bullet = new CProjectile(
-			GameWorld(),
-			WEAPON_SHOTGUN, //Type
-			-1, //Owner
-			Pos, //Pos
-			vec2(sin(Deg), cos(Deg)), //Dir
-			-2, //Span
-			0, //Damage
-			true, //Explosive
-			0, //Force
-			(g_Config.m_SvShotgunBulletSound) ? SOUND_GRENADE_EXPLODE : -1, //SoundImpact
-			true, //Freeze
-			Layer,
-			Number);
-		bullet->SetBouncing(2 - (Dir % 2));
+		// CProjectile *bullet = new CProjectile(
+		// 	GameWorld(),
+		// 	WEAPON_SHOTGUN, //Type
+		// 	-1, //Owner
+		// 	Pos, //Pos
+		// 	vec2(sin(Deg), cos(Deg)), //Dir
+		// 	-2, //Span
+		// 	0, //Damage
+		// 	true, //Explosive
+		// 	0, //Force
+		// 	(g_Config.m_SvShotgunBulletSound) ? SOUND_GRENADE_EXPLODE : -1, //SoundImpact
+		// 	true, //Freeze
+		// 	Layer,
+		// 	Number);
+		// bullet->SetBouncing(2 - (Dir % 2));
 	}
 	else if(Index == ENTITY_CRAZY_SHOTGUN)
 	{
@@ -716,21 +716,21 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 		else
 			Dir = 3;
 		float Deg = Dir * (pi / 2);
-		CProjectile *bullet = new CProjectile(
-			GameWorld(),
-			WEAPON_SHOTGUN, //Type
-			-1, //Owner
-			Pos, //Pos
-			vec2(sin(Deg), cos(Deg)), //Dir
-			-2, //Span
-			0, //Damage
-			false, //Explosive
-			0,
-			SOUND_GRENADE_EXPLODE,
-			true, //Freeze
-			Layer,
-			Number);
-		bullet->SetBouncing(2 - (Dir % 2));
+		// CProjectile *bullet = new CProjectile(
+		// 	GameWorld(),
+		// 	WEAPON_SHOTGUN, //Type
+		// 	-1, //Owner
+		// 	Pos, //Pos
+		// 	vec2(sin(Deg), cos(Deg)), //Dir
+		// 	-2, //Span
+		// 	0, //Damage
+		// 	false, //Explosive
+		// 	0,
+		// 	SOUND_GRENADE_EXPLODE,
+		// 	true, //Freeze
+		// 	Layer,
+		// 	Number);
+		// bullet->SetBouncing(2 - (Dir % 2));
 	}
 
 	if(Index == ENTITY_ARMOR_1)

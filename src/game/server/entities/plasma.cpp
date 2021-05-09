@@ -26,9 +26,8 @@ CPlasma::CPlasma(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir, bool Freeze,
 
 bool CPlasma::HitCharacter()
 {
-	vec2 To2;
 	CCharacter *Hit = GameWorld()->IntersectCharacter(m_Pos,
-		m_Pos + m_Core, 0.0f, To2);
+		m_Pos + m_Core, 0.0f);
 	if(!Hit)
 		return false;
 

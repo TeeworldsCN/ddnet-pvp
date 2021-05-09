@@ -5,6 +5,7 @@
 
 #include <game/server/entity.h>
 
+typedef bool (*FProjectileImpactCallback)(class CProjectile *pProj, vec2 Pos, CCharacter *pHit, bool EndOfLife);
 class CProjectile : public CEntity
 {
 public:
@@ -14,12 +15,9 @@ public:
 		int Owner,
 		vec2 Pos,
 		vec2 Dir,
+		float Radius,
 		int Span,
-		int Damage,
-		bool Explosive,
-		float Force,
-		int SoundImpact,
-		bool Freeze,
+		FProjectileImpactCallback Callback = nullptr,
 		int Layer = 0,
 		int Number = 0);
 
@@ -37,20 +35,20 @@ private:
 	int m_LifeSpan;
 	int m_Owner;
 	int m_Type;
-	int m_Damage;
-	int m_SoundImpact;
-	float m_Force;
+	float m_Radius;
 	int m_StartTick;
-	bool m_Explosive;
+	FProjectileImpactCallback m_Callback;
 
 	// DDRace
 	int m_Hit;
 	bool m_IsSolo;
 	int m_Bouncing;
-	bool m_Freeze;
 	int m_TuneZone;
 
+	int64 m_HitMask;
+
 public:
+	int GetOwner() { return m_Owner; }
 	void SetBouncing(int Value);
 	bool FillExtraInfo(CNetObj_DDNetProjectile *pProj);
 };

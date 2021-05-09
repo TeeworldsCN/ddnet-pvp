@@ -1322,14 +1322,15 @@ bool CCharacter::CanCollide(int ClientID)
 {
 	return Teams()->m_Core.CanCollide(GetPlayer()->GetCID(), ClientID);
 }
-bool CCharacter::SameTeam(int ClientID)
-{
-	return Teams()->m_Core.SameTeam(GetPlayer()->GetCID(), ClientID);
-}
 
 int CCharacter::Team()
 {
 	return Teams()->m_Core.Team(m_pPlayer->GetCID());
+}
+
+bool CCharacter::IsSolo()
+{
+	return Teams()->m_Core.GetSolo(m_pPlayer->GetCID());
 }
 
 void CCharacter::FillAntibot(CAntibotCharacterData *pData)

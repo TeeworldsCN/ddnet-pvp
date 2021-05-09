@@ -54,3 +54,6 @@ void CWeapon::HandleFire(vec2 Direction)
 	if(m_Ammo > 0)
 		m_Ammo -= 1;
 }
+
+vec2 CWeapon::Pos() { return Character()->m_Pos; }
+float CWeapon::GetProximityRadius() { return Character()->GetProximityRadius(); }

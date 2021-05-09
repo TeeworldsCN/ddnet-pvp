@@ -9,6 +9,14 @@ CPistol::CPistol(CCharacter *pOwnerChar) :
 	m_AmmoRegenTime = g_pData->m_Weapons.m_aId[WEAPON_GUN].m_Ammoregentime;
 }
 
+static bool BulletCollide(CProjectile *pProj, vec2 Pos, CCharacter *pHit, bool EndOfLife)
+{
+	if(pHit)
+		pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_Gun.m_pBase->m_Damage, pProj->GetOwner(), WEAPON_GUN);
+
+	return true;
+}
+
 void CPistol::Fire(vec2 Direction)
 {
 	int Lifetime = Character()->CurrentTuning()->m_GunLifetime * Server()->TickSpeed();
@@ -21,13 +29,9 @@ void CPistol::Fire(vec2 Direction)
 		Character()->GetPlayer()->GetCID(), //Owner
 		ProjStartPos, //Pos
 		Direction, //Dir
+		6.0f,
 		Lifetime, //Span
-		g_pData->m_Weapons.m_Gun.m_pBase->m_Damage, //Damage
-		0, //Explosive
-		0, //Force
-		-1, //SoundImpact
-		false //Freeze
-	);
+		BulletCollide);
 
 	// pack the Projectile and send it to the client Directly
 	CNetObj_Projectile p;

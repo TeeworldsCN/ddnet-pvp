@@ -4026,7 +4026,7 @@ void CGameContext::UpdatePlayerMaps()
 					m_apPlayers[i]->GetClientVersion() == VERSION_VANILLA ||
 					(m_apPlayers[i]->GetClientVersion() >= VERSION_DDRACE &&
 						(m_apPlayers[i]->m_ShowOthers == 0 ||
-							(m_apPlayers[i]->m_ShowOthers == 2 && !m_apPlayers[i]->GetCharacter()->SameTeam(j))))))
+							(m_apPlayers[i]->m_ShowOthers == 2 && !m_Teams.m_Core.SameTeam(i, j))))))
 				Dist[j].first = 1e8;
 			else
 				Dist[j].first = 0;

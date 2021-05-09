@@ -179,7 +179,7 @@ public:
 	int m_DDRaceState;
 	int Team();
 	bool CanCollide(int ClientID);
-	bool SameTeam(int ClientID);
+	bool IsSolo();
 	bool m_Super;
 	bool m_SuperJump;
 	bool m_Jetpack;
@@ -226,6 +226,7 @@ public:
 	int m_MoveRestrictions;
 
 	vec2 m_Intersection;
+	float m_IntersectDistance;
 	int64 m_LastStartWarning;
 	int64 m_LastRescue;
 	bool m_LastRefillJumps;

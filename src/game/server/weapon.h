@@ -34,8 +34,8 @@ public:
 	class CGameContext *GameServer() { return m_pGameServer; }
 	class CGameWorld *GameWorld() { return m_pGameWorld; }
 	class IServer *Server() { return m_pServer; }
-	vec2 Pos() { return m_pOwnerChar->m_Pos; }
-	float GetProximityRadius() { return m_pOwnerChar->GetProximityRadius(); }
+	vec2 Pos();
+	float GetProximityRadius();
 
 	virtual void OnEquip(){};
 	virtual void OnUnequip(){};

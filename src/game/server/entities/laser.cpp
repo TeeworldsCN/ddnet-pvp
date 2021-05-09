@@ -41,20 +41,19 @@ CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEner
 
 bool CLaser::HitCharacter(vec2 From, vec2 To)
 {
-	vec2 At;
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 	CCharacter *pHit;
 	bool pDontHitSelf = ((pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (m_Bounces == 0 && !m_WasTele));
 
 	if((!(m_Hit & CCharacter::DISABLE_HIT_LASER) && m_Type == WEAPON_LASER) || (!(m_Hit & CCharacter::DISABLE_HIT_SHOTGUN) && m_Type == WEAPON_SHOTGUN))
-		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : nullptr, m_Owner);
+		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, pDontHitSelf ? pOwnerChar : nullptr, true);
 	else
-		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : nullptr, m_Owner, pOwnerChar);
+		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, pDontHitSelf ? pOwnerChar : nullptr, false, pOwnerChar);
 
 	if(!pHit || (pHit == pOwnerChar && pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (pHit != pOwnerChar && ((m_Hit & CCharacter::DISABLE_HIT_LASER && m_Type == WEAPON_LASER) || (m_Hit & CCharacter::DISABLE_HIT_SHOTGUN && m_Type == WEAPON_SHOTGUN))))
 		return false;
 	m_From = From;
-	m_Pos = At;
+	m_Pos = pHit->m_Intersection;
 	m_Energy = -1;
 	if(m_Type == WEAPON_SHOTGUN)
 	{
@@ -177,12 +176,11 @@ void CLaser::DoBounce()
 
 		// Check if the laser hits a player.
 		bool pDontHitSelf = (pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (m_Bounces == 0 && !m_WasTele);
-		vec2 At;
 		CCharacter *pHit;
 		if(!(m_Hit & CCharacter::DISABLE_HIT_LASER) && m_Type == WEAPON_LASER)
-			pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : 0, m_Owner);
+			pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, pDontHitSelf ? pOwnerChar : 0, true);
 		else
-			pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : 0, m_Owner, pOwnerChar);
+			pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, pDontHitSelf ? pOwnerChar : 0, false, pOwnerChar);
 
 		if(pHit)
 			Found = GetNearestAirPosPlayer(pHit->m_Pos, &PossiblePos);
