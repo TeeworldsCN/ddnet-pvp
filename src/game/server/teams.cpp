@@ -341,10 +341,7 @@ void CGameTeams::DestroyGameInstance(int Team)
 
 	for(int i = 0; i < MAX_CLIENTS; i++)
 		if(GameServer()->IsPlayerValid(i) && m_Core.Team(i) == Team)
-		{
 			GameServer()->m_apPlayers[i]->KillCharacter();
-			GameServer()->m_apPlayers[i]->GameReset();
-		}
 
 	delete m_aTeamInstances[Team].m_pController;
 	delete m_aTeamInstances[Team].m_pWorld;
@@ -425,10 +422,7 @@ void CGameTeams::OnTick()
 
 				for(int p = 0; p < MAX_CLIENTS; p++)
 					if(GameServer()->IsPlayerValid(p) && m_Core.Team(p) == i)
-					{
 						GameServer()->m_apPlayers[p]->KillCharacter();
-						GameServer()->m_apPlayers[p]->GameReset();
-					}
 
 				delete m_aTeamInstances[i].m_pWorld;
 				m_aTeamInstances[i].m_Entities = 0;

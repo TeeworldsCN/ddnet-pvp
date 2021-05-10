@@ -303,6 +303,10 @@ void CCharacter::DoWeaponSwitch()
 	if(m_QueuedWeaponSlot == -1 || m_pPowerupWeapon || !m_apWeaponSlot[m_QueuedWeaponSlot])
 		return;
 
+	CWeapon *pCurrentWeapon = CurrentWeapon();
+	if(pCurrentWeapon && pCurrentWeapon->IsReloading())
+		return;
+
 	// switch Weapon
 	SetWeapon(m_QueuedWeaponSlot);
 }
@@ -358,6 +362,8 @@ void CCharacter::HandleWeaponSwitch()
 
 void CCharacter::FireWeapon()
 {
+	DoWeaponSwitch();
+
 	CWeapon *pCurrentWeapon = CurrentWeapon();
 
 	if(pCurrentWeapon->IsReloading())
@@ -369,8 +375,20 @@ void CCharacter::FireWeapon()
 		return;
 	}
 
-	DoWeaponSwitch();
 	vec2 Direction = normalize(vec2(m_LatestInput.m_TargetX, m_LatestInput.m_TargetY));
+
+	// check if we gonna fire
+	bool WillFire = false;
+	if(CountInput(m_LatestPrevInput.m_Fire, m_LatestInput.m_Fire).m_Presses)
+		WillFire = true;
+
+	if(pCurrentWeapon->IsFullAuto() && (m_LatestInput.m_Fire & 1) && pCurrentWeapon->GetAmmo())
+		WillFire = true;
+
+	if(!WillFire)
+		return;
+
+	pCurrentWeapon->HandleFire(Direction);
 
 	// bool FullAuto = false;
 	// if(m_ActiveWeaponSlot == WEAPON_GRENADE || m_ActiveWeaponSlot == WEAPON_SHOTGUN || m_ActiveWeaponSlot == WEAPON_LASER)
@@ -385,14 +403,6 @@ void CCharacter::FireWeapon()
 	// // don't fire hammer when player is deep and sv_deepfly is disabled
 	// if(!g_Config.m_SvDeepfly && m_ActiveWeaponSlot == WEAPON_HAMMER && m_DeepFreeze)
 	// 	return;
-
-	// // check if we gonna fire
-	bool WillFire = false;
-	if(CountInput(m_LatestPrevInput.m_Fire, m_LatestInput.m_Fire).m_Presses)
-		WillFire = true;
-
-	if(!WillFire)
-		return;
 
 	// if(m_FreezeTime)
 	// {
@@ -635,8 +645,6 @@ void CCharacter::FireWeapon()
 	// }
 	// break;
 	// }
-
-	pCurrentWeapon->HandleFire(Direction);
 
 	// if(!m_ReloadTimer)
 	// {
@@ -2175,11 +2183,8 @@ bool CCharacter::GiveWeapon(int Slot, int Type, int Ammo)
 			delete m_apWeaponSlot[Slot]; \
 			m_apWeaponSlot[Slot] = nullptr; \
 		} \
-		else \
-		{ \
-			m_apWeaponSlot[Slot] = new CLASS(this); \
-			m_apWeaponSlot[Slot]->SetTypeID(WEAPTYPE); \
-		} \
+		m_apWeaponSlot[Slot] = new CLASS(this); \
+		m_apWeaponSlot[Slot]->SetTypeID(WEAPTYPE); \
 	}
 #include <game/server/weapons.h>
 #undef REGISTER_WEAPON

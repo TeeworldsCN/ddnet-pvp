@@ -1,13 +1,17 @@
 #ifdef REGISTER_WEAPON
 
+REGISTER_WEAPON(WEAPON_TYPE_HAMMER, CHammer)
 REGISTER_WEAPON(WEAPON_TYPE_PISTOL, CPistol)
+REGISTER_WEAPON(WEAPON_TYPE_SHOTGUN, CShotgun)
 
 #else
 
 #ifndef GAME_SERVER_WEAPONS_H
 #define GAME_SERVER_WEAPONS_H
 
+#include "weapons/hammer.h"
 #include "weapons/pistol.h"
+#include "weapons/shotgun.h"
 
 enum
 {

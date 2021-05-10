@@ -852,6 +852,7 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	pPlayer->m_RespawnDisabled = GetStartRespawnState();
 	pPlayer->m_Vote = 0;
 	pPlayer->m_VotePos = 0;
+	pPlayer->GameReset();
 
 	// clear vote options for joining player
 	CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;

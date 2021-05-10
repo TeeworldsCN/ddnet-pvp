@@ -10,7 +10,7 @@ CPistol::CPistol(CCharacter *pOwnerChar) :
 	m_FireDelay = Character()->CurrentTuning()->m_GunFireDelay;
 }
 
-static bool BulletCollide(CProjectile *pProj, vec2 Pos, CCharacter *pHit, bool EndOfLife)
+bool CPistol::BulletCollide(CProjectile *pProj, vec2 Pos, CCharacter *pHit, bool EndOfLife)
 {
 	if(pHit)
 		pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_Gun.m_pBase->m_Damage, pProj->GetOwner(), WEAPON_GUN);
@@ -20,6 +20,7 @@ static bool BulletCollide(CProjectile *pProj, vec2 Pos, CCharacter *pHit, bool E
 
 void CPistol::Fire(vec2 Direction)
 {
+	int ClientID = Character()->GetPlayer()->GetCID();
 	int Lifetime = Character()->CurrentTuning()->m_GunLifetime * Server()->TickSpeed();
 
 	vec2 ProjStartPos = Pos() + Direction * GetProximityRadius() * 0.75f;
@@ -27,7 +28,7 @@ void CPistol::Fire(vec2 Direction)
 	CProjectile *pProj = new CProjectile(
 		GameWorld(),
 		WEAPON_GUN, //Type
-		Character()->GetPlayer()->GetCID(), //Owner
+		ClientID, //Owner
 		ProjStartPos, //Pos
 		Direction, //Dir
 		6.0f,
@@ -43,6 +44,6 @@ void CPistol::Fire(vec2 Direction)
 	for(unsigned i = 0; i < sizeof(CNetObj_Projectile) / sizeof(int); i++)
 		Msg.AddInt(((int *)&p)[i]);
 
-	Server()->SendMsg(&Msg, MSGFLAG_VITAL, Character()->GetPlayer()->GetCID());
+	Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
 	GameWorld()->CreateSound(Character()->m_Pos, SOUND_GUN_FIRE);
 }

@@ -3142,9 +3142,14 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 			{
 				vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
 				//m_pController->OnEntity(Index-ENTITY_OFFSET, Pos);
-				CSpeedupTile SpeedupTile = pSpeedup[y * pTileMap->m_Width + x];
-				bool IsMegaMapIndex = SpeedupTile.m_Type == TILE_MEGAMAP_INDEX;
-				Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_GAME, pTiles[y * pTileMap->m_Width + x].m_Flags, IsMegaMapIndex ? SpeedupTile.m_MaxSpeed : 0);
+				int MapIndex = 0;
+				if(pSpeedup)
+				{
+					CSpeedupTile SpeedupTile = pSpeedup[y * pTileMap->m_Width + x];
+					bool IsMegaMapIndex = SpeedupTile.m_Type == TILE_MEGAMAP_INDEX;
+					MapIndex = IsMegaMapIndex ? SpeedupTile.m_MaxSpeed : 0;
+				}
+				Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_GAME, pTiles[y * pTileMap->m_Width + x].m_Flags, MapIndex);
 			}
 
 			if(pFront)
@@ -3173,9 +3178,14 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				if(Index >= ENTITY_OFFSET)
 				{
 					vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
-					CSpeedupTile SpeedupTile = pSpeedup[y * pTileMap->m_Width + x];
-					bool IsMegaMapIndex = SpeedupTile.m_Type == TILE_MEGAMAP_INDEX;
-					Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_FRONT, pFront[y * pTileMap->m_Width + x].m_Flags, IsMegaMapIndex ? SpeedupTile.m_MaxSpeed : 0);
+					int MapIndex = 0;
+					if(pSpeedup)
+					{
+						CSpeedupTile SpeedupTile = pSpeedup[y * pTileMap->m_Width + x];
+						bool IsMegaMapIndex = SpeedupTile.m_Type == TILE_MEGAMAP_INDEX;
+						MapIndex = IsMegaMapIndex ? SpeedupTile.m_MaxSpeed : 0;
+					}
+					Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_FRONT, pFront[y * pTileMap->m_Width + x].m_Flags, MapIndex);
 				}
 			}
 			if(pSwitch)
@@ -3186,9 +3196,14 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				if(Index >= ENTITY_OFFSET)
 				{
 					vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
-					CSpeedupTile SpeedupTile = pSpeedup[y * pTileMap->m_Width + x];
-					bool IsMegaMapIndex = SpeedupTile.m_Type == TILE_MEGAMAP_INDEX;
-					Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_SWITCH, pSwitch[y * pTileMap->m_Width + x].m_Flags, IsMegaMapIndex ? SpeedupTile.m_MaxSpeed : 0, pSwitch[y * pTileMap->m_Width + x].m_Number);
+					int MapIndex = 0;
+					if(pSpeedup)
+					{
+						CSpeedupTile SpeedupTile = pSpeedup[y * pTileMap->m_Width + x];
+						bool IsMegaMapIndex = SpeedupTile.m_Type == TILE_MEGAMAP_INDEX;
+						MapIndex = IsMegaMapIndex ? SpeedupTile.m_MaxSpeed : 0;
+					}
+					Teams()->OnEntity(Index - ENTITY_OFFSET, Pos, LAYER_SWITCH, pSwitch[y * pTileMap->m_Width + x].m_Flags, MapIndex, pSwitch[y * pTileMap->m_Width + x].m_Number);
 				}
 			}
 		}

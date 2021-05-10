@@ -95,6 +95,7 @@ private:
 
 	bool m_Alive;
 	bool m_Disabled;
+	bool m_IndividualWeaponTimer;
 	int m_NeededFaketuning;
 
 	CWeapon *m_pPowerupWeapon;
@@ -255,8 +256,12 @@ public:
 	void SetNinjaActivationDir(vec2 ActivationDir) { m_Ninja.m_ActivationDir = ActivationDir; };
 	void SetNinjaActivationTick(int ActivationTick) { m_Ninja.m_ActivationTick = ActivationTick; };
 	void SetNinjaCurrentMoveTime(int CurrentMoveTime) { m_Ninja.m_CurrentMoveTime = CurrentMoveTime; };
+	void SetWeaponTimer(bool)
 
-	int GetLastAction() const { return m_LastAction; }
+		int GetLastAction() const
+	{
+		return m_LastAction;
+	}
 
 	bool HasTelegunGun() { return m_Core.m_HasTelegunGun; };
 	bool HasTelegunGrenade() { return m_Core.m_HasTelegunGrenade; };
