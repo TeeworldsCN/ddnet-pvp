@@ -29,6 +29,7 @@ protected:
 
 public:
 	CWeapon(CCharacter *pOwnerChar);
+	virtual ~CWeapon(){};
 
 	void HandleFire(vec2 Direction);
 

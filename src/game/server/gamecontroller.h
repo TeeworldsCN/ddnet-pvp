@@ -183,6 +183,7 @@ protected:
 		int m_ScoreLimit;
 		int m_TimeLimit;
 	} m_GameInfo;
+	int m_DDNetServerCapability;
 
 	// event
 	/*

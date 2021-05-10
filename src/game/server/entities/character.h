@@ -32,6 +32,18 @@ enum
 	NUM_WEAPON_SLOTS = NUM_WEAPONS - 1,
 };
 
+enum
+{
+	// regen current weapon, reload before switch (vanilla server, recommended for deathmatch etc)
+	WEAPON_TIMER_GLOBAL = 0,
+
+	// regen all weapons, quick switch (recommended for custom mods)
+	WEAPON_TIMER_INDIVIDUAL,
+
+	// regen all weapons, quick switch, hold + switch = fire (noby server, not recommended, but it is there if you want it like noby's server)
+	WEAPON_TIMER_INDIVIDUAL_QUICKFIRE,
+};
+
 class CCharacter : public CEntity
 {
 	MACRO_ALLOC_POOL_ID()
@@ -95,7 +107,7 @@ private:
 
 	bool m_Alive;
 	bool m_Disabled;
-	bool m_IndividualWeaponTimer;
+	int m_WeaponTimerType;
 	int m_NeededFaketuning;
 
 	CWeapon *m_pPowerupWeapon;
@@ -187,6 +199,7 @@ public:
 	bool m_FrozenLastTick;
 	bool m_DeepFreeze;
 	bool m_EndlessHook;
+	int m_IsFiring;
 	bool m_LaserHitSelf;
 
 	enum
@@ -256,9 +269,9 @@ public:
 	void SetNinjaActivationDir(vec2 ActivationDir) { m_Ninja.m_ActivationDir = ActivationDir; };
 	void SetNinjaActivationTick(int ActivationTick) { m_Ninja.m_ActivationTick = ActivationTick; };
 	void SetNinjaCurrentMoveTime(int CurrentMoveTime) { m_Ninja.m_CurrentMoveTime = CurrentMoveTime; };
-	void SetWeaponTimer(bool)
+	void SetWeaponTimerType(int Type) { m_WeaponTimerType = Type; }
 
-		int GetLastAction() const
+	int GetLastAction() const
 	{
 		return m_LastAction;
 	}

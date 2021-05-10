@@ -306,6 +306,7 @@ IGameController::IGameController()
 	m_GameInfo.m_MatchNum = 0;
 	m_GameInfo.m_ScoreLimit = 0;
 	m_GameInfo.m_TimeLimit = 0;
+	m_DDNetServerCapability = 0;
 
 	// vote
 	m_VotePos = 0;
@@ -1354,11 +1355,9 @@ void IGameController::Snap(int SnappingClient)
 		pGameInfoEx->m_Flags =
 			GAMEINFOFLAG_ALLOW_EYE_WHEEL |
 			GAMEINFOFLAG_ALLOW_HOOK_COLL |
-			GAMEINFOFLAG_ENTITIES_DDNET |
-			GAMEINFOFLAG_ENTITIES_DDRACE |
-			GAMEINFOFLAG_ENTITIES_RACE |
-			GAMEINFOFLAG_PREDICT_VANILLA |
-			GAMEINFOFLAG_PREDICT_DDRACE_TILES;
+			GAMEINFOFLAG_PREDICT_DDRACE_TILES |
+			m_DDNetServerCapability;
+
 		pGameInfoEx->m_Flags2 = 0;
 		pGameInfoEx->m_Version = GAMEINFO_CURVERSION;
 

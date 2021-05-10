@@ -27,8 +27,8 @@
 #include "player.h"
 #include "teams.h"
 
-#define GAMETYPE_NAME "BattleDDNet"
-#define TESTTYPE_NAME "TestBattleDDNet"
+#define GAMETYPE_NAME "NotAType"
+#define TESTTYPE_NAME "TestNotAType"
 
 enum
 {

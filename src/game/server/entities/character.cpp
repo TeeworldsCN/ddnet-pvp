@@ -24,6 +24,7 @@ CCharacter::CCharacter(CGameWorld *pWorld) :
 {
 	m_Health = 0;
 	m_Armor = 0;
+	m_WeaponTimerType = WEAPON_TIMER_GLOBAL;
 
 	mem_zero(m_apOverrideWeaponSlot, sizeof(m_apOverrideWeaponSlot));
 	mem_zero(m_apWeaponSlot, sizeof(m_apWeaponSlot));
@@ -32,6 +33,7 @@ CCharacter::CCharacter(CGameWorld *pWorld) :
 	// never intilize both to zero
 	m_Input.m_TargetX = 0;
 	m_Input.m_TargetY = -1;
+	m_IsFiring = false;
 
 	m_LatestPrevPrevInput = m_LatestPrevInput = m_LatestInput = m_PrevInput = m_SavedInput = m_Input;
 }
@@ -123,6 +125,10 @@ void CCharacter::SetWeapon(int W)
 	m_QueuedWeaponSlot = -1;
 	m_ActiveWeaponSlot = W;
 	GameWorld()->CreateSound(m_Pos, SOUND_WEAPON_SWITCH);
+	if(m_WeaponTimerType == WEAPON_TIMER_INDIVIDUAL)
+	{
+		m_IsFiring = false;
+	}
 }
 
 void CCharacter::SetSolo(bool Solo)
@@ -304,7 +310,8 @@ void CCharacter::DoWeaponSwitch()
 		return;
 
 	CWeapon *pCurrentWeapon = CurrentWeapon();
-	if(pCurrentWeapon && pCurrentWeapon->IsReloading())
+	// only block switch during reload with global timer
+	if(m_WeaponTimerType == WEAPON_TIMER_GLOBAL && pCurrentWeapon && pCurrentWeapon->IsReloading())
 		return;
 
 	// switch Weapon
@@ -379,10 +386,19 @@ void CCharacter::FireWeapon()
 
 	// check if we gonna fire
 	bool WillFire = false;
-	if(CountInput(m_LatestPrevInput.m_Fire, m_LatestInput.m_Fire).m_Presses)
+	CInputCount Input = CountInput(m_LatestPrevInput.m_Fire, m_LatestInput.m_Fire);
+	if(Input.m_Presses)
+	{
 		WillFire = true;
+		m_IsFiring = true;
+	}
 
-	if(pCurrentWeapon->IsFullAuto() && (m_LatestInput.m_Fire & 1) && pCurrentWeapon->GetAmmo())
+	if(!(m_LatestInput.m_Fire & 1))
+	{
+		m_IsFiring = false;
+	}
+
+	if(pCurrentWeapon->IsFullAuto() && m_IsFiring && pCurrentWeapon->GetAmmo())
 		WillFire = true;
 
 	if(!WillFire)
@@ -689,7 +705,22 @@ void CCharacter::HandleWeapons()
 
 	// fire Weapon, if wanted
 	FireWeapon();
-	pCurrentWeapon->Tick();
+	if(m_WeaponTimerType == WEAPON_TIMER_GLOBAL)
+	{
+		pCurrentWeapon->Tick();
+	}
+	else
+	{
+		for(int i = 0; i < NUM_WEAPON_SLOTS; i++)
+		{
+			if(m_apWeaponSlot[i])
+				m_apWeaponSlot[i]->Tick();
+			if(m_apOverrideWeaponSlot[i])
+				m_apWeaponSlot[i]->Tick();
+		}
+		if(m_pPowerupWeapon)
+			m_pPowerupWeapon->Tick();
+	}
 
 	return;
 }
