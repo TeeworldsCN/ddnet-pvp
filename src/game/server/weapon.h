@@ -16,9 +16,12 @@ private:
 protected:
 	int m_Ammo;
 	int m_MaxAmmo;
+	int m_FireDelay;
 	int m_AmmoRegenStart;
 	int m_AmmoRegenTime;
 	bool m_FullAuto;
+	int m_AttackTick;
+	int m_LastNoAmmoSound;
 
 	int m_ReloadTimer;
 
@@ -48,6 +51,7 @@ public:
 
 	void SetAmmo(int Ammo) { m_Ammo = Ammo; }
 	int GetAmmo() { return m_Ammo; }
+	int GetAttackTick() { return m_AttackTick; }
 	int NumAmmoIcons() { return clamp(m_Ammo, 0, 10); }
 	bool IsReloading() { return m_ReloadTimer != 0; };
 	void Reload() { m_ReloadTimer = 0; };

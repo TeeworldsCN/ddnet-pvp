@@ -60,7 +60,6 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 {
 	m_EmoteStop = -1;
 	m_LastAction = -1;
-	m_LastNoAmmoSound = -1;
 	m_LastWeaponSlot = WEAPON_HAMMER;
 	m_QueuedWeaponSlot = -1;
 	m_LastRefillJumps = false;
@@ -392,9 +391,6 @@ void CCharacter::FireWeapon()
 	if(CountInput(m_LatestPrevInput.m_Fire, m_LatestInput.m_Fire).m_Presses)
 		WillFire = true;
 
-	// if(FullAuto && (m_LatestInput.m_Fire & 1) && m_aWeapons[m_ActiveWeaponSlot].m_Ammo)
-	// 	WillFire = true;
-
 	if(!WillFire)
 		return;
 
@@ -640,7 +636,6 @@ void CCharacter::FireWeapon()
 	// break;
 	// }
 
-	m_AttackTick = Server()->Tick();
 	pCurrentWeapon->HandleFire(Direction);
 
 	// if(!m_ReloadTimer)
@@ -684,10 +679,9 @@ void CCharacter::HandleWeapons()
 	if(!pCurrentWeapon)
 		return;
 
-	pCurrentWeapon->Tick();
-
 	// fire Weapon, if wanted
 	FireWeapon();
+	pCurrentWeapon->Tick();
 
 	return;
 }
@@ -938,7 +932,7 @@ void CCharacter::TickDefered()
 
 void CCharacter::TickPaused()
 {
-	++m_AttackTick;
+	//++m_AttackTick;
 	++m_DamageTakenTick;
 	++m_Ninja.m_ActivationTick;
 	++m_ReckoningTick;
@@ -1114,7 +1108,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int ID)
 	CWeapon *pCurrentWeapon = CurrentWeapon();
 
 	int Tick, Emote = m_EmoteType, Weapon = pCurrentWeapon ? pCurrentWeapon->GetType() : m_ActiveWeaponSlot, AmmoCount = 0,
-		  Health = 0, Armor = 0;
+		  Health = 0, Armor = 0, AttackTick = pCurrentWeapon ? pCurrentWeapon->GetAttackTick() : 0;
 	if(!m_ReckoningTick || GameWorld()->m_Paused)
 	{
 		Tick = 0;
@@ -1206,7 +1200,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int ID)
 				pCharacter->m_HookedPlayer = -1;
 		}
 
-		pCharacter->m_AttackTick = m_AttackTick;
+		pCharacter->m_AttackTick = AttackTick;
 		pCharacter->m_Direction = m_Input.m_Direction;
 		pCharacter->m_Weapon = Weapon;
 		pCharacter->m_AmmoCount = AmmoCount;
@@ -1232,7 +1226,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int ID)
 
 		pCharacter->m_Tick = Tick;
 		pCharacter->m_Emote = Emote;
-		pCharacter->m_AttackTick = m_AttackTick;
+		pCharacter->m_AttackTick = AttackTick;
 		pCharacter->m_Direction = m_Input.m_Direction;
 		pCharacter->m_Weapon = Weapon;
 		pCharacter->m_AmmoCount = AmmoCount;

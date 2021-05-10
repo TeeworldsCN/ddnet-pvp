@@ -7,6 +7,7 @@ CPistol::CPistol(CCharacter *pOwnerChar) :
 {
 	m_MaxAmmo = g_pData->m_Weapons.m_aId[WEAPON_GUN].m_Maxammo;
 	m_AmmoRegenTime = g_pData->m_Weapons.m_aId[WEAPON_GUN].m_Ammoregentime;
+	m_FireDelay = Character()->CurrentTuning()->m_GunFireDelay;
 }
 
 static bool BulletCollide(CProjectile *pProj, vec2 Pos, CCharacter *pHit, bool EndOfLife)
@@ -44,9 +45,4 @@ void CPistol::Fire(vec2 Direction)
 
 	Server()->SendMsg(&Msg, MSGFLAG_VITAL, Character()->GetPlayer()->GetCID());
 	GameWorld()->CreateSound(Character()->m_Pos, SOUND_GUN_FIRE);
-
-	float FireDelay;
-	Character()->CurrentTuning()->Get(38 + WEAPON_GUN, &FireDelay);
-
-	m_ReloadTimer = FireDelay * Server()->TickSpeed() / 1000;
 }

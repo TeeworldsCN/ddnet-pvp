@@ -105,8 +105,6 @@ private:
 	int m_QueuedWeaponSlot;
 	int m_ActiveWeaponSlot;
 
-	int m_AttackTick;
-
 	int m_DamageTaken;
 
 	int m_EmoteType;
@@ -114,7 +112,6 @@ private:
 
 	// last tick that the player took any action ie some input
 	int m_LastAction;
-	int m_LastNoAmmoSound;
 
 	// these are non-heldback inputs
 	CNetObj_PlayerInput m_LatestPrevPrevInput;
