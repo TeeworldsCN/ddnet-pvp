@@ -53,7 +53,7 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	if(!pHit || (pHit == pOwnerChar && pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (pHit != pOwnerChar && ((m_Hit & CCharacter::DISABLE_HIT_LASER && m_Type == WEAPON_LASER) || (m_Hit & CCharacter::DISABLE_HIT_SHOTGUN && m_Type == WEAPON_SHOTGUN))))
 		return false;
 	m_From = From;
-	m_Pos = pHit->m_Intersection;
+	m_Pos = pHit->m_HitData.m_Intersection;
 	m_Energy = -1;
 	if(m_Type == WEAPON_SHOTGUN)
 	{

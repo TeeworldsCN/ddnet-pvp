@@ -3,12 +3,14 @@
 REGISTER_WEAPON(WEAPON_TYPE_HAMMER, CHammer)
 REGISTER_WEAPON(WEAPON_TYPE_PISTOL, CPistol)
 REGISTER_WEAPON(WEAPON_TYPE_SHOTGUN, CShotgun)
+REGISTER_WEAPON(WEAPON_TYPE_GRENADE, CGrenade)
 
 #else
 
 #ifndef GAME_SERVER_WEAPONS_H
 #define GAME_SERVER_WEAPONS_H
 
+#include "weapons/grenade.h"
 #include "weapons/hammer.h"
 #include "weapons/pistol.h"
 #include "weapons/shotgun.h"

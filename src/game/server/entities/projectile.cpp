@@ -31,8 +31,8 @@ CProjectile::CProjectile(
 	m_Owner = Owner;
 	m_Callback = Callback;
 	m_Radius = Radius;
+	m_NumHits = 0;
 	m_StartTick = Server()->Tick();
-
 	m_Hit = 0;
 	if(m_Owner >= 0)
 	{
@@ -240,10 +240,13 @@ void CProjectile::Tick()
 	{
 		for(auto pChar : pTargetChars)
 		{
-			if(!pChar->IsAlive() || (m_HitMask & pChar->GetPlayer()->GetCID()))
+			if(!pChar->IsAlive())
 				continue;
 
+			bool AlreadyHit = m_HitMask & pChar->GetPlayer()->GetCID();
 			m_HitMask |= pChar->GetPlayer()->GetCID();
+			pChar->m_HitData.m_HitOrder = m_NumHits++;
+			pChar->m_HitData.m_FirstImpact = !AlreadyHit;
 			if(m_Callback(this, ColPos, pChar, false))
 			{
 				GameWorld()->DestroyEntity(this);

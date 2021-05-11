@@ -372,6 +372,8 @@ void CCharacter::FireWeapon()
 	DoWeaponSwitch();
 
 	CWeapon *pCurrentWeapon = CurrentWeapon();
+	if(!pCurrentWeapon)
+		return;
 
 	if(pCurrentWeapon->IsReloading())
 	{
@@ -1044,7 +1046,16 @@ void CCharacter::Die(int Killer, int Weapon)
 
 bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 {
-	// m_Core.m_Vel += Force;
+	vec2 Temp = m_Core.m_Vel + Force;
+	m_Core.m_Vel = ClampVel(m_MoveRestrictions, Temp);
+
+	IGameController *pController = GameServer()->GameInstance(Team()).m_pController;
+
+	if(From >= 0)
+	{
+		if(pController->IsFriendlyFire(m_pPlayer->GetCID(), From))
+			return false;
+	}
 
 	// m_pPlayer only inflicts half damage on self
 	if(From == m_pPlayer->GetCID())
@@ -1132,9 +1143,6 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 		m_EmoteType = EMOTE_PAIN;
 		m_EmoteStop = Server()->Tick() + 500 * Server()->TickSpeed() / 1000;
 	}
-
-	vec2 Temp = m_Core.m_Vel + Force;
-	m_Core.m_Vel = ClampVel(m_MoveRestrictions, Temp);
 
 	return true;
 }

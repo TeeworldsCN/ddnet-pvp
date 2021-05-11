@@ -46,6 +46,7 @@ private:
 	int m_TuneZone;
 
 	int64 m_HitMask;
+	int m_NumHits;
 
 public:
 	int GetOwner() { return m_Owner; }

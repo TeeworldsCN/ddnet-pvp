@@ -6,6 +6,7 @@
 #include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
+#include <game/server/weapons.h>
 
 CGameControllerTDM::CGameControllerTDM() :
 	IGameController()
@@ -21,8 +22,8 @@ void CGameControllerTDM::OnCharacterSpawn(CCharacter *pChr)
 {
 	pChr->IncreaseHealth(10);
 
-	// pChr->GiveWeapon(WEAPON_HAMMER, -1);
-	// pChr->GiveWeapon(WEAPON_GUN, 10);
+	pChr->GiveWeapon(WEAPON_HAMMER, WEAPON_TYPE_HAMMER, -1);
+	pChr->GiveWeapon(WEAPON_GUN, WEAPON_TYPE_PISTOL, 10);
 }
 
 int CGameControllerTDM::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)

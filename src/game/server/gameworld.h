@@ -104,19 +104,6 @@ public:
 	*/
 	//class CCharacter *IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2 &NewPos, class CEntity *pNotThis = 0);
 	class CCharacter *IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, class CCharacter *pNotThis = 0, bool IgnoreSolo = true, class CCharacter *pOnlyThis = 0);
-	/*
-		Function: closest_CCharacter
-			Finds the closest CCharacter to a specific point.
-
-		Arguments:
-			pos - The center position.
-			radius - How far off the CCharacter is allowed to be
-			notthis - Entity to ignore
-
-		Returns:
-			Returns a pointer to the closest CCharacter or NULL if no CCharacter is close enough.
-	*/
-	class CCharacter *ClosestCharacter(vec2 Pos, float Radius, CEntity *ppNotThis);
 
 	/*
 		Function: insert_entity

@@ -236,8 +236,6 @@ public:
 
 	int m_MoveRestrictions;
 
-	vec2 m_Intersection;
-	float m_IntersectDistance;
 	int64 m_LastStartWarning;
 	int64 m_LastRescue;
 	bool m_LastRefillJumps;
@@ -281,6 +279,14 @@ public:
 	bool HasTelegunLaser() { return m_Core.m_HasTelegunLaser; };
 
 	CTuningParams *CurrentTuning() { return m_TuneZone ? &GameServer()->TuningList()[m_TuneZone] : GameServer()->Tuning(); }
+	// hit data
+	struct
+	{
+		vec2 m_Intersection;
+		float m_IntersectDistance;
+		int m_HitOrder;
+		bool m_FirstImpact;
+	} m_HitData;
 };
 
 enum
