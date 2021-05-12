@@ -191,10 +191,6 @@ void CGameWorld::Tick()
 
 	if(!m_Paused)
 	{
-		// TODO: Controller, move force balance in controller
-		// if(GameServer()->m_pController->IsForceBalanced())
-		// 	GameServer()->SendChat(-1, CGameContext::CHAT_ALL, "Teams have been balanced");
-
 		// update all objects
 		for(auto *pEnt : m_apFirstEntityTypes)
 			for(; pEnt;)

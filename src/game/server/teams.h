@@ -41,7 +41,7 @@ class CGameTeams
 	char *m_apWantedGameType[MAX_CLIENTS];
 	int m_aTeamReload[MAX_CLIENTS];
 	bool m_aTeamMapIndex[MAX_CLIENTS];
-	// TODO: team states is probably redundant
+	// MYTODO: team states is probably redundant
 	int m_aTeamState[MAX_CLIENTS];
 	bool m_aTeamLocked[MAX_CLIENTS];
 	uint64 m_aInvited[MAX_CLIENTS];

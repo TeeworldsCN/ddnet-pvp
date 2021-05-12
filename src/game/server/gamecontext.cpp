@@ -590,14 +590,6 @@ void CGameContext::SendVoteStatus(int ClientID, int Total, int Yes, int No)
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID);
 }
 
-// TODO: move to controller
-// void CGameContext::AbortVoteKickOnDisconnect(int ClientID)
-// {
-// 	if(m_VoteCloseTime && ((str_startswith(m_aVoteCommand, "kick ") && str_toint(&m_aVoteCommand[5]) == ClientID) ||
-// 				      (str_startswith(m_aVoteCommand, "set_team ") && str_toint(&m_aVoteCommand[9]) == ClientID)))
-// 		m_VoteEnforce = VOTE_ENFORCE_ABORT;
-// }
-
 void CGameContext::SendTuningParams(int ClientID, int Zone)
 {
 	if(ClientID == -1)
@@ -705,7 +697,7 @@ void CGameContext::OnTick()
 	}
 
 	Teams()->OnTick();
-	UpdatePlayerMaps(); // TODO: check if this need to be ticked before controller
+	UpdatePlayerMaps(); // MYTODO: check if this need to be ticked before controller
 	DoActivityCheck();
 
 	if(m_TeeHistorianActive)

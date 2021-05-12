@@ -412,7 +412,7 @@ void CGameContext::ConInviteTeam(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "invite", "Can't invite players to this team");
 }
 
-// TODO: make the three commands cleaner
+// MYTODO: make the three commands cleaner
 void CGameContext::ConJoinOrCreateTeam(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
