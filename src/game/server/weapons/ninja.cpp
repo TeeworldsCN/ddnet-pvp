@@ -9,7 +9,7 @@ CNinja::CNinja(CCharacter *pOwnerChar) :
 	m_AmmoRegenTime = g_pData->m_Weapons.m_aId[WEAPON_NINJA].m_Ammoregentime;
 	m_FireDelay = g_pData->m_Weapons.m_aId[WEAPON_NINJA].m_Firedelay;
 	m_OldVelAmount = 0;
-	m_CurrentMoveTime = 0;
+	m_CurrentMoveTime = -1;
 	m_ActivationDir = vec2(0, 0);
 	m_NumObjectsHit = 0;
 }
@@ -93,5 +93,6 @@ bool CNinja::IsPowerupOver()
 
 void CNinja::OnUnequip()
 {
-	Character()->Core()->m_Vel = m_ActivationDir * m_OldVelAmount;
+	if(m_CurrentMoveTime > 0)
+		Character()->Core()->m_Vel = m_ActivationDir * m_OldVelAmount;
 }

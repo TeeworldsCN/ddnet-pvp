@@ -130,6 +130,7 @@ void CPickup::Tick()
 			{
 				// activate ninja on target player
 				pChr->SetPowerUpWeapon(m_WeaponType, m_Value);
+				GameWorld()->CreateSound(pChr->m_Pos, SOUND_PICKUP_NINJA);
 				RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 
 				// loop through all players, setting their emotes
@@ -141,6 +142,8 @@ void CPickup::Tick()
 				}
 
 				pChr->SetEmote(EMOTE_ANGRY, Server()->Tick() + 1200 * Server()->TickSpeed() / 1000);
+				if(pChr->GetPlayer())
+					GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);
 				break;
 			}
 			default:
