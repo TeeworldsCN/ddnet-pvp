@@ -185,7 +185,6 @@ bool CCharacter::IsGrounded()
 void CCharacter::DoWeaponSwitch()
 {
 	// make sure we can switch
-	// TODO: allow fast switch
 	if(m_QueuedWeaponSlot == -1 || m_pPowerupWeapon || !m_apWeaponSlots[m_QueuedWeaponSlot])
 		return;
 
@@ -940,7 +939,7 @@ void CCharacter::Snap(int SnappingClient, int OtherMode)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GRENADE;
 	if(m_apWeaponSlots[WEAPON_LASER])
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_LASER;
-	if(m_pPowerupWeapon) // TODO: what about other types of powerup if we have any
+	if(m_pPowerupWeapon && m_pPowerupWeapon->GetTypeID() == WEAPON_TYPE_NINJA)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
 
 	pDDNetCharacter->m_FreezeEnd = m_DeepFreeze ? -1 : m_FreezeTime == 0 ? 0 :

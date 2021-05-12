@@ -29,7 +29,7 @@ void CLaserGun::Fire(vec2 Direction)
 {
 	int ClientID = Character()->GetPlayer()->GetCID();
 
-	// TODO: more laser properties
+	// MYTODO: more laser properties
 	CLaser *pLaser = new CLaser(
 		GameWorld(),
 		WEAPON_GUN, //Type

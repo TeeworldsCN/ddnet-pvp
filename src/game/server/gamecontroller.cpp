@@ -551,10 +551,8 @@ void IGameController::OnFlagReset(CFlag *pFlag)
 {
 }
 
-// virtual states
-bool IGameController::CanKill(int ClientID) const
+void IGameController::OnKill(int ClientID) const
 {
-	return true;
 }
 
 bool IGameController::IsDisruptiveLeave(int ClientID) const
@@ -692,7 +690,7 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 		else
 			Dir = 3;
 		float Deg = Dir * (pi / 2);
-		// TODO: add back ddnet freeze bullet
+		// MYTODO: add back ddnet freeze bullet
 		// CProjectile *bullet = new CProjectile(
 		// 	GameWorld(),
 		// 	WEAPON_SHOTGUN, //Type
@@ -885,9 +883,8 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 
 	// HACK: resend map info can reset player's team info
 	// SideEffect: gets rid of ddnet dummies
-	// TODO: enable this
-	// if(!ServerJoin && !Server()->IsSixup(ClientID))
-	// 	Server()->SendMap(ClientID);
+	if(!ServerJoin && !Server()->IsSixup(ClientID))
+		Server()->SendMap(ClientID);
 
 	// update game info first
 	UpdateGameInfo(ClientID);
@@ -1203,7 +1200,7 @@ void IGameController::StartMatch()
 	else
 		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
 
-	// TODO: fix demo
+	// MYTODO: fix demo
 	// Server()->DemoRecorder_HandleAutoStart();
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "start match type='%s' teamplay='%d' ddrteam='%d'", m_pGameType, m_GameFlags & IGF_TEAMS, GameWorld()->Team());
@@ -1282,7 +1279,6 @@ void IGameController::FakeClientBroadcast(int SnappingClient)
 
 void IGameController::Snap(int SnappingClient)
 {
-	// TODO: smarter broadcast
 	FakeClientBroadcast(SnappingClient);
 
 	bool isSixUp = Server()->IsSixup(SnappingClient);
@@ -1458,7 +1454,7 @@ void IGameController::Snap(int SnappingClient)
 		}
 
 		// demo recording
-		// TODO: fix demo
+		// MYTODO: fix demo
 		if(SnappingClient < 0)
 		{
 			protocol7::CNetObj_De_GameInfo *pGameInfo = static_cast<protocol7::CNetObj_De_GameInfo *>(Server()->SnapNewItem(-protocol7::NETOBJTYPE_DE_GAMEINFO, 0, sizeof(protocol7::CNetObj_De_GameInfo)));
@@ -1659,11 +1655,11 @@ void IGameController::Tick()
 				SetGameState(IGS_GAME_PAUSED, 0);
 				break;
 			case IGS_END_ROUND:
-				// TODO: swap team for round
+				// MYTODO: swap team for round
 				StartRound();
 				break;
 			case IGS_END_MATCH:
-				// TODO: swap team for match
+				// MYTODO: swap team for match
 				// if(Config()->m_SvMatchSwap)
 				// 	GameServer()->SwapTeams();
 				m_MatchCount++;
@@ -1982,7 +1978,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type) const
 			continue; // try next spawn point
 
 		vec2 P = m_aaSpawnPoints[Type][i] + Positions[Result];
-		// TODO: frandom to pRng?
+		// MYTODO: frandom to pRng?
 		float S = pEval->m_RandomSpawn ? (Result + frandom()) : EvaluateSpawnPos(pEval, P);
 		if(!pEval->m_Got || pEval->m_Score > S)
 		{

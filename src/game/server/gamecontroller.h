@@ -334,16 +334,14 @@ public:
 	void UpdateGameInfo(int ClientID);
 
 	/*
-		Function: CanKill
-			Whether the player can use kill command.
+		Function: OnKill
+			Called when the player used kill command
+			The controller should handle the actual kill
 
 		Arguments:
 			ClientID - player's cid
-
-		Return:
-			bool - player can use kill command if set to true.
 	*/
-	virtual bool CanKill(int ClientID) const;
+	virtual void OnKill(int ClientID) const;
 
 	/*
 		Function: IsDisruptiveLeave

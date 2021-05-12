@@ -242,21 +242,6 @@ void CGameContext::ConTeleport(IConsole::IResult *pResult, void *pUserData)
 	}
 }
 
-void CGameContext::ConKill(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	if(!CheckClientID(pResult->m_ClientID))
-		return;
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-
-	if(!pPlayer || (pPlayer->m_LastKill && pPlayer->m_LastKill + pSelf->Server()->TickSpeed() * g_Config.m_SvKillDelay > pSelf->Server()->Tick()))
-		return;
-
-	pPlayer->m_LastKill = pSelf->Server()->Tick();
-	pPlayer->KillCharacter(WEAPON_SELF);
-	pPlayer->m_RespawnTick = pSelf->Server()->Tick() + pSelf->Server()->TickSpeed() * g_Config.m_SvSuicidePenalty;
-}
-
 bool CGameContext::TryVoteMute(const NETADDR *pAddr, int Secs)
 {
 	// find a matching vote mute for this ip, update expiration time if found
@@ -624,5 +609,5 @@ void CGameContext::ConAddMapName(IConsole::IResult *pResult, void *pUserData)
 
 void CGameContext::ConRoomSetting(IConsole::IResult *pResult, void *pUserData)
 {
-	// TODO: room settings
+	// MYTODO: room settings
 }
