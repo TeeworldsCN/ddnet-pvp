@@ -7,7 +7,7 @@ CHammer::CHammer(CCharacter *pOwnerChar) :
 {
 	m_MaxAmmo = g_pData->m_Weapons.m_aId[WEAPON_HAMMER].m_Maxammo;
 	m_AmmoRegenTime = g_pData->m_Weapons.m_aId[WEAPON_HAMMER].m_Ammoregentime;
-	m_FireDelay = Character()->CurrentTuning()->m_HammerFireDelay;
+	m_FireDelay = g_pData->m_Weapons.m_aId[WEAPON_HAMMER].m_Firedelay;
 }
 
 void CHammer::Fire(vec2 Direction)

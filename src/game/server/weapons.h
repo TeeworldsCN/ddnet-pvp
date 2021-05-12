@@ -5,6 +5,7 @@ REGISTER_WEAPON(WEAPON_TYPE_PISTOL, CPistol)
 REGISTER_WEAPON(WEAPON_TYPE_SHOTGUN, CShotgun)
 REGISTER_WEAPON(WEAPON_TYPE_GRENADE, CGrenade)
 REGISTER_WEAPON(WEAPON_TYPE_LASER, CLaserGun)
+REGISTER_WEAPON(WEAPON_TYPE_NINJA, CNinja)
 
 #else
 
@@ -14,6 +15,7 @@ REGISTER_WEAPON(WEAPON_TYPE_LASER, CLaserGun)
 #include "weapons/grenade.h"
 #include "weapons/hammer.h"
 #include "weapons/lasergun.h"
+#include "weapons/ninja.h"
 #include "weapons/pistol.h"
 #include "weapons/shotgun.h"
 

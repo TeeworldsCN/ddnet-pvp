@@ -15,6 +15,7 @@ CWeapon::CWeapon(CCharacter *pOwnerChar)
 	m_AttackTick = 0;
 	m_LastNoAmmoSound = 0;
 	m_FireDelay = 0;
+	m_WeaponAquiredTick = m_pServer->Tick();
 }
 
 void CWeapon::Tick()
@@ -51,6 +52,7 @@ void CWeapon::TickPaused()
 	++m_AttackTick;
 	if(m_AmmoRegenStart > -1)
 		++m_AmmoRegenStart;
+	++m_WeaponAquiredTick;
 }
 
 void CWeapon::HandleFire(vec2 Direction)

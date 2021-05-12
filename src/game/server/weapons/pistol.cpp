@@ -7,7 +7,7 @@ CPistol::CPistol(CCharacter *pOwnerChar) :
 {
 	m_MaxAmmo = g_pData->m_Weapons.m_aId[WEAPON_GUN].m_Maxammo;
 	m_AmmoRegenTime = g_pData->m_Weapons.m_aId[WEAPON_GUN].m_Ammoregentime;
-	m_FireDelay = Character()->CurrentTuning()->m_GunFireDelay;
+	m_FireDelay = g_pData->m_Weapons.m_aId[WEAPON_GUN].m_Firedelay;
 }
 
 bool CPistol::BulletCollide(CProjectile *pProj, vec2 Pos, CCharacter *pHit, bool EndOfLife)

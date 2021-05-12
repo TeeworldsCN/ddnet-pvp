@@ -692,6 +692,7 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 		else
 			Dir = 3;
 		float Deg = Dir * (pi / 2);
+		// TODO: add back ddnet freeze bullet
 		// CProjectile *bullet = new CProjectile(
 		// 	GameWorld(),
 		// 	WEAPON_SHOTGUN, //Type
@@ -768,12 +769,13 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 		WeaponType = WEAPON_TYPE_LASER;
 		Value = 10;
 	}
-	// TODO: add back ninja
-	// else if(Index == ENTITY_POWERUP_NINJA)
-	// {
-	// 	Type = POWERUP_NINJA;
-	// 	SubType = WEAPON_NINJA;
-	// }
+	else if(Index == ENTITY_POWERUP_NINJA)
+	{
+		Type = POWERUP_NINJA;
+		SubType = WEAPON_NINJA;
+		WeaponType = WEAPON_TYPE_NINJA;
+		Value = -1;
+	}
 	else if(Index >= ENTITY_LASER_FAST_CCW && Index <= ENTITY_LASER_FAST_CW)
 	{
 		int sides2[8];

@@ -186,7 +186,7 @@ public:
 	bool Freeze(int Time);
 	bool Freeze();
 	bool UnFreeze();
-	void ResetPickups();
+	void RemoveWeapons();
 	int m_DDRaceState;
 	int Team();
 	bool CanCollide(int ClientID);

@@ -7,7 +7,7 @@ CGrenade::CGrenade(CCharacter *pOwnerChar) :
 {
 	m_MaxAmmo = g_pData->m_Weapons.m_aId[WEAPON_GRENADE].m_Maxammo;
 	m_AmmoRegenTime = g_pData->m_Weapons.m_aId[WEAPON_GRENADE].m_Ammoregentime;
-	m_FireDelay = Character()->CurrentTuning()->m_ShotgunFireDelay;
+	m_FireDelay = g_pData->m_Weapons.m_aId[WEAPON_GRENADE].m_Firedelay;
 	m_FullAuto = true;
 }
 

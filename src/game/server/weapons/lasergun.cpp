@@ -28,15 +28,15 @@ bool CLaserGun::LaserHit(CLaser *pLaser, vec2 HitPoint, CCharacter *pHit, bool O
 void CLaserGun::Fire(vec2 Direction)
 {
 	int ClientID = Character()->GetPlayer()->GetCID();
-	int Lifetime = Character()->CurrentTuning()->m_GunLifetime * Server()->TickSpeed();
 
+	// TODO: more laser properties
 	CLaser *pLaser = new CLaser(
 		GameWorld(),
 		WEAPON_GUN, //Type
 		ClientID, //Owner
 		Pos(), //Pos
 		Direction, //Dir
-		Character()->CurrentTuning()->m_LaserReach, // StartEnergy
+		g_pData->m_Weapons.m_Laser.m_Reach, // StartEnergy
 		LaserHit);
 
 	GameWorld()->CreateSound(Character()->m_Pos, SOUND_LASER_FIRE);

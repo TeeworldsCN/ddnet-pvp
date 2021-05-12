@@ -36,6 +36,7 @@ CCharacter::CCharacter(CGameWorld *pWorld) :
 
 CCharacter::~CCharacter()
 {
+	SetWeaponSlot(WEAPON_GAME, false);
 	for(int i = 0; i < NUM_WEAPON_SLOTS; i++)
 	{
 		if(m_apWeaponSlots[i])
@@ -46,7 +47,10 @@ CCharacter::~CCharacter()
 	}
 
 	if(m_pPowerupWeapon)
+	{
+		m_pPowerupWeapon->OnUnequip();
 		delete m_pPowerupWeapon;
+	}
 }
 
 void CCharacter::Reset()
@@ -310,6 +314,14 @@ void CCharacter::HandleWeapons()
 	CWeapon *pCurrentWeapon = CurrentWeapon();
 	if(!pCurrentWeapon)
 		return;
+
+	if(pCurrentWeapon == m_pPowerupWeapon && m_pPowerupWeapon->IsPowerupOver())
+	{
+		SetPowerUpWeapon(WEAPON_TYPE_NONE);
+		pCurrentWeapon = CurrentWeapon();
+		if(!pCurrentWeapon)
+			return;
+	}
 
 	// fire Weapon, if wanted
 	FireWeapon();
@@ -1494,7 +1506,7 @@ void CCharacter::HandleTiles(int Index)
 			ResetHook();
 		}
 		if(g_Config.m_SvTeleportLoseWeapons)
-			ResetPickups();
+			RemoveWeapons();
 		return;
 	}
 	int evilz = GameServer()->Collision()->IsEvilTeleport(MapIndex);
@@ -1515,7 +1527,7 @@ void CCharacter::HandleTiles(int Index)
 			}
 			if(g_Config.m_SvTeleportLoseWeapons)
 			{
-				ResetPickups();
+				RemoveWeapons();
 			}
 		}
 		return;
@@ -1861,13 +1873,86 @@ void CCharacter::ForceSetWeapon(int Slot, int Type, int Ammo)
 #undef REGISTER_WEAPON
 }
 
-void CCharacter::ResetPickups()
+void CCharacter::SetOverrideWeapon(int Slot, int Type, int Ammo)
+{
+	if(Type == WEAPON_TYPE_NONE)
+	{
+		bool IsActive = m_ActiveWeaponSlot == Slot;
+		if(IsActive)
+			SetWeaponSlot(WEAPON_GAME, false);
+		if(m_apOverrideWeaponSlots[Slot])
+		{
+			delete m_apOverrideWeaponSlots[Slot];
+			m_apOverrideWeaponSlots[Slot] = nullptr;
+		}
+		if(IsActive)
+			SetWeaponSlot(Slot, false);
+	}
+#define REGISTER_WEAPON(WEAPTYPE, CLASS) \
+	else if(Type == WEAPTYPE) \
+	{ \
+		if(m_apOverrideWeaponSlots[Slot] && m_apOverrideWeaponSlots[Slot]->GetTypeID() != Type) \
+		{ \
+			if(m_ActiveWeaponSlot == Slot) \
+				SetWeaponSlot(WEAPON_GAME, false); \
+			delete m_apOverrideWeaponSlots[Slot]; \
+			m_apOverrideWeaponSlots[Slot] = nullptr; \
+		} \
+		if(m_apOverrideWeaponSlots[Slot] == nullptr) \
+		{ \
+			m_apOverrideWeaponSlots[Slot] = new CLASS(this); \
+			m_apOverrideWeaponSlots[Slot]->SetTypeID(WEAPTYPE); \
+		} \
+		m_apOverrideWeaponSlots[Slot]->SetAmmo(Ammo); \
+		if(m_ActiveWeaponSlot < 0 || m_ActiveWeaponSlot >= NUM_WEAPON_SLOTS) \
+			SetWeaponSlot(Slot, false); \
+	}
+#include <game/server/weapons.h>
+#undef REGISTER_WEAPON
+}
+
+void CCharacter::SetPowerUpWeapon(int Type, int Ammo)
+{
+	if(Type == WEAPON_TYPE_NONE)
+	{
+		if(m_pPowerupWeapon)
+		{
+			m_pPowerupWeapon->OnUnequip();
+			delete m_pPowerupWeapon;
+			m_pPowerupWeapon = nullptr;
+		}
+	}
+#define REGISTER_WEAPON(WEAPTYPE, CLASS) \
+	else if(Type == WEAPTYPE) \
+	{ \
+		if(m_pPowerupWeapon && m_pPowerupWeapon->GetTypeID() != Type) \
+		{ \
+			delete m_pPowerupWeapon; \
+			m_pPowerupWeapon = nullptr; \
+		} \
+		if(m_pPowerupWeapon == nullptr) \
+		{ \
+			m_pPowerupWeapon = new CLASS(this); \
+			m_pPowerupWeapon->SetTypeID(WEAPTYPE); \
+			m_pPowerupWeapon->OnEquip(); \
+		} \
+		m_pPowerupWeapon->SetAmmo(Ammo); \
+	}
+#include <game/server/weapons.h>
+#undef REGISTER_WEAPON
+}
+
+void CCharacter::RemoveWeapons()
 {
 	if(m_pPowerupWeapon)
+	{
+		m_pPowerupWeapon->OnUnequip();
 		delete m_pPowerupWeapon;
+	}
 	m_pPowerupWeapon = nullptr;
+	SetWeaponSlot(WEAPON_GAME, false);
 
-	for(int i = WEAPON_SHOTGUN; i < NUM_WEAPON_SLOTS; i++)
+	for(int i = 0; i < NUM_WEAPON_SLOTS; i++)
 	{
 		if(m_apWeaponSlots[i])
 			delete m_apWeaponSlots[i];

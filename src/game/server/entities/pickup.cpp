@@ -107,7 +107,6 @@ void CPickup::Tick()
 				break;
 
 			case POWERUP_WEAPON:
-
 				if(m_Subtype >= 0 && m_Subtype < NUM_WEAPONS)
 				{
 					if(pChr->GiveWeapon(m_WeaponSlot, m_WeaponType, m_Value))
@@ -129,19 +128,19 @@ void CPickup::Tick()
 
 			case POWERUP_NINJA:
 			{
-				// // activate ninja on target player
-				// pChr->GiveNinja();
-				// RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
+				// activate ninja on target player
+				pChr->SetPowerUpWeapon(m_WeaponType, m_Value);
+				RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 
-				// // loop through all players, setting their emotes
-				// CCharacter *pC = static_cast<CCharacter *>(GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER));
-				// for(; pC; pC = (CCharacter *)pC->TypeNext())
-				// {
-				// 	if(pC != pChr)
-				// 		pC->SetEmote(EMOTE_SURPRISE, Server()->Tick() + Server()->TickSpeed());
-				// }
+				// loop through all players, setting their emotes
+				CCharacter *pC = static_cast<CCharacter *>(GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER));
+				for(; pC; pC = (CCharacter *)pC->TypeNext())
+				{
+					if(pC != pChr)
+						pC->SetEmote(EMOTE_SURPRISE, Server()->Tick() + Server()->TickSpeed());
+				}
 
-				// pChr->SetEmote(EMOTE_ANGRY, Server()->Tick() + 1200 * Server()->TickSpeed() / 1000);
+				pChr->SetEmote(EMOTE_ANGRY, Server()->Tick() + 1200 * Server()->TickSpeed() / 1000);
 				break;
 			}
 			default:
