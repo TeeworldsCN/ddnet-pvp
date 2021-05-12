@@ -18,6 +18,7 @@
 #include "entities/light.h"
 #include "entities/plasma.h"
 #include "entities/projectile.h"
+#include "weapons.h"
 #include <game/layers.h>
 
 #include <engine/server/server.h>
@@ -640,6 +641,8 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 
 	int Type = -1;
 	int SubType = 0;
+	int Value = 0;
+	int WeaponType = -1;
 
 	int x, y;
 	x = (Pos.x - 16.0f) / 32.0f;
@@ -735,29 +738,42 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 	}
 
 	if(Index == ENTITY_ARMOR_1)
+	{
 		Type = POWERUP_ARMOR;
+		Value = 1;
+	}
 	else if(Index == ENTITY_HEALTH_1)
+	{
 		Type = POWERUP_HEALTH;
+		Value = 1;
+	}
 	else if(Index == ENTITY_WEAPON_SHOTGUN)
 	{
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_SHOTGUN;
+		WeaponType = WEAPON_TYPE_SHOTGUN;
+		Value = 10;
 	}
 	else if(Index == ENTITY_WEAPON_GRENADE)
 	{
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_GRENADE;
+		WeaponType = WEAPON_TYPE_GRENADE;
+		Value = 10;
 	}
 	else if(Index == ENTITY_WEAPON_LASER)
 	{
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_LASER;
+		WeaponType = WEAPON_TYPE_LASER;
+		Value = 10;
 	}
-	else if(Index == ENTITY_POWERUP_NINJA)
-	{
-		Type = POWERUP_NINJA;
-		SubType = WEAPON_NINJA;
-	}
+	// TODO: add back ninja
+	// else if(Index == ENTITY_POWERUP_NINJA)
+	// {
+	// 	Type = POWERUP_NINJA;
+	// 	SubType = WEAPON_NINJA;
+	// }
 	else if(Index >= ENTITY_LASER_FAST_CCW && Index <= ENTITY_LASER_FAST_CW)
 	{
 		int sides2[8];
@@ -841,7 +857,7 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 
 	if(Type != -1)
 	{
-		CPickup *pPickup = new CPickup(GameWorld(), Type, SubType);
+		CPickup *pPickup = new CPickup(GameWorld(), Type, SubType, Value, SubType, WeaponType);
 		pPickup->m_Pos = Pos;
 	}
 }

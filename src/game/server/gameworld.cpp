@@ -229,7 +229,7 @@ void CGameWorld::Tick()
 
 // TODO: should be more general
 //CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2& NewPos, CEntity *pNotThis)
-CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, CCharacter *pNotThis, bool IgnoreSolo, CCharacter *pThisOnly)
+CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, CCharacter *pNotThis, bool IgnoreSolo)
 {
 	// Find other players
 	float ClosestLen = distance(Pos0, Pos1) * 100.0f;
@@ -239,9 +239,6 @@ CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, C
 	for(; p; p = (CCharacter *)p->TypeNext())
 	{
 		if(p == pNotThis)
-			continue;
-
-		if(pThisOnly && p != pThisOnly)
 			continue;
 
 		if(IgnoreSolo && p->IsSolo())
@@ -257,7 +254,7 @@ CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, C
 				if(Len < ClosestLen)
 				{
 					p->m_HitData.m_Intersection = IntersectPos;
-					p->m_HitData.m_IntersectDistance = Len;
+					p->m_HitData.m_HitDistance = Len;
 					ClosestLen = Len;
 					pClosest = p;
 				}
@@ -268,9 +265,30 @@ CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, C
 	return pClosest;
 }
 
+bool CGameWorld::IntersectThisCharacter(vec2 Pos0, vec2 Pos1, float Radius, CCharacter *pChar)
+{
+	// Find other players
+	float ClosestLen = distance(Pos0, Pos1) * 100.0f;
+
+	vec2 IntersectPos;
+	if(closest_point_on_line(Pos0, Pos1, pChar->m_Pos, IntersectPos))
+	{
+		float Len = distance(pChar->m_Pos, IntersectPos);
+		if(Len < pChar->m_ProximityRadius + Radius)
+		{
+			Len = distance(Pos0, IntersectPos);
+			pChar->m_HitData.m_Intersection = IntersectPos;
+			pChar->m_HitData.m_HitDistance = Len;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool CompareIntersectDistance(const CCharacter *pFirst, const CCharacter *pSecond)
 {
-	return pFirst->m_HitData.m_IntersectDistance < pSecond->m_HitData.m_IntersectDistance;
+	return pFirst->m_HitData.m_HitDistance < pSecond->m_HitData.m_HitDistance;
 }
 
 std::list<class CCharacter *> CGameWorld::IntersectedCharacters(vec2 Pos0, vec2 Pos1, float Radius, class CEntity *pNotThis, bool IgnoreSolo)
@@ -293,7 +311,7 @@ std::list<class CCharacter *> CGameWorld::IntersectedCharacters(vec2 Pos0, vec2 
 			if(Len < pChr->m_ProximityRadius + Radius)
 			{
 				pChr->m_HitData.m_Intersection = IntersectPos;
-				pChr->m_HitData.m_IntersectDistance = Len;
+				pChr->m_HitData.m_HitDistance = distance(Pos0, IntersectPos);
 				listOfChars.push_back(pChr);
 			}
 		}

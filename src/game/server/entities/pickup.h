@@ -10,7 +10,7 @@ const int PickupPhysSize = 14;
 class CPickup : public CEntity
 {
 public:
-	CPickup(CGameWorld *pGameWorld, int Type, int SubType = 0);
+	CPickup(CGameWorld *pGameWorld, int Type, int SubType = 0, int Value = 0, int WeaponSlot = -1, int WeaponType = -1);
 
 	virtual void Reset();
 	virtual void Tick();
@@ -22,6 +22,9 @@ private:
 	int m_Subtype;
 	int m_SpawnTick; // for team
 	int m_SoloSpawnTick[MAX_CLIENTS]; // for solo
+	int m_WeaponType;
+	int m_WeaponSlot;
+	int m_Value;
 
 	// DDRace
 

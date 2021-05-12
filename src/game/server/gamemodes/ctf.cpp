@@ -9,6 +9,7 @@
 #include <game/server/entities/flag.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
+#include <game/server/weapons.h>
 
 CGameControllerCTF::CGameControllerCTF() :
 	IGameController()
@@ -28,8 +29,8 @@ void CGameControllerCTF::OnCharacterSpawn(CCharacter *pChr)
 {
 	pChr->IncreaseHealth(10);
 
-	// pChr->GiveWeapon(WEAPON_HAMMER, -1);
-	// pChr->GiveWeapon(WEAPON_GUN, 10);
+	pChr->GiveWeapon(WEAPON_GUN, WEAPON_TYPE_PISTOL, 10);
+	pChr->GiveWeapon(WEAPON_HAMMER, WEAPON_TYPE_HAMMER, -1);
 }
 
 // balancing

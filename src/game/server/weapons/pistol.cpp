@@ -13,7 +13,12 @@ CPistol::CPistol(CCharacter *pOwnerChar) :
 bool CPistol::BulletCollide(CProjectile *pProj, vec2 Pos, CCharacter *pHit, bool EndOfLife)
 {
 	if(pHit)
+	{
+		if(pHit->GetPlayer()->GetCID() == pProj->GetOwner())
+			return false;
+
 		pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_Gun.m_pBase->m_Damage, pProj->GetOwner(), WEAPON_GUN);
+	}
 
 	return true;
 }
@@ -31,7 +36,7 @@ void CPistol::Fire(vec2 Direction)
 		ClientID, //Owner
 		ProjStartPos, //Pos
 		Direction, //Dir
-		6.0f,
+		6.0f, // Radius
 		Lifetime, //Span
 		BulletCollide);
 

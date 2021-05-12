@@ -13,6 +13,9 @@ CGrenade::CGrenade(CCharacter *pOwnerChar) :
 
 bool CGrenade::GrenadeCollide(CProjectile *pProj, vec2 Pos, CCharacter *pHit, bool EndOfLife)
 {
+	if(pHit && pHit->GetPlayer()->GetCID() == pProj->GetOwner())
+		return false;
+
 	pProj->GameWorld()->CreateExplosion(Pos, pProj->GetOwner(), WEAPON_GRENADE, g_pData->m_Weapons.m_aId[WEAPON_GRENADE].m_Damage, pProj->GetOwner() < 0);
 	pProj->GameWorld()->CreateSound(Pos, SOUND_GRENADE_EXPLODE);
 
@@ -32,7 +35,7 @@ void CGrenade::Fire(vec2 Direction)
 		ClientID, //Owner
 		ProjStartPos, //Pos
 		Direction, //Dir
-		6.0f,
+		6.0f, // Radius
 		Lifetime, //Span
 		GrenadeCollide);
 

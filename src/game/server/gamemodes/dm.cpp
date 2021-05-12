@@ -15,9 +15,6 @@ void CGameControllerDM::OnCharacterSpawn(CCharacter *pChr)
 {
 	pChr->IncreaseHealth(10);
 
-	pChr->SetWeaponTimerType(WEAPON_TIMER_INDIVIDUAL);
-
-	pChr->GiveWeapon(WEAPON_HAMMER, WEAPON_TYPE_HAMMER, -1);
 	pChr->GiveWeapon(WEAPON_GUN, WEAPON_TYPE_PISTOL, 10);
-	pChr->GiveWeapon(WEAPON_SHOTGUN, WEAPON_TYPE_GRENADE, 10);
+	pChr->GiveWeapon(WEAPON_HAMMER, WEAPON_TYPE_HAMMER, -1);
 }

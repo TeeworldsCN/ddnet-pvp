@@ -7,14 +7,18 @@
 #include <game/server/player.h>
 
 #include <game/server/teams.h>
+#include <game/server/weapons.h>
 
 #include "character.h"
 
-CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType) :
+CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType, int Value, int WeaponSlot, int WeaponType) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, vec2(0, 0), PickupPhysSize)
 {
 	m_Type = Type;
 	m_Subtype = SubType;
+	m_Value = Value;
+	m_WeaponType = WeaponType;
+	m_WeaponSlot = WeaponSlot;
 
 	Reset();
 
@@ -87,7 +91,7 @@ void CPickup::Tick()
 			switch(m_Type)
 			{
 			case POWERUP_HEALTH:
-				if(pChr->IncreaseHealth(1))
+				if(pChr->IncreaseHealth(m_Value))
 				{
 					GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, Mask);
 					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
@@ -95,7 +99,7 @@ void CPickup::Tick()
 				break;
 
 			case POWERUP_ARMOR:
-				if(pChr->IncreaseArmor(1))
+				if(pChr->IncreaseArmor(m_Value))
 				{
 					GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, Mask);
 					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
@@ -104,40 +108,40 @@ void CPickup::Tick()
 
 			case POWERUP_WEAPON:
 
-				// if(m_Subtype >= 0 && m_Subtype < NUM_WEAPONS && pChr->GetWeaponAmmo(m_Subtype) != -1)
-				// {
-				// if(pChr->GiveWeapon(m_Subtype, g_pData->m_Weapons.m_aId[m_Subtype].m_Maxammo))
-				// {
-				// 	RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
+				if(m_Subtype >= 0 && m_Subtype < NUM_WEAPONS)
+				{
+					if(pChr->GiveWeapon(m_WeaponSlot, m_WeaponType, m_Value))
+					{
+						RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 
-				// 	if(m_Subtype == WEAPON_GRENADE)
-				// 		GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE, Mask);
-				// 	else if(m_Subtype == WEAPON_SHOTGUN)
-				// 		GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
-				// 	else if(m_Subtype == WEAPON_LASER)
-				// 		GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
+						if(m_Subtype == WEAPON_GRENADE)
+							GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE, Mask);
+						else if(m_Subtype == WEAPON_SHOTGUN)
+							GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
+						else if(m_Subtype == WEAPON_LASER)
+							GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
 
-				// 	if(pChr->GetPlayer())
-				// 		GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);
-				// }
-				// }
+						if(pChr->GetPlayer())
+							GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);
+					}
+				}
 				break;
 
 			case POWERUP_NINJA:
 			{
-				// activate ninja on target player
-				pChr->GiveNinja();
-				RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
+				// // activate ninja on target player
+				// pChr->GiveNinja();
+				// RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 
-				// loop through all players, setting their emotes
-				CCharacter *pC = static_cast<CCharacter *>(GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER));
-				for(; pC; pC = (CCharacter *)pC->TypeNext())
-				{
-					if(pC != pChr)
-						pC->SetEmote(EMOTE_SURPRISE, Server()->Tick() + Server()->TickSpeed());
-				}
+				// // loop through all players, setting their emotes
+				// CCharacter *pC = static_cast<CCharacter *>(GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER));
+				// for(; pC; pC = (CCharacter *)pC->TypeNext())
+				// {
+				// 	if(pC != pChr)
+				// 		pC->SetEmote(EMOTE_SURPRISE, Server()->Tick() + Server()->TickSpeed());
+				// }
 
-				pChr->SetEmote(EMOTE_ANGRY, Server()->Tick() + 1200 * Server()->TickSpeed() / 1000);
+				// pChr->SetEmote(EMOTE_ANGRY, Server()->Tick() + 1200 * Server()->TickSpeed() / 1000);
 				break;
 			}
 			default:

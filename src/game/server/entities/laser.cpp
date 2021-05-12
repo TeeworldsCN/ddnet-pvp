@@ -10,7 +10,14 @@
 
 #include "character.h"
 
-CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, int Type) :
+CLaser::CLaser(
+	CGameWorld *pGameWorld,
+	int WeaponType,
+	int Owner,
+	vec2 Pos,
+	vec2 Direction,
+	float StartEnergy,
+	FLaserImpactCallback Callback) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
 {
 	m_Pos = Pos;
@@ -21,11 +28,11 @@ CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEner
 	m_EvalTick = 0;
 	m_TelePos = vec2(0, 0);
 	m_WasTele = false;
-	m_Type = Type;
-	m_TeleportCancelled = false;
-	m_IsBlueTeleport = false;
+	m_Type = WeaponType;
 	m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
 	m_Hit = 0;
+	m_IsSolo = false;
+	m_Callback = Callback;
 	if(m_Owner >= 0)
 	{
 		CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
@@ -42,42 +49,46 @@ CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEner
 bool CLaser::HitCharacter(vec2 From, vec2 To)
 {
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	CCharacter *pHit;
-	bool pDontHitSelf = ((pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (m_Bounces == 0 && !m_WasTele));
+	bool IsProtectingOwner = m_Bounces == 0 && !m_WasTele;
 
-	if((!(m_Hit & CCharacter::DISABLE_HIT_LASER) && m_Type == WEAPON_LASER) || (!(m_Hit & CCharacter::DISABLE_HIT_SHOTGUN) && m_Type == WEAPON_SHOTGUN))
-		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, pDontHitSelf ? pOwnerChar : nullptr, true);
-	else
-		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, pDontHitSelf ? pOwnerChar : nullptr, false, pOwnerChar);
+	std::list<CCharacter *> pTargetChars;
 
-	if(!pHit || (pHit == pOwnerChar && pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (pHit != pOwnerChar && ((m_Hit & CCharacter::DISABLE_HIT_LASER && m_Type == WEAPON_LASER) || (m_Hit & CCharacter::DISABLE_HIT_SHOTGUN && m_Type == WEAPON_SHOTGUN))))
-		return false;
-	m_From = From;
-	m_Pos = pHit->m_HitData.m_Intersection;
-	m_Energy = -1;
-	if(m_Type == WEAPON_SHOTGUN)
+	// solo bullet can't interact with anyone
+	if((m_Type == WEAPON_GRENADE && !(m_Hit & CCharacter::DISABLE_HIT_GRENADE)) ||
+		(m_Type == WEAPON_SHOTGUN && !(m_Hit & CCharacter::DISABLE_HIT_SHOTGUN)) ||
+		(m_Type == WEAPON_GUN && !(m_Hit & CCharacter::DISABLE_HIT_GUN)) ||
+		(m_Type == WEAPON_LASER && !(m_Hit & CCharacter::DISABLE_HIT_LASER)))
 	{
-		vec2 Temp;
-
-		float Strength;
-		if(!m_TuneZone)
-			Strength = GameServer()->Tuning()->m_ShotgunStrength;
+		if(m_IsSolo)
+		{
+			if(GameWorld()->IntersectThisCharacter(m_Pos, To, 0.f, pOwnerChar))
+				pTargetChars.push_back(pOwnerChar);
+		}
 		else
-			Strength = GameServer()->TuningList()[m_TuneZone].m_ShotgunStrength;
-
-		if(pOwnerChar && pOwnerChar->m_PullingShotgun == CCharacter::SHOTGUN_NORMAL_PULL)
-			Temp = pHit->Core()->m_Vel + normalize(m_PrevPos - pHit->Core()->m_Pos) * Strength;
-		else if(pOwnerChar && pOwnerChar->m_PullingShotgun == CCharacter::SHOTGUN_SHOOTER_PULL)
-			Temp = pHit->Core()->m_Vel + normalize(pOwnerChar->Core()->m_Pos - pHit->Core()->m_Pos) * Strength;
-		else
-			Temp = pHit->Core()->m_Vel;
-		pHit->Core()->m_Vel = ClampVel(pHit->m_MoveRestrictions, Temp);
+		{
+			pTargetChars = GameWorld()->IntersectedCharacters(m_Pos, To, 0.f, nullptr, m_Owner >= 0);
+		}
 	}
-	else if(m_Type == WEAPON_LASER)
+
+	for(auto pChar : pTargetChars)
 	{
-		pHit->TakeDamage(vec2(0.f, 0.f), g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Damage, m_Owner, WEAPON_LASER);
+		if(pChar == pOwnerChar && IsProtectingOwner)
+			continue;
+
+		bool AlreadyHit = m_HitMask & pChar->GetPlayer()->GetCID();
+		m_HitMask |= pChar->GetPlayer()->GetCID();
+		pChar->m_HitData.m_HitOrder = m_NumHits++;
+		pChar->m_HitData.m_FirstImpact = !AlreadyHit;
+		if(m_Callback && m_Callback(this, pChar->m_HitData.m_Intersection, pChar, false))
+		{
+			m_From = From;
+			m_Pos = pChar->m_HitData.m_Intersection;
+			m_Energy = -1;
+			return true;
+		}
 	}
-	return true;
+
+	return false;
 }
 
 void CLaser::DoBounce()
@@ -154,6 +165,10 @@ void CLaser::DoBounce()
 			if(m_Bounces > BounceNum)
 				m_Energy = -1;
 
+			if(m_Callback && m_Callback(this, m_Pos, nullptr, m_Energy == -1))
+			{
+				m_Energy = -1;
+			}
 			GameWorld()->CreateSound(m_Pos, SOUND_LASER_BOUNCE);
 		}
 	}
@@ -166,66 +181,6 @@ void CLaser::DoBounce()
 			m_Energy = -1;
 		}
 	}
-
-	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	if(m_Owner >= 0 && m_Energy <= 0 && !m_TeleportCancelled && pOwnerChar &&
-		pOwnerChar->IsAlive() && pOwnerChar->HasTelegunLaser() && m_Type == WEAPON_LASER)
-	{
-		vec2 PossiblePos;
-		bool Found = false;
-
-		// Check if the laser hits a player.
-		bool pDontHitSelf = (pOwnerChar && !pOwnerChar->m_LaserHitSelf) || (m_Bounces == 0 && !m_WasTele);
-		CCharacter *pHit;
-		if(!(m_Hit & CCharacter::DISABLE_HIT_LASER) && m_Type == WEAPON_LASER)
-			pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, pDontHitSelf ? pOwnerChar : 0, true);
-		else
-			pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, pDontHitSelf ? pOwnerChar : 0, false, pOwnerChar);
-
-		if(pHit)
-			Found = GetNearestAirPosPlayer(pHit->m_Pos, &PossiblePos);
-		else
-			Found = GetNearestAirPos(m_Pos, m_From, &PossiblePos);
-
-		if(Found)
-		{
-			pOwnerChar->m_TeleGunPos = PossiblePos;
-			pOwnerChar->m_TeleGunTeleport = true;
-			pOwnerChar->m_IsBlueTeleGunTeleport = m_IsBlueTeleport;
-		}
-	}
-	else if(m_Owner >= 0)
-	{
-		int MapIndex = GameServer()->Collision()->GetPureMapIndex(Coltile);
-		int TileFIndex = GameServer()->Collision()->GetFTileIndex(MapIndex);
-		bool IsSwitchTeleGun = GameServer()->Collision()->IsSwitch(MapIndex) == TILE_ALLOW_TELE_GUN;
-		bool IsBlueSwitchTeleGun = GameServer()->Collision()->IsSwitch(MapIndex) == TILE_ALLOW_BLUE_TELE_GUN;
-		int IsTeleInWeapon = GameServer()->Collision()->IsTeleportWeapon(MapIndex);
-
-		if(!IsTeleInWeapon)
-		{
-			if(IsSwitchTeleGun || IsBlueSwitchTeleGun)
-			{
-				// Delay specifies which weapon the tile should work for.
-				// Delay = 0 means all.
-				int delay = GameServer()->Collision()->GetSwitchDelay(MapIndex);
-
-				if((delay != 3 && delay != 0) && m_Type == WEAPON_LASER)
-				{
-					IsSwitchTeleGun = IsBlueSwitchTeleGun = false;
-				}
-			}
-
-			m_IsBlueTeleport = TileFIndex == TILE_ALLOW_BLUE_TELE_GUN || IsBlueSwitchTeleGun;
-
-			// Teleport is canceled if the last bounce tile is not a TILE_ALLOW_TELE_GUN.
-			// Teleport also works if laser didn't bounce.
-			m_TeleportCancelled =
-				m_Type == WEAPON_LASER && (TileFIndex != TILE_ALLOW_TELE_GUN && TileFIndex != TILE_ALLOW_BLUE_TELE_GUN && !IsSwitchTeleGun && !IsBlueSwitchTeleGun);
-		}
-	}
-
-	//m_Owner = -1;
 }
 
 void CLaser::Reset()

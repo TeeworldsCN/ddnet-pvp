@@ -34,6 +34,7 @@ public:
 	void HandleFire(vec2 Direction);
 
 	virtual void Tick();
+	virtual void TickPaused();
 	CCharacter *Character() { return m_pOwnerChar; }
 	class CGameContext *GameServer() { return m_pGameServer; }
 	class CGameWorld *GameWorld() { return m_pGameWorld; }

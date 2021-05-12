@@ -11,12 +11,12 @@ class CProjectile : public CEntity
 public:
 	CProjectile(
 		CGameWorld *pGameWorld,
-		int Type,
+		int WeaponType,
 		int Owner,
 		vec2 Pos,
-		vec2 Dir,
-		float Radius,
-		int Span,
+		vec2 Direction,
+		float HitRadius,
+		int LifeSpan,
 		FProjectileImpactCallback Callback = nullptr,
 		int Layer = 0,
 		int Number = 0);
@@ -32,23 +32,28 @@ public:
 
 private:
 	vec2 m_Direction;
-	int m_LifeSpan;
+	int m_TotalLifeSpan;
 	int m_Owner;
-	int m_Type;
-	float m_Radius;
 	int m_StartTick;
 	FProjectileImpactCallback m_Callback;
+
+	// DDRace
+	int m_TuneZone; //TODO: make curvature and property
+
+	// Hitdata
+	int64 m_HitMask;
+	int m_OwnerIsSafe;
+	int m_NumHits;
+
+public:
+	int m_Type;
+	float m_Radius;
+	int m_LifeSpan;
 
 	// DDRace
 	int m_Hit;
 	bool m_IsSolo;
 	int m_Bouncing;
-	int m_TuneZone;
-
-	int64 m_HitMask;
-	int m_NumHits;
-
-public:
 	int GetOwner() { return m_Owner; }
 	void SetBouncing(int Value);
 	bool FillExtraInfo(CNetObj_DDNetProjectile *pProj);

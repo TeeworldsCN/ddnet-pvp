@@ -89,21 +89,36 @@ public:
 	CEntity *ClosestEntity(vec2 Pos, float Radius, int Type, CEntity *pNotThis);
 
 	/*
-		Function: InterserctCharacters
+		Function: InterserctCharacter
 			Finds the CCharacters that intersects the line. // made for types lasers=1 and doors=0
 
 		Arguments:
 			pos0 - Start position
 			pos2 - End position
 			radius - How for from the line the CCharacter is allowed to be.
-			new_pos - Intersection position
 			notthis - Entity to ignore intersecting with
+			ignoresolo - Set to false to include solo characters
 
 		Returns:
 			Returns a pointer to the closest hit or NULL of there is no intersection.
 	*/
 	//class CCharacter *IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2 &NewPos, class CEntity *pNotThis = 0);
-	class CCharacter *IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, class CCharacter *pNotThis = 0, bool IgnoreSolo = true, class CCharacter *pOnlyThis = 0);
+	class CCharacter *IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, class CCharacter *pNotThis = 0, bool IgnoreSolo = true);
+
+	/*
+		Function: IntersectThisCharacter
+			Finds the CCharacters that intersects the line. // made for types lasers=1 and doors=0
+
+		Arguments:
+			pos0 - Start position
+			pos2 - End position
+			radius - How for from the line the CCharacter is allowed to be
+			char - Entity to check intersection with
+
+		Returns:
+			true if intersect, otherwise false.
+	*/
+	bool IntersectThisCharacter(vec2 Pos0, vec2 Pos1, float Radius, class CCharacter *pChar = 0);
 
 	/*
 		Function: insert_entity

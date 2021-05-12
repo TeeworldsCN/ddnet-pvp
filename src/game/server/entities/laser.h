@@ -5,10 +5,19 @@
 
 #include <game/server/entity.h>
 
+typedef bool (*FLaserImpactCallback)(class CLaser *pLaser, vec2 HitPoint, CCharacter *pHit, bool OutOfEnergy);
+
 class CLaser : public CEntity
 {
 public:
-	CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, int Type);
+	CLaser(
+		CGameWorld *pGameWorld,
+		int WeaponType,
+		int Owner,
+		vec2 Pos,
+		vec2 Direction,
+		float StartEnergy,
+		FLaserImpactCallback Callback = nullptr);
 
 	virtual void Reset();
 	virtual void Tick();
@@ -24,10 +33,10 @@ private:
 	vec2 m_Dir;
 	vec2 m_TelePos;
 	bool m_WasTele;
-	float m_Energy;
 	int m_Bounces;
 	int m_EvalTick;
 	int m_Owner;
+	FLaserImpactCallback m_Callback;
 
 	// DDRace
 
@@ -36,8 +45,15 @@ private:
 	vec2 m_PrevPos;
 	int m_Type;
 	int m_TuneZone;
-	bool m_TeleportCancelled;
-	bool m_IsBlueTeleport;
+
+	// Hitdata
+	int64 m_HitMask;
+	int m_OwnerIsSafe;
+	int m_NumHits;
+
+public:
+	int GetOwner() { return m_Owner; }
+	float m_Energy;
 };
 
 #endif

@@ -14,7 +14,12 @@ CShotgun::CShotgun(CCharacter *pOwnerChar) :
 bool CShotgun::BulletCollide(CProjectile *pProj, vec2 Pos, CCharacter *pHit, bool EndOfLife)
 {
 	if(pHit)
-		pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_Shotgun.m_pBase->m_Damage, pProj->GetOwner(), WEAPON_GUN);
+	{
+		if(pHit->GetPlayer()->GetCID() == pProj->GetOwner())
+			return false;
+
+		pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_Shotgun.m_pBase->m_Damage, pProj->GetOwner(), WEAPON_SHOTGUN);
+	}
 
 	return true;
 }
@@ -43,7 +48,7 @@ void CShotgun::Fire(vec2 Direction)
 			ClientID, //Owner
 			ProjStartPos, //Pos
 			vec2(cosf(a), sinf(a)) * Speed, //Dir
-			6.0f,
+			6.0f, // Radius
 			Lifetime, //Span
 			BulletCollide);
 

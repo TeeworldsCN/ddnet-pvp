@@ -64,15 +64,13 @@ public:
 
 	bool IsGrounded();
 
-	void SetWeapon(int W);
+	void SetWeaponSlot(int W, bool WithSound);
 	void SetSolo(bool Solo);
 	void HandleWeaponSwitch();
 	void DoWeaponSwitch();
 
 	class CWeapon *CurrentWeapon();
 	void HandleWeapons();
-	// void HandleNinja();
-	// void HandleJetpack();
 
 	void OnPredictedInput(CNetObj_PlayerInput *pNewInput);
 	void OnDirectInput(CNetObj_PlayerInput *pNewInput);
@@ -89,9 +87,12 @@ public:
 	bool IncreaseHealth(int Amount);
 	bool IncreaseArmor(int Amount);
 
+	bool RemoveWeapon(int Slot);
 	bool GiveWeapon(int Slot, int Type, int Ammo = -1);
-	void GiveNinja();
-	void RemoveNinja();
+	void ForceSetWeapon(int Slot, int Type, int Ammo = -1);
+	void SetOverrideWeapon(int Slot, int Type, int Ammo = -1);
+	void SetPowerUpWeapon(int Type, int Ammo = -1);
+
 	void SetEndlessHook(bool Enable);
 
 	void SetEmote(int Emote, int Tick);
@@ -111,8 +112,8 @@ private:
 	int m_NeededFaketuning;
 
 	CWeapon *m_pPowerupWeapon;
-	CWeapon *m_apOverrideWeaponSlot[NUM_WEAPONS - 1];
-	CWeapon *m_apWeaponSlot[NUM_WEAPONS - 1];
+	CWeapon *m_apOverrideWeaponSlots[NUM_WEAPONS - 1];
+	CWeapon *m_apWeaponSlots[NUM_WEAPONS - 1];
 
 	int m_LastWeaponSlot;
 	int m_QueuedWeaponSlot;
@@ -200,7 +201,6 @@ public:
 	bool m_DeepFreeze;
 	bool m_EndlessHook;
 	int m_IsFiring;
-	bool m_LaserHitSelf;
 
 	enum
 	{
@@ -222,7 +222,6 @@ public:
 	int m_Hit;
 	int m_TuneZone;
 	int m_TuneZoneOld;
-	int m_PainSoundTimer;
 	int m_LastMove;
 	int m_StartTime;
 	vec2 m_PrevPos;
@@ -259,14 +258,7 @@ public:
 	CCharacterCore GetCore() { return m_Core; };
 	void SetCore(CCharacterCore Core) { m_Core = Core; };
 	CCharacterCore *Core() { return &m_Core; };
-	// bool GetWeaponGot(int Type) { return m_aWeapons[Type].m_Got; };
-	// void SetWeaponGot(int Type, bool Value) { m_aWeapons[Type].m_Got = Value; };
-	// int GetWeaponAmmo(int Type) { return m_apWeaponSlot[Type]->GetAmmo(); };
-	// void SetWeaponAmmo(int Type, int Value) { m_apWeaponSlot[Type]->SetAmmo(Value); };
 	bool IsAlive() { return m_Alive; };
-	void SetNinjaActivationDir(vec2 ActivationDir) { m_Ninja.m_ActivationDir = ActivationDir; };
-	void SetNinjaActivationTick(int ActivationTick) { m_Ninja.m_ActivationTick = ActivationTick; };
-	void SetNinjaCurrentMoveTime(int CurrentMoveTime) { m_Ninja.m_CurrentMoveTime = CurrentMoveTime; };
 	void SetWeaponTimerType(int Type) { m_WeaponTimerType = Type; }
 
 	int GetLastAction() const
@@ -283,7 +275,7 @@ public:
 	struct
 	{
 		vec2 m_Intersection;
-		float m_IntersectDistance;
+		float m_HitDistance;
 		int m_HitOrder;
 		bool m_FirstImpact;
 	} m_HitData;

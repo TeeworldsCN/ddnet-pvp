@@ -46,6 +46,13 @@ void CWeapon::Tick()
 	}
 }
 
+void CWeapon::TickPaused()
+{
+	++m_AttackTick;
+	if(m_AmmoRegenStart > -1)
+		++m_AmmoRegenStart;
+}
+
 void CWeapon::HandleFire(vec2 Direction)
 {
 	if(m_ReloadTimer > 0)
