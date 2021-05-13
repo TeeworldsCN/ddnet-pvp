@@ -263,9 +263,6 @@ CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, C
 
 bool CGameWorld::IntersectThisCharacter(vec2 Pos0, vec2 Pos1, float Radius, CCharacter *pChar)
 {
-	// Find other players
-	float ClosestLen = distance(Pos0, Pos1) * 100.0f;
-
 	vec2 IntersectPos;
 	if(closest_point_on_line(Pos0, Pos1, pChar->m_Pos, IntersectPos))
 	{

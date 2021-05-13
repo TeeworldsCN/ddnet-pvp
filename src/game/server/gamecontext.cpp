@@ -1089,7 +1089,7 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 	while(RoomIndex < NumRoomVotes && CurIndex < g_Config.m_SvSendVotesPerTick)
 	{
 		const char *pRoomVoteDesc = Teams()->m_aRoomVotes[RoomIndex];
-		if(Teams()->m_Core.Team(ClientID) == RoomIndex)
+		if(Teams()->m_Core.Team(ClientID) == Teams()->m_RoomNumbers[RoomIndex])
 			pRoomVoteDesc = Teams()->m_aRoomVotesJoined[RoomIndex];
 		switch(CurIndex)
 		{
@@ -1715,8 +1715,17 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				if(str_startswith(pMsg->m_Value, "☉"))
 				{
 					// is room vote
+					char aBuf[32];
+					str_copy(aBuf, pMsg->m_Value, sizeof(aBuf));
+					char *pColon = (char *)str_find(aBuf, ":");
+					if(!pColon)
+						return;
 
-					return;
+					*pColon = 0;
+					int Room = str_toint(aBuf + 9); // 9 = len of "☉ Room "
+					str_format(aCmd, sizeof(aCmd), "join %d", Room);
+					IsInstanceVote = false;
+					IsNoConsent = true;
 				}
 				else
 				{

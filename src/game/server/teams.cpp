@@ -289,7 +289,7 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 			m_aTeamInstances[Team].m_pController->InstanceConsole()->ExecuteLine(Type.pSettings);
 	}
 
-	if(Team == 0 && g_Config.m_SvLobbyOverrideConfig)
+	if(Team == 0 && g_Config.m_SvLobbyOverrideConfig[0])
 		m_aTeamInstances[Team].m_pController->InstanceConsole()->ExecuteLine(g_Config.m_SvLobbyOverrideConfig);
 
 	char aBuf[128];
@@ -631,14 +631,14 @@ void CGameTeams::UpdateVotes()
 		if(m_aTeamInstances[i].m_Creator < 0)
 		{
 			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "☉ Room %d: ♙%d [%s]", i, m_Core.Count(i), pController->GetGameType());
-			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "☉ Room %d: ♙%d [%s] <-", i, m_Core.Count(i), pController->GetGameType());
+			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "☉ Room %d: ♙%d [%s] ◁◁◁", i, m_Core.Count(i), pController->GetGameType());
 		}
 		else
 		{
 			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "☉ Room %d: ♙%d [%s] ♔%s", i, m_Core.Count(i), pController->GetGameType(), GameServer()->Server()->ClientName(m_aTeamInstances[i].m_Creator));
-			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "☉ Room %d: ♙%d [%s] ♔%s <-", i, m_Core.Count(i), pController->GetGameType(), GameServer()->Server()->ClientName(m_aTeamInstances[i].m_Creator));
+			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "☉ Room %d: ♙%d [%s] ♔%s ◁◁◁", i, m_Core.Count(i), pController->GetGameType(), GameServer()->Server()->ClientName(m_aTeamInstances[i].m_Creator));
 		}
-
+		m_RoomNumbers[m_NumRooms] = i;
 		m_NumRooms++;
 	}
 

@@ -48,7 +48,6 @@ private:
 
 	// Hitdata
 	int64 m_HitMask;
-	int m_OwnerIsSafe;
 	int m_NumHits;
 
 public:

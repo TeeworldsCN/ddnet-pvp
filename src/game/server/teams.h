@@ -133,6 +133,7 @@ public:
 
 	void UpdateVotes();
 	char m_aRoomVotes[MAX_CLIENTS][VOTE_DESC_LENGTH];
+	int m_RoomNumbers[MAX_CLIENTS];
 	char m_aRoomVotesJoined[MAX_CLIENTS][VOTE_DESC_LENGTH];
 	int m_NumRooms;
 
