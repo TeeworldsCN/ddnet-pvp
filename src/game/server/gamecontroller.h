@@ -45,6 +45,8 @@ class IGameController
 	bool GetPlayersReadyState(int WithoutID = -1);
 	void SetPlayersReadyState(bool ReadyState);
 	void CheckReadyStates(int WithoutID = -1);
+	int MakeGameFlag(int GameFlag);
+	int MakeGameFlagSixUp(int GameFlag);
 
 	struct SBroadcastState
 	{

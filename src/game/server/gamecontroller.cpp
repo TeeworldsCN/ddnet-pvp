@@ -129,7 +129,7 @@ static void ConAddVote(IConsole::IResult *pResult, void *pUserData)
 	mem_copy(pOption->m_aCommand, pCommand, Len + 1);
 }
 
-void ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
+static void ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
 {
 	IGameController *pSelf = (IGameController *)pUserData;
 	const char *pDescription = pResult->GetString(0);
@@ -273,6 +273,29 @@ static void ConChangeGameType(IConsole::IResult *pResult, void *pUserData)
 			"instance",
 			"Please provide a valid gametype.");
 	}
+}
+
+int IGameController::MakeGameFlag(int GameFlag)
+{
+	int Flags = 0;
+	if(GameFlag & IGF_TEAMS)
+		Flags |= GAMEFLAG_TEAMS;
+	if(GameFlag & IGF_FLAGS)
+		Flags |= GAMEFLAG_FLAGS;
+	return Flags;
+}
+
+int IGameController::MakeGameFlagSixUp(int GameFlag)
+{
+	// TODO: add race support?
+	int Flags = 0;
+	if(GameFlag & IGF_TEAMS)
+		Flags |= protocol7::GAMEFLAG_TEAMS;
+	if(GameFlag & IGF_FLAGS)
+		Flags |= protocol7::GAMEFLAG_FLAGS;
+	if(GameFlag & IGF_SURVIVAL)
+		Flags |= protocol7::GAMEFLAG_SURVIVAL;
+	return Flags;
 }
 
 IGameController::IGameController()
@@ -881,13 +904,11 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	else
 		SendVoteSet(ClientID);
 
-	// HACK: resend map info can reset player's team info
-	// SideEffect: gets rid of ddnet dummies
-	if(!ServerJoin && !Server()->IsSixup(ClientID))
-		Server()->SendMap(ClientID);
-
 	// update game info first
 	UpdateGameInfo(ClientID);
+
+	// clear broadcast
+	GameServer()->SendBroadcast(" ", ClientID, true);
 
 	// change team second
 	pPlayer->SetTeam(GetStartTeam(), false);
@@ -1350,7 +1371,7 @@ void IGameController::Snap(int SnappingClient)
 		if(!pGameInfoObj)
 			return;
 
-		pGameInfoObj->m_GameFlags = m_GameFlags;
+		pGameInfoObj->m_GameFlags = MakeGameFlag(m_GameFlags);
 		pGameInfoObj->m_GameStateFlags = GameStateFlags;
 		pGameInfoObj->m_RoundStartTick = m_GameStartTick;
 		pGameInfoObj->m_WarmupTimer = WarmupTimer;
@@ -1461,7 +1482,7 @@ void IGameController::Snap(int SnappingClient)
 			if(!pGameInfo)
 				return;
 
-			pGameInfo->m_GameFlags = m_GameFlags;
+			pGameInfo->m_GameFlags = MakeGameFlagSixUp(m_GameFlags);
 			pGameInfo->m_ScoreLimit = m_GameInfo.m_ScoreLimit;
 			pGameInfo->m_TimeLimit = m_GameInfo.m_TimeLimit;
 			pGameInfo->m_MatchNum = m_GameInfo.m_MatchNum;

@@ -1332,8 +1332,15 @@ bool CGameContext::OnClientDDNetVersionKnown(int ClientID)
 		}
 	}
 
-	// Autoban known bot versions.
+	// Autoban unwanted clients
 	if(g_Config.m_SvBannedVersions[0] != '\0' && IsVersionBanned(ClientVersion))
+	{
+		Server()->Kick(ClientID, "unsupported client");
+		return true;
+	}
+
+	// Autoban known bot versions.
+	if((ClientVersion >= 15 && ClientVersion < 100) || ClientVersion == 502)
 	{
 		Server()->Kick(ClientID, "unsupported client");
 		return true;
@@ -1346,9 +1353,6 @@ bool CGameContext::OnClientDDNetVersionKnown(int ClientID)
 	// First update the teams state.
 	Teams()->SendTeamsState(ClientID);
 
-	// Then send records.
-	// SendRecord(ClientID);
-
 	// And report correct tunings.
 	if(ClientVersion >= VERSION_DDNET_EXTRATUNES)
 		SendTuningParams(ClientID, pPlayer->m_TuneZone);
@@ -1356,9 +1360,6 @@ bool CGameContext::OnClientDDNetVersionKnown(int ClientID)
 	// Tell old clients to update.
 	if(ClientVersion < VERSION_DDNET_UPDATER_FIXED && g_Config.m_SvClientSuggestionOld[0] != '\0')
 		SendBroadcast(g_Config.m_SvClientSuggestionOld, ClientID);
-	// Tell known bot clients that they're botting and we know it.
-	if(((ClientVersion >= 15 && ClientVersion < 100) || ClientVersion == 502) && g_Config.m_SvClientSuggestionBot[0] != '\0')
-		SendBroadcast(g_Config.m_SvClientSuggestionBot, ClientID);
 
 	return false;
 }
