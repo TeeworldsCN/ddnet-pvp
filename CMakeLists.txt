@@ -1177,35 +1177,11 @@ set(EXPECTED_DATA
   mapres/winter_mountains.png
   mapres/winter_mountains2.png
   mapres/winter_mountains3.png
-  maps/ctf1.map
-  maps/ctf2.map
-  maps/ctf3.map
-  maps/ctf4.map
-  maps/ctf5.map
-  maps/ctf6.map
-  maps/ctf7.map
-  maps/dm1.map
-  maps/dm2.map
-  maps/dm6.map
-  maps/dm7.map
-  maps/dm8.map
-  maps/dm9.map
   maps/license.txt
-  maps7/ctf1.map
-  maps7/ctf2.map
-  maps7/ctf3.map
-  maps7/ctf4.map
-  maps7/ctf5.map
-  maps7/ctf6.map
-  maps7/ctf7.map
-  maps7/dm1.map
-  maps7/dm2.map
-  maps7/dm6.map
-  maps7/dm7.map
-  maps7/dm8.map
-  maps7/dm9.map
+  maps/mega_std_collection.map
+  maps/mega_std_collection.map.cfg
   maps7/license.txt
-  maps7/readme.txt
+  maps7/mega_std_collection.map
   menuimages/demos.png
   menuimages/editor.png
   menuimages/local_server.png

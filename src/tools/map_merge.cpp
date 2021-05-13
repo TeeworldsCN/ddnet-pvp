@@ -546,6 +546,59 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 						StrToInts(pLayer->m_aName, sizeof(pLayer->m_aName) / sizeof(int), "");
 					}
 
+					if(pTilemapItem->m_Version > 3)
+					{
+						// extract skipped tiles (0.7)
+						CTile *pTiles = (CTile *)pLayer->m_pData;
+						CTile *pNewTiles = (CTile *)malloc(sizeof(CTile) * pLayer->m_Width * pLayer->m_Height);
+						int i = 0;
+						while(i < pLayer->m_Width * pLayer->m_Height)
+						{
+							for(unsigned Counter = 0; Counter <= pTiles->m_Skip && i < pLayer->m_Width * pLayer->m_Height; Counter++)
+							{
+								pNewTiles[i] = *pTiles;
+								pNewTiles[i++].m_Skip = 0;
+							}
+							pTiles++;
+						}
+						pLayer->m_pData = pNewTiles;
+						pLayer->m_DataSize = sizeof(CTile) * pLayer->m_Width * pLayer->m_Height;
+
+						// convert 0.7 unhookable
+						if(pLayer->m_Image >= 0)
+						{
+							auto Image = MapImages[pLayer->m_Image];
+							if(str_comp(Image.m_pName, "generic_unhookable") == 0)
+							{
+								CTile *pTiles = (CTile *)pLayer->m_pData;
+								for(int y = 0; y < pLayer->m_Height; y++)
+									for(int x = 0; x < pLayer->m_Width; x++)
+									{
+										CTile *pThisTile = &pTiles[y * pLayer->m_Width + x];
+										if(pThisTile->m_Index == 38 || pThisTile->m_Index == 45 || pThisTile->m_Index == 166)
+											pThisTile->m_Index -= 37;
+
+										if(pThisTile->m_Index == 54 || pThisTile->m_Index == 61 || pThisTile->m_Index == 182)
+											pThisTile->m_Index -= 36;
+
+										if(pThisTile->m_Index == 70 || pThisTile->m_Index == 77 || pThisTile->m_Index == 198)
+											pThisTile->m_Index -= 36;
+
+										if(pThisTile->m_Index == 86 || pThisTile->m_Index == 93 || pThisTile->m_Index == 214)
+											pThisTile->m_Index -= 52;
+
+										if(pThisTile->m_Index >= 99 && pThisTile->m_Index <= 101 ||
+											pThisTile->m_Index >= 115 && pThisTile->m_Index <= 117 ||
+											pThisTile->m_Index >= 106 && pThisTile->m_Index <= 108 ||
+											pThisTile->m_Index >= 122 && pThisTile->m_Index <= 124 ||
+											pThisTile->m_Index >= 227 && pThisTile->m_Index <= 229 ||
+											pThisTile->m_Index >= 243 && pThisTile->m_Index <= 245)
+											pThisTile->m_Index -= 32;
+									}
+							}
+						}
+					}
+
 					if(!IsGameLayer)
 						pLayerGroup->m_vLayers.push_back(pLayer);
 					else
@@ -553,23 +606,49 @@ bool Process(IStorage *pStorage, char *pOutName, char **pMapNames, int NumMaps)
 						if(pTilemapItem->m_Flags & TILESLAYERFLAG_GAME)
 						{
 							CTile *pTiles = (CTile *)pLayer->m_pData;
-							for(int y = 0; y < pLayer->m_Height; y++)
-								for(int x = 0; x < pLayer->m_Width; x++)
+							for(int y = -MAP_PADDING_Y; y < pLayer->m_Height + MAP_PADDING_Y; y++)
+								for(int x = -MAP_PADDING_X; x < pLayer->m_Width + MAP_PADDING_X; x++)
 								{
 									int MapX = MapPositionX + x;
 									int MapY = MapPositionY + y;
 									int TargetIndex = MapY * MaxMapWidth + MapX;
 
-									CTile Tile = pTiles[y * pLayer->m_Width + x];
-									pGameTiles[TargetIndex] = Tile;
-									if(Tile.m_Index >= ENTITY_OFFSET)
+									if(MapX < 0 || MapX >= MaxMapWidth || MapY < 0 || MapY >= MaxMapHeight)
+										continue;
+
+									if(x == -MAP_PADDING_X || y == -MAP_PADDING_Y || x == pLayer->m_Width + MAP_PADDING_X - 1 || y == pLayer->m_Height + MAP_PADDING_Y - 1)
 									{
-										pSpeedupTiles[TargetIndex].m_Type = TILE_MEGAMAP_INDEX;
-										pSpeedupTiles[TargetIndex].m_Force = 0;
-										pSpeedupTiles[TargetIndex].m_MaxSpeed = MapIndex + 1;
+										pGameTiles[TargetIndex].m_Index = TILE_NOHOOK;
+										pGameTiles[TargetIndex].m_Flags = 0;
+										pGameTiles[TargetIndex].m_Reserved = 0;
+										pGameTiles[TargetIndex].m_Skip = 0;
+									}
+									else if(x < 0 || y < 0 || x >= pLayer->m_Width || y >= pLayer->m_Height)
+									{
+										int TargetX = 0;
+										int TargetY = 0;
+										if(x < 0)
+											TargetX = 0;
+										if(x >= pLayer->m_Width)
+											TargetX = pLayer->m_Width - 1;
+										if(y < 0)
+											TargetY = 0;
+										if(y >= pLayer->m_Height)
+											TargetY = pLayer->m_Height - 1;
+										pGameTiles[TargetIndex] = pTiles[TargetY * pLayer->m_Width + TargetX];
+									}
+									else
+									{
+										CTile Tile = pTiles[y * pLayer->m_Width + x];
+										pGameTiles[TargetIndex] = Tile;
+										if(Tile.m_Index >= ENTITY_OFFSET)
+										{
+											pSpeedupTiles[TargetIndex].m_Type = TILE_MEGAMAP_INDEX;
+											pSpeedupTiles[TargetIndex].m_Force = 0;
+											pSpeedupTiles[TargetIndex].m_MaxSpeed = MapIndex + 1;
+										}
 									}
 								}
-							DataFile.UnloadData(pTilemapItem->m_Data);
 						}
 						free(pLayer);
 					};
