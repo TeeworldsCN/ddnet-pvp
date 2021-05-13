@@ -202,6 +202,7 @@ private:
 public:
 	bool m_TimeoutProtected;
 	bool m_TimeoutSituation;
+	bool m_DisruptiveLeave;
 
 	void Reset(bool Rejoin = false);
 	void Init(NETSOCKET Socket, bool BlockCloseMsg);
@@ -377,6 +378,7 @@ public:
 	void SetMaxClientsPerIP(int Max);
 	bool SetTimedOut(int ClientID, int OrigID);
 	void SetTimeoutProtected(int ClientID);
+	void SetDisruptiveLeave(int ClientID, bool Disruptive);
 
 	int ResetErrorString(int ClientID);
 	const char *ErrorString(int ClientID);

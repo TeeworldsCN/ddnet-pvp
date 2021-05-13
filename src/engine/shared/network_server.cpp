@@ -132,6 +132,7 @@ int CNetServer::Update()
 	{
 		m_aSlots[i].m_Connection.Update();
 		if(m_aSlots[i].m_Connection.State() == NET_CONNSTATE_ERROR &&
+			!m_aSlots[i].m_Connection.m_DisruptiveLeave &&
 			(!m_aSlots[i].m_Connection.m_TimeoutProtected ||
 				!m_aSlots[i].m_Connection.m_TimeoutSituation))
 		{
@@ -813,6 +814,11 @@ bool CNetServer::SetTimedOut(int ClientID, int OrigID)
 void CNetServer::SetTimeoutProtected(int ClientID)
 {
 	m_aSlots[ClientID].m_Connection.m_TimeoutProtected = true;
+}
+
+void CNetServer::SetDisruptiveLeave(int ClientID, bool Disruptive)
+{
+	m_aSlots[ClientID].m_Connection.m_DisruptiveLeave = Disruptive;
 }
 
 int CNetServer::ResetErrorString(int ClientID)

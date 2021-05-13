@@ -304,6 +304,11 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 					SetError(aStr);
 				}
 
+				if(m_DisruptiveLeave)
+				{
+					SetError("Ragequit");
+				}
+
 				if(g_Config.m_Debug)
 					dbg_msg("conn", "closed reason='%s'", aStr);
 			}

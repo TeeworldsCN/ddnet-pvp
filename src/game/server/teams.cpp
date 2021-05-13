@@ -289,6 +289,9 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 			m_aTeamInstances[Team].m_pController->InstanceConsole()->ExecuteLine(Type.pSettings);
 	}
 
+	if(Team == 0 && g_Config.m_SvLobbyOverrideConfig)
+		m_aTeamInstances[Team].m_pController->InstanceConsole()->ExecuteLine(g_Config.m_SvLobbyOverrideConfig);
+
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "game controller %d is created", Team);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "team", aBuf);
@@ -297,6 +300,7 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 		if(GameServer()->IsPlayerValid(i) && m_Core.Team(i) == Team)
 			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[i], false, false);
 
+	UpdateGameTypeName();
 	return true;
 }
 
@@ -354,6 +358,8 @@ void CGameTeams::DestroyGameInstance(int Team)
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "game controller %d is deleted", Team);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "team", aBuf);
+
+	UpdateGameTypeName();
 }
 
 void CGameTeams::OnPlayerConnect(CPlayer *pPlayer)
@@ -563,6 +569,7 @@ std::vector<SGameType> CGameTeams::m_GameTypes;
 SGameType CGameTeams::m_DefaultGameType = {nullptr, nullptr, nullptr, false};
 char CGameTeams::m_aMapNames[64][128];
 int CGameTeams::m_NumMaps;
+char CGameTeams::m_aGameTypeName[17] = {0};
 
 void CGameTeams::SetDefaultGameType(const char *pGameType, const char *pSettings, bool IsFile)
 {
@@ -622,9 +629,16 @@ void CGameTeams::UpdateVotes()
 			continue;
 
 		if(m_aTeamInstances[i].m_Creator < 0)
+		{
 			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "☉ Room %d: ♙%d [%s]", i, m_Core.Count(i), pController->GetGameType());
+			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "☉ Room %d: ♙%d [%s] <-", i, m_Core.Count(i), pController->GetGameType());
+		}
 		else
+		{
 			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "☉ Room %d: ♙%d [%s] ♔%s", i, m_Core.Count(i), pController->GetGameType(), GameServer()->Server()->ClientName(m_aTeamInstances[i].m_Creator));
+			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "☉ Room %d: ♙%d [%s] ♔%s <-", i, m_Core.Count(i), pController->GetGameType(), GameServer()->Server()->ClientName(m_aTeamInstances[i].m_Creator));
+		}
+
 		m_NumRooms++;
 	}
 
@@ -709,6 +723,57 @@ void CGameTeams::ClearGameTypes()
 			free(m_DefaultGameType.pName);
 		m_DefaultGameType.pGameType = nullptr;
 	}
+}
+
+void CGameTeams::UpdateGameTypeName()
+{
+	char *TypeName = m_aGameTypeName;
+	*TypeName = 0;
+	char *Types[16];
+	int NumTypes = 0;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(m_aTeamInstances[i].m_IsCreated)
+		{
+			const char *Type = m_aTeamInstances[i].m_pController->GetGameType();
+			int Len = str_length(Type);
+			int RemainLen = sizeof(m_aGameTypeName) - (size_t)(TypeName - m_aGameTypeName);
+			bool AlreadyHas = false;
+			if(RemainLen <= Len)
+				continue;
+
+			for(int t = 0; t < NumTypes; t++)
+			{
+				if(str_comp(Types[t], Type) == 0)
+				{
+					AlreadyHas = true;
+					break;
+				}
+			}
+			if(!AlreadyHas)
+			{
+				mem_copy(TypeName, Type, Len);
+				TypeName[Len] = 0;
+				Types[NumTypes] = TypeName;
+				NumTypes++;
+				TypeName += Len + 1;
+			}
+		}
+	}
+
+	if(NumTypes <= 1)
+	{
+		*(TypeName - 1) = '*';
+		*TypeName = 0;
+	}
+	else
+	{
+		for(int i = 1; i < NumTypes; i++)
+		{
+			*(Types[i] - 1) = '|';
+		}
+	}
+	GameServer()->Server()->ExpireServerInfo();
 }
 
 void CGameTeams::ClearMaps()

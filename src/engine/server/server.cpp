@@ -525,6 +525,7 @@ int CServer::Init()
 		Client.m_AuthKey = -1;
 		Client.m_Latency = 0;
 		Client.m_Sixup = false;
+		Client.m_HasLeftDisruptively = false;
 	}
 
 	m_CurrentGameTick = 0;
@@ -1004,6 +1005,7 @@ int CServer::NewClientNoAuthCallback(int ClientID, void *pUser)
 	pThis->m_aClients[ClientID].m_AuthTries = 0;
 	pThis->m_aClients[ClientID].m_pRconCmdToSend = 0;
 	pThis->m_aClients[ClientID].m_ShowIps = false;
+	pThis->m_aClients[ClientID].m_HasLeftDisruptively = false;
 	pThis->m_aClients[ClientID].Reset();
 
 	pThis->SendCapabilities(ClientID);
@@ -1030,6 +1032,7 @@ int CServer::NewClientCallback(int ClientID, void *pUser, bool Sixup)
 	pThis->m_aClients[ClientID].m_Traffic = 0;
 	pThis->m_aClients[ClientID].m_TrafficSince = 0;
 	pThis->m_aClients[ClientID].m_ShowIps = false;
+	pThis->m_aClients[ClientID].m_HasLeftDisruptively = false;
 	memset(&pThis->m_aClients[ClientID].m_Addr, 0, sizeof(NETADDR));
 	pThis->m_aClients[ClientID].Reset();
 
@@ -1114,6 +1117,7 @@ int CServer::DelClientCallback(int ClientID, const char *pReason, void *pUser)
 	pThis->m_aClients[ClientID].m_Traffic = 0;
 	pThis->m_aClients[ClientID].m_TrafficSince = 0;
 	pThis->m_aClients[ClientID].m_ShowIps = false;
+	pThis->m_aClients[ClientID].m_HasLeftDisruptively = false;
 	pThis->m_aPrevStates[ClientID] = CClient::STATE_EMPTY;
 	pThis->m_aClients[ClientID].m_Snapshots.PurgeAll();
 	pThis->m_aClients[ClientID].m_Sixup = false;
@@ -3702,7 +3706,16 @@ bool CServer::SetTimedOut(int ClientID, int OrigID)
 	{
 		LogoutClient(ClientID, "Timeout Protection");
 	}
-	DelClientCallback(OrigID, "Timeout Protection used", this);
+	if(g_Config.m_SvRagequitBanTime > 0 && HasLeftDisruptively(ClientID))
+	{
+		Ban(OrigID, g_Config.m_SvRagequitBanTime * 60, "Leave abuse");
+		Ban(ClientID, g_Config.m_SvRagequitBanTime * 60, "Leave abuse");
+	}
+	else
+	{
+		DelClientCallback(OrigID, "Timeout Protection used", this);
+	}
+
 	m_aClients[ClientID].m_Authed = AUTHED_NO;
 	m_aClients[ClientID].m_Flags = m_aClients[OrigID].m_Flags;
 	return true;

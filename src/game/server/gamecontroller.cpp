@@ -125,7 +125,10 @@ static void ConAddVote(IConsole::IResult *pResult, void *pUserData)
 	if(!pSelf->m_pVoteOptionFirst)
 		pSelf->m_pVoteOptionFirst = pOption;
 
-	str_format(pOption->m_aDescription, sizeof(pOption->m_aDescription), "☐ %s", pDescription);
+	if(str_comp(pCommand, "info") == 0)
+		str_format(pOption->m_aDescription, sizeof(pOption->m_aDescription), "%s", pDescription);
+	else
+		str_format(pOption->m_aDescription, sizeof(pOption->m_aDescription), "☐ %s", pDescription);
 	mem_copy(pOption->m_aCommand, pCommand, Len + 1);
 }
 
@@ -380,6 +383,7 @@ IGameController::IGameController()
 	m_pInstanceConsole->Register("restart", "?i[seconds]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConRestart, this, "Restart in x seconds (0 = abort)");
 	m_pInstanceConsole->Register("set_team_all", "i[team-id]", CFGFLAG_INSTANCE, ConSetTeamAll, this, "Set team of all players to team");
 	m_pInstanceConsole->Register("help", "?r[command]", CFGFLAG_CHAT | CFGFLAG_INSTANCE | CFGFLAG_NO_CONSENT, ConHelp, this, "Shows help to command, general help if left blank");
+	m_pInstanceConsole->Register("info", "", CFGFLAG_CHAT | CFGFLAG_INSTANCE | CFGFLAG_NO_CONSENT, ConHelp, this, "Shows help to command, general help if left blank");
 
 	// vote commands
 	m_pInstanceConsole->Register("add_vote", "s[name] r[command]", CFGFLAG_INSTANCE, ConAddVote, this, "Add a voting option");
@@ -2173,6 +2177,7 @@ void IGameController::InitController(class CGameContext *pGameServer, class CGam
 	m_pServer = m_pGameServer->Server();
 	m_pWorld = pWorld;
 	m_GameStartTick = m_pServer->Tick();
+	m_pInstanceConsole->InitNoConfig(m_pGameServer->Storage());
 
 	// game
 	m_MatchCount = 0;

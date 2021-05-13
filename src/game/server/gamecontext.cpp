@@ -27,8 +27,7 @@
 #include "player.h"
 #include "teams.h"
 
-#define GAMETYPE_NAME "NotAType"
-#define TESTTYPE_NAME "TestNotAType"
+#define TESTTYPE_NAME "TestDDPvP"
 
 enum
 {
@@ -1089,23 +1088,26 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 
 	while(RoomIndex < NumRoomVotes && CurIndex < g_Config.m_SvSendVotesPerTick)
 	{
+		const char *pRoomVoteDesc = Teams()->m_aRoomVotes[RoomIndex];
+		if(Teams()->m_Core.Team(ClientID) == RoomIndex)
+			pRoomVoteDesc = Teams()->m_aRoomVotesJoined[RoomIndex];
 		switch(CurIndex)
 		{
-		case 0: OptionMsg.m_pDescription0 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 1: OptionMsg.m_pDescription1 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 2: OptionMsg.m_pDescription2 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 3: OptionMsg.m_pDescription3 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 4: OptionMsg.m_pDescription4 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 5: OptionMsg.m_pDescription5 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 6: OptionMsg.m_pDescription6 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 7: OptionMsg.m_pDescription7 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 8: OptionMsg.m_pDescription8 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 9: OptionMsg.m_pDescription9 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 10: OptionMsg.m_pDescription10 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 11: OptionMsg.m_pDescription11 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 12: OptionMsg.m_pDescription12 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 13: OptionMsg.m_pDescription13 = Teams()->m_aRoomVotes[RoomIndex]; break;
-		case 14: OptionMsg.m_pDescription14 = Teams()->m_aRoomVotes[RoomIndex]; break;
+		case 0: OptionMsg.m_pDescription0 = pRoomVoteDesc; break;
+		case 1: OptionMsg.m_pDescription1 = pRoomVoteDesc; break;
+		case 2: OptionMsg.m_pDescription2 = pRoomVoteDesc; break;
+		case 3: OptionMsg.m_pDescription3 = pRoomVoteDesc; break;
+		case 4: OptionMsg.m_pDescription4 = pRoomVoteDesc; break;
+		case 5: OptionMsg.m_pDescription5 = pRoomVoteDesc; break;
+		case 6: OptionMsg.m_pDescription6 = pRoomVoteDesc; break;
+		case 7: OptionMsg.m_pDescription7 = pRoomVoteDesc; break;
+		case 8: OptionMsg.m_pDescription8 = pRoomVoteDesc; break;
+		case 9: OptionMsg.m_pDescription9 = pRoomVoteDesc; break;
+		case 10: OptionMsg.m_pDescription10 = pRoomVoteDesc; break;
+		case 11: OptionMsg.m_pDescription11 = pRoomVoteDesc; break;
+		case 12: OptionMsg.m_pDescription12 = pRoomVoteDesc; break;
+		case 13: OptionMsg.m_pDescription13 = pRoomVoteDesc; break;
+		case 14: OptionMsg.m_pDescription14 = pRoomVoteDesc; break;
 		}
 
 		CurIndex++;
@@ -3468,7 +3470,7 @@ bool CGameContext::IsClientActivePlayer(int ClientID) const
 }
 
 CUuid CGameContext::GameUuid() const { return m_GameUuid; }
-const char *CGameContext::GameType() const { return g_Config.m_SvTestingCommands ? TESTTYPE_NAME : GAMETYPE_NAME; }
+const char *CGameContext::GameType() const { return g_Config.m_SvTestingCommands ? TESTTYPE_NAME : CGameTeams::GameTypeName(); }
 const char *CGameContext::Version() const { return GAME_VERSION; }
 const char *CGameContext::NetVersion() const { return GAME_NETVERSION; }
 

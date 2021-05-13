@@ -258,6 +258,12 @@ void CPlayer::Tick()
 	if(m_ChatScore > 0)
 		m_ChatScore--;
 
+	SGameInstance Instance = GameServer()->PlayerGameInstance(m_ClientID);
+	if(Instance.m_Init && Instance.m_pController->IsDisruptiveLeave(m_ClientID))
+		Server()->SetDisruptiveLeave(m_ClientID, true);
+	else
+		Server()->SetDisruptiveLeave(m_ClientID, false);
+
 	Server()->SetClientScore(m_ClientID, m_Score);
 
 	if(m_Moderating && m_Afk)
@@ -294,10 +300,17 @@ void CPlayer::Tick()
 	{
 		m_Afk = true;
 
-		char aBuf[512];
-		str_format(aBuf, sizeof(aBuf), "'%s' would have timed out, but can use timeout protection now", Server()->ClientName(m_ClientID));
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
-		Server()->ResetNetErrorString(m_ClientID);
+		if(Server()->GetNetErrorString(m_ClientID)[0] != 'R')
+		{
+			char aBuf[512];
+			str_format(aBuf, sizeof(aBuf), "'%s' would have timed out, but can use timeout protection now", Server()->ClientName(m_ClientID));
+			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+			Server()->ResetNetErrorString(m_ClientID);
+		}
+		else
+		{
+			Server()->SetLeftDisruptively(m_ClientID);
+		}
 	}
 
 	if(GameServer()->PlayerGameInstance(m_ClientID).m_Init)
@@ -592,12 +605,6 @@ void CPlayer::OnPredictedInput(CNetObj_PlayerInput *NewInput)
 
 	if(m_pCharacter && !m_Paused)
 		m_pCharacter->OnPredictedInput(NewInput);
-
-	// Magic number when we can hope that client has successfully identified itself
-	if(m_NumInputs == 20 && g_Config.m_SvClientSuggestion[0] != '\0' && GetClientVersion() <= VERSION_DDNET_OLD)
-		GameServer()->SendBroadcast(g_Config.m_SvClientSuggestion, m_ClientID);
-	else if(m_NumInputs == 200 && Server()->IsSixup(m_ClientID))
-		GameServer()->SendBroadcast("This server uses an experimental translation from Teeworlds 0.7 to 0.6. Please report bugs on ddnet.tw/discord", m_ClientID);
 }
 
 void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)

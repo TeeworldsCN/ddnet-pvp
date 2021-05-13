@@ -171,6 +171,9 @@ void CGameContext::ConTogglePause(IConsole::IResult *pResult, void *pUserData)
 	if(!CheckClientID(pResult->m_ClientID))
 		return;
 
+	if(!g_Config.m_SvPauseable)
+		return;
+
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	IServer *pServ = pSelf->Server();
 	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
@@ -242,7 +245,7 @@ void CGameContext::ConTimeout(IConsole::IResult *pResult, void *pUserData)
 				continue;
 			if(pSelf->Server()->SetTimedOut(i, pResult->m_ClientID))
 			{
-				if(pSelf->m_apPlayers[i]->GetCharacter())
+				if(pSelf->m_apPlayers[i] && pSelf->m_apPlayers[i]->GetCharacter())
 					pSelf->SendTuningParams(i, pSelf->m_apPlayers[i]->GetCharacter()->m_TuneZone);
 				/*if(pSelf->Server()->IsSixup(i))
 					pSelf->SendClientInfo(i, i);*/

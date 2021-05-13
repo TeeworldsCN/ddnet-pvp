@@ -62,6 +62,7 @@ class CGameTeams
 
 	// gametypes
 	static std::vector<SGameType> m_GameTypes;
+	static char m_aGameTypeName[17];
 	static char m_aMapNames[64][128];
 	static int m_NumMaps;
 	static SGameType m_DefaultGameType;
@@ -132,6 +133,7 @@ public:
 
 	void UpdateVotes();
 	char m_aRoomVotes[MAX_CLIENTS][VOTE_DESC_LENGTH];
+	char m_aRoomVotesJoined[MAX_CLIENTS][VOTE_DESC_LENGTH];
 	int m_NumRooms;
 
 	static void SetDefaultGameType(const char *pGameType, const char *pSettings, bool IsFile);
@@ -141,6 +143,9 @@ public:
 	static void ClearMaps();
 	static void AddMap(const char *pMapName);
 	static int GetMapIndex(const char *pMapName);
+
+	void UpdateGameTypeName();
+	static const char *GameTypeName() { return m_aGameTypeName; }
 };
 
 #endif

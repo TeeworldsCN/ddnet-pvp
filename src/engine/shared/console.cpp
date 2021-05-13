@@ -976,6 +976,11 @@ void CConsole::Init()
 #undef MACRO_CONFIG_STR
 }
 
+void CConsole::InitNoConfig(IStorage *pStorage)
+{
+	m_pStorage = pStorage;
+}
+
 void CConsole::ParseArguments(int NumArgs, const char **ppArguments)
 {
 	for(int i = 0; i < NumArgs; i++)
