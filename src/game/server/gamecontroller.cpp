@@ -403,6 +403,29 @@ IGameController::~IGameController()
 	delete m_pVoteOptionHeap;
 }
 
+void IGameController::StartController()
+{
+	// game
+	m_MatchCount = 0;
+	m_RoundCount = 0;
+	m_SuddenDeath = 0;
+	m_aTeamscore[TEAM_RED] = 0;
+	m_aTeamscore[TEAM_BLUE] = 0;
+
+	m_GameInfo.m_ScoreLimit = m_Scorelimit;
+	m_GameInfo.m_TimeLimit = m_Timelimit;
+	m_GameInfo.m_MatchNum = m_Roundlimit;
+	m_GameInfo.m_MatchCurrent = m_MatchCount + 1;
+
+	if(m_Warmup)
+		SetGameState(IGS_WARMUP_USER, m_Warmup);
+	else
+		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
+
+	if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
+		SetGameState(IGS_WARMUP_GAME, 0);
+}
+
 bool IGameController::GetPlayersReadyState(int WithoutID)
 {
 	for(int i = 0; i < MAX_CLIENTS; ++i)
@@ -547,6 +570,10 @@ void IGameController::OnInit()
 {
 }
 
+void IGameController::OnControllerStart()
+{
+}
+
 void IGameController::OnPlayerJoin(CPlayer *pPlayer)
 {
 }
@@ -627,6 +654,8 @@ int IGameController::OnInternalCharacterDeath(CCharacter *pVictim, CPlayer *pKil
 
 void IGameController::OnInternalCharacterSpawn(CCharacter *pChr)
 {
+	// check respawn state
+	pChr->GetPlayer()->m_RespawnDisabled = GetStartRespawnState();
 	OnCharacterSpawn(pChr);
 }
 
@@ -912,7 +941,7 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	UpdateGameInfo(ClientID);
 
 	// clear broadcast
-	GameServer()->SendBroadcast(" ", ClientID, true);
+	GameServer()->SendBroadcast(" ", ClientID, false);
 
 	// change team second
 	pPlayer->SetTeam(GetStartTeam(), false);
@@ -1236,6 +1265,7 @@ void IGameController::StartRound()
 {
 	ResetGame();
 
+	m_GameStartTick = Server()->Tick();
 	++m_RoundCount;
 	m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
 	for(int i = 0; i < MAX_CLIENTS; ++i)
@@ -2195,6 +2225,7 @@ void IGameController::InitController(class CGameContext *pGameServer, class CGam
 	m_GameStartTick = m_pServer->Tick();
 	m_pInstanceConsole->InitNoConfig(m_pGameServer->Storage());
 
+	// Init before StartController to be safe
 	// game
 	m_MatchCount = 0;
 	m_RoundCount = 0;

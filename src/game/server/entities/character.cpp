@@ -598,27 +598,6 @@ void CCharacter::Die(int Killer, int Weapon)
 	if(Server()->IsRecording(m_pPlayer->GetCID()))
 		Server()->StopRecord(m_pPlayer->GetCID());
 
-	int ModeSpecial = GameServer()->GameInstance(Team()).m_pController->OnInternalCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
-
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "kill killer='%d:%s' victim='%d:%s' weapon=%d special=%d",
-		Killer, Server()->ClientName(Killer),
-		m_pPlayer->GetCID(), Server()->ClientName(m_pPlayer->GetCID()), Weapon, ModeSpecial);
-	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
-
-	// send the kill message
-	CNetMsg_Sv_KillMsg Msg;
-	Msg.m_Killer = Killer;
-	Msg.m_Victim = m_pPlayer->GetCID();
-	Msg.m_Weapon = Weapon;
-	Msg.m_ModeSpecial = ModeSpecial;
-
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		if(GameServer()->m_apPlayers[i] && (GameServer()->GetPlayerDDRTeam(i) == GameWorld()->Team() || GameServer()->m_apPlayers[i]->m_ShowOthers == 2))
-			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
-	}
-
 	// a nice sound
 	GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_DIE);
 
@@ -634,6 +613,27 @@ void CCharacter::Die(int Killer, int Weapon)
 	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 	GameWorld()->CreateDeath(m_Pos, m_pPlayer->GetCID());
 	// Teams()->OnCharacterDeath(GetPlayer()->GetCID(), Weapon);
+
+	int ModeSpecial = GameServer()->GameInstance(Team()).m_pController->OnInternalCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
+
+	// send the kill message
+	CNetMsg_Sv_KillMsg Msg;
+	Msg.m_Killer = Killer;
+	Msg.m_Victim = m_pPlayer->GetCID();
+	Msg.m_Weapon = Weapon;
+	Msg.m_ModeSpecial = ModeSpecial;
+
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if(GameServer()->m_apPlayers[i] && (GameServer()->GetPlayerDDRTeam(i) == GameWorld()->Team() || GameServer()->m_apPlayers[i]->m_ShowOthers == 2))
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
+	}
+
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "kill killer='%d:%s' victim='%d:%s' weapon=%d special=%d",
+		Killer, Server()->ClientName(Killer),
+		m_pPlayer->GetCID(), Server()->ClientName(m_pPlayer->GetCID()), Weapon, ModeSpecial);
+	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 }
 
 bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)

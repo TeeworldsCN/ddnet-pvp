@@ -438,6 +438,10 @@ void CPlayer::Snap(int SnappingClient)
 	int ClientVersion = GetClientVersion();
 	int Latency = SnappingClient == -1 ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aActLatency[m_ClientID];
 	int Score = m_Score;
+	bool IsEndRound = false;
+	SGameInstance Instance = GameServer()->PlayerGameInstance(m_ClientID);
+	if(Instance.m_Init && Instance.m_pController->IsEndRound())
+		IsEndRound = true;
 
 	if(SnappingClient < 0 || !Server()->IsSixup(SnappingClient))
 	{
@@ -459,6 +463,10 @@ void CPlayer::Snap(int SnappingClient)
 		}
 
 		if(GameServer()->GetDDRaceTeam(SnapAs) != GameServer()->GetDDRaceTeam(m_ClientID) && !GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers)
+			pPlayerInfo->m_Team = TEAM_SPECTATORS;
+
+		bool DeadAndNoRespawn = m_RespawnDisabled && (!m_pCharacter || !m_pCharacter->IsAlive());
+		if((m_ClientID != SnappingClient || IsEndRound) && DeadAndNoRespawn)
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 	}
 	else
@@ -482,7 +490,7 @@ void CPlayer::Snap(int SnappingClient)
 		pPlayerInfo->m_Latency = Latency;
 	}
 
-	if(m_ClientID == SnappingClient && (IsSpectating() || m_DeadSpecMode))
+	if(m_ClientID == SnappingClient && IsSpectating() || m_DeadSpecMode || IsEndRound)
 	{
 		if(SnappingClient < 0 || !Server()->IsSixup(SnappingClient))
 		{
@@ -492,9 +500,16 @@ void CPlayer::Snap(int SnappingClient)
 
 			if((m_SpecMode == SPECMODE_FLAGRED || m_SpecMode == SPECMODE_FLAGBLUE) && m_pSpecFlag)
 			{
-				pSpectatorInfo->m_SpectatorID = SnappingClient;
+				pSpectatorInfo->m_SpectatorID = MappedID;
 				pSpectatorInfo->m_X = round_to_int(m_pSpecFlag->m_Pos.x);
 				pSpectatorInfo->m_Y = round_to_int(m_pSpecFlag->m_Pos.y);
+			}
+			else if(IsEndRound)
+			{
+				// special case for round end (to show round end broadcast instantly)
+				pSpectatorInfo->m_SpectatorID = MappedID;
+				pSpectatorInfo->m_X = m_ViewPos.x;
+				pSpectatorInfo->m_Y = m_ViewPos.y;
 			}
 			else
 			{

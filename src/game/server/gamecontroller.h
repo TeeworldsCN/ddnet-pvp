@@ -57,6 +57,7 @@ class IGameController
 	SBroadcastState m_aFakeClientBroadcast[MAX_CLIENTS];
 	void FakeClientBroadcast(int SnappingClient);
 
+protected:
 	// balancing
 	enum
 	{
@@ -198,6 +199,12 @@ protected:
 	*/
 	virtual void OnInit();
 	/*
+		Function: OnControllerStart()
+			Called when the controller and its world are fully prepared.
+			When this is called, the controllers gamestate is properly set.
+	*/
+	virtual void OnControllerStart();
+	/*
 		Function: OnPlayerJoin
 			Called when a player joins the game controlled by this controller.
 			This is called before the player's character is spawned.
@@ -301,6 +308,7 @@ public:
 	virtual void OnFlagReset(class CFlag *pFlag);
 
 	// internal events
+	void StartController();
 	void OnInternalPlayerJoin(class CPlayer *pPlayer, bool ServerJoin, bool Creating);
 	void OnInternalPlayerLeave(class CPlayer *pPlayer, bool ServerLeave);
 	int OnInternalCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
@@ -377,11 +385,11 @@ public:
 
 	//spawn
 	bool CanSpawn(int Team, vec2 *pPos) const;
-	bool GetStartRespawnState() const;
+	virtual bool GetStartRespawnState() const;
 
 	// team
 	bool CanJoinTeam(int Team, int ClientID, bool SendReason) const;
-	bool CanChangeTeam(CPlayer *pPplayer, int JoinTeam) const;
+	virtual bool CanChangeTeam(CPlayer *pPplayer, int JoinTeam) const;
 
 	void DoTeamChange(class CPlayer *pPlayer, int Team, bool DoChatMsg = true);
 	void ForceTeamBalance()

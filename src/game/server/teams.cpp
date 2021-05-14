@@ -468,7 +468,10 @@ void CGameTeams::OnTick()
 					}
 
 					if(m_aTeamInstances[i].m_Entities == m_Entities.size())
+					{
 						m_aTeamInstances[i].m_Init = true;
+						m_aTeamInstances[i].m_pController->StartController();
+					}
 				}
 				if(m_aTeamInstances[i].m_IsCreated)
 					NumCreated++;
