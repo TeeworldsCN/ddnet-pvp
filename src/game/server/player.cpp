@@ -131,6 +131,7 @@ void CPlayer::Reset()
 
 void CPlayer::GameReset()
 {
+	m_Spawning = false;
 	m_DieTick = Server()->Tick();
 	m_ScoreStartTick = Server()->Tick();
 	m_PreviousDieTick = m_DieTick;
@@ -413,8 +414,8 @@ void CPlayer::Snap(int SnappingClient)
 		if(!Server()->ClientIngame(m_ClientID))
 			return;
 
-	int id = m_ClientID;
-	if(SnappingClient > -1 && !Server()->Translate(id, SnappingClient))
+	int MappedID = m_ClientID;
+	if(SnappingClient > -1 && !Server()->Translate(MappedID, SnappingClient))
 		return;
 
 	CPlayer *pSnappingPlayer = GameServer()->m_apPlayers[SnappingClient];
@@ -422,7 +423,7 @@ void CPlayer::Snap(int SnappingClient)
 	if(pSnappingPlayer->IsSpectating() && pSnappingPlayer->GetSpectatorID() > SPEC_FREEVIEW)
 		SnapAs = pSnappingPlayer->m_SpectatorID; // Snap as spectating player.
 
-	CNetObj_ClientInfo *pClientInfo = static_cast<CNetObj_ClientInfo *>(Server()->SnapNewItem(NETOBJTYPE_CLIENTINFO, id, sizeof(CNetObj_ClientInfo)));
+	CNetObj_ClientInfo *pClientInfo = static_cast<CNetObj_ClientInfo *>(Server()->SnapNewItem(NETOBJTYPE_CLIENTINFO, MappedID, sizeof(CNetObj_ClientInfo)));
 	if(!pClientInfo)
 		return;
 
@@ -440,13 +441,13 @@ void CPlayer::Snap(int SnappingClient)
 
 	if(SnappingClient < 0 || !Server()->IsSixup(SnappingClient))
 	{
-		CNetObj_PlayerInfo *pPlayerInfo = static_cast<CNetObj_PlayerInfo *>(Server()->SnapNewItem(NETOBJTYPE_PLAYERINFO, id, sizeof(CNetObj_PlayerInfo)));
+		CNetObj_PlayerInfo *pPlayerInfo = static_cast<CNetObj_PlayerInfo *>(Server()->SnapNewItem(NETOBJTYPE_PLAYERINFO, MappedID, sizeof(CNetObj_PlayerInfo)));
 		if(!pPlayerInfo)
 			return;
 
 		pPlayerInfo->m_Latency = Latency;
 		pPlayerInfo->m_Score = Score;
-		pPlayerInfo->m_ClientID = id;
+		pPlayerInfo->m_ClientID = MappedID;
 		pPlayerInfo->m_Local = (int)(m_ClientID == SnappingClient);
 		pPlayerInfo->m_Team = m_Team;
 
@@ -457,12 +458,12 @@ void CPlayer::Snap(int SnappingClient)
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 		}
 
-		if(GameServer()->GetDDRaceTeam(SnapAs) != GameServer()->GetDDRaceTeam(id) && !GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers)
+		if(GameServer()->GetDDRaceTeam(SnapAs) != GameServer()->GetDDRaceTeam(m_ClientID) && !GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers)
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 	}
 	else
 	{
-		protocol7::CNetObj_PlayerInfo *pPlayerInfo = static_cast<protocol7::CNetObj_PlayerInfo *>(Server()->SnapNewItem(NETOBJTYPE_PLAYERINFO, id, sizeof(protocol7::CNetObj_PlayerInfo)));
+		protocol7::CNetObj_PlayerInfo *pPlayerInfo = static_cast<protocol7::CNetObj_PlayerInfo *>(Server()->SnapNewItem(NETOBJTYPE_PLAYERINFO, MappedID, sizeof(protocol7::CNetObj_PlayerInfo)));
 		if(!pPlayerInfo)
 			return;
 
@@ -515,11 +516,11 @@ void CPlayer::Snap(int SnappingClient)
 		}
 	}
 
-	CNetObj_DDNetPlayer *pDDNetPlayer = static_cast<CNetObj_DDNetPlayer *>(Server()->SnapNewItem(NETOBJTYPE_DDNETPLAYER, id, sizeof(CNetObj_DDNetPlayer)));
+	CNetObj_DDNetPlayer *pDDNetPlayer = static_cast<CNetObj_DDNetPlayer *>(Server()->SnapNewItem(NETOBJTYPE_DDNETPLAYER, MappedID, sizeof(CNetObj_DDNetPlayer)));
 	if(!pDDNetPlayer)
 		return;
 
-	pDDNetPlayer->m_AuthLevel = Server()->GetAuthedState(id);
+	pDDNetPlayer->m_AuthLevel = Server()->GetAuthedState(m_ClientID);
 	pDDNetPlayer->m_Flags = 0;
 	if(m_Afk)
 		pDDNetPlayer->m_Flags |= EXPLAYERFLAG_AFK;
@@ -531,12 +532,12 @@ void CPlayer::Snap(int SnappingClient)
 	if(SnappingClient >= 0)
 	{
 		CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-		ShowSpec = ShowSpec && (GameServer()->GetDDRaceTeam(id) == GameServer()->GetDDRaceTeam(SnappingClient) || pSnapPlayer->m_ShowOthers || pSnapPlayer->IsSpectating());
+		ShowSpec = ShowSpec && (GameServer()->GetDDRaceTeam(m_ClientID) == GameServer()->GetDDRaceTeam(SnappingClient) || pSnapPlayer->m_ShowOthers || pSnapPlayer->IsSpectating());
 	}
 
 	if(ShowSpec)
 	{
-		CNetObj_SpecChar *pSpecChar = static_cast<CNetObj_SpecChar *>(Server()->SnapNewItem(NETOBJTYPE_SPECCHAR, id, sizeof(CNetObj_SpecChar)));
+		CNetObj_SpecChar *pSpecChar = static_cast<CNetObj_SpecChar *>(Server()->SnapNewItem(NETOBJTYPE_SPECCHAR, MappedID, sizeof(CNetObj_SpecChar)));
 		if(!pSpecChar)
 			return;
 

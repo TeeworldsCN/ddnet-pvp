@@ -740,7 +740,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 }
 
 //TODO: Move the emote stuff to a function
-void CCharacter::SnapCharacter(int SnappingClient, int ID)
+void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 {
 	CCharacterCore *pCore;
 
@@ -824,7 +824,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int ID)
 
 	if(!Server()->IsSixup(SnappingClient))
 	{
-		CNetObj_Character *pCharacter = static_cast<CNetObj_Character *>(Server()->SnapNewItem(NETOBJTYPE_CHARACTER, ID, sizeof(CNetObj_Character)));
+		CNetObj_Character *pCharacter = static_cast<CNetObj_Character *>(Server()->SnapNewItem(NETOBJTYPE_CHARACTER, MappedID, sizeof(CNetObj_Character)));
 		if(!pCharacter)
 			return;
 
@@ -857,7 +857,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int ID)
 	}
 	else
 	{
-		protocol7::CNetObj_Character *pCharacter = static_cast<protocol7::CNetObj_Character *>(Server()->SnapNewItem(NETOBJTYPE_CHARACTER, ID, sizeof(protocol7::CNetObj_Character)));
+		protocol7::CNetObj_Character *pCharacter = static_cast<protocol7::CNetObj_Character *>(Server()->SnapNewItem(NETOBJTYPE_CHARACTER, MappedID, sizeof(protocol7::CNetObj_Character)));
 		if(!pCharacter)
 			return;
 
@@ -883,9 +883,9 @@ void CCharacter::SnapCharacter(int SnappingClient, int ID)
 
 void CCharacter::Snap(int SnappingClient, int OtherMode)
 {
-	int ID = m_pPlayer->GetCID();
+	int MappedID = m_pPlayer->GetCID();
 
-	if(SnappingClient > -1 && !Server()->Translate(ID, SnappingClient))
+	if(SnappingClient > -1 && !Server()->Translate(MappedID, SnappingClient))
 		return;
 
 	if(NetworkClipped(SnappingClient))
@@ -894,9 +894,9 @@ void CCharacter::Snap(int SnappingClient, int OtherMode)
 	if(m_Disabled)
 		return;
 
-	SnapCharacter(SnappingClient, ID);
+	SnapCharacter(SnappingClient, MappedID);
 
-	CNetObj_DDNetCharacter *pDDNetCharacter = static_cast<CNetObj_DDNetCharacter *>(Server()->SnapNewItem(NETOBJTYPE_DDNETCHARACTER, ID, sizeof(CNetObj_DDNetCharacter)));
+	CNetObj_DDNetCharacter *pDDNetCharacter = static_cast<CNetObj_DDNetCharacter *>(Server()->SnapNewItem(NETOBJTYPE_DDNETCHARACTER, MappedID, sizeof(CNetObj_DDNetCharacter)));
 	if(!pDDNetCharacter)
 		return;
 
@@ -946,7 +946,7 @@ void CCharacter::Snap(int SnappingClient, int OtherMode)
                                                                                Server()->Tick() + m_FreezeTime;
 	pDDNetCharacter->m_Jumps = m_Core.m_Jumps;
 	pDDNetCharacter->m_TeleCheckpoint = m_TeleCheckpoint;
-	pDDNetCharacter->m_StrongWeakID = SnappingClient == ID ? 1 : 0;
+	pDDNetCharacter->m_StrongWeakID = SnappingClient == m_pPlayer->GetCID() ? 1 : 0;
 }
 
 // DDRace

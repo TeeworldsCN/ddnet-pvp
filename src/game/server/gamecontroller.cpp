@@ -892,11 +892,11 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bool Creating)
 {
 	int ClientID = pPlayer->GetCID();
+	pPlayer->GameReset();
 	pPlayer->m_IsReadyToPlay = !IsPlayerReadyMode();
 	pPlayer->m_RespawnDisabled = GetStartRespawnState();
 	pPlayer->m_Vote = 0;
 	pPlayer->m_VotePos = 0;
-	pPlayer->GameReset();
 
 	// clear vote options for joining player
 	CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;
@@ -1947,9 +1947,14 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos) const
 	}
 	else
 	{
+		// first try normal spawn, then red spawn and then blue
 		EvaluateSpawnType(&Eval, 0);
-		EvaluateSpawnType(&Eval, 1);
-		EvaluateSpawnType(&Eval, 2);
+		if(!Eval.m_Got)
+		{
+			EvaluateSpawnType(&Eval, 1);
+			if(!Eval.m_Got)
+				EvaluateSpawnType(&Eval, 2);
+		}
 	}
 
 	*pOutPos = Eval.m_Pos;
@@ -1977,6 +1982,8 @@ float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos) const
 void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type) const
 {
 	// get spawn point
+	if(Type == 0)
+		dbg_msg("spwanresult", "eval");
 	for(int i = 0; i < m_aNumSpawnPoints[Type]; i++)
 	{
 		// check if the position is occupado
@@ -2004,9 +2011,14 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type) const
 
 		vec2 P = m_aaSpawnPoints[Type][i] + Positions[Result];
 		// MYTODO: frandom to pRng?
-		float S = pEval->m_RandomSpawn ? (Result + frandom()) : EvaluateSpawnPos(pEval, P);
+		float RandomScore = Result + frandom();
+		if(Type == 0)
+			dbg_msg("spwanresult", "%d: %.02f", i, RandomScore);
+		float S = pEval->m_RandomSpawn ? RandomScore : EvaluateSpawnPos(pEval, P);
 		if(!pEval->m_Got || pEval->m_Score > S)
 		{
+			if(Type == 0)
+				dbg_msg("spwanresult", "%.02f > %.02f got %d", pEval->m_Score, S, i);
 			pEval->m_Got = true;
 			pEval->m_Score = S;
 			pEval->m_Pos = P;
