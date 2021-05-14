@@ -782,11 +782,15 @@ void CGameContext::ConInstanceCommand(IConsole::IResult *pResult, void *pUserDat
 	if(!CheckClientID(ClientID))
 		return;
 
+	int Room = pSelf->GetPlayerDDRTeam(ClientID);
+	char aInstanceBuf[32];
+	str_format(aInstanceBuf, sizeof(aInstanceBuf), "instance %d", Room);
+
 	if(g_Config.m_SvRoomSetting == 0)
 	{
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
-			"instancecommand",
+			aInstanceBuf,
 			"/setting is disabled");
 		return;
 	}
@@ -796,7 +800,7 @@ void CGameContext::ConInstanceCommand(IConsole::IResult *pResult, void *pUserDat
 	{
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
-			"instancecommand",
+			aInstanceBuf,
 			"The room is not ready");
 		return;
 	}
@@ -805,7 +809,7 @@ void CGameContext::ConInstanceCommand(IConsole::IResult *pResult, void *pUserDat
 	{
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
-			"instancecommand",
+			aInstanceBuf,
 			"You cannot execute command in lobby room / room 0");
 		return;
 	}

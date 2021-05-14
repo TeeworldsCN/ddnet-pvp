@@ -559,6 +559,13 @@ void CGameContext::ConDumpAntibot(IConsole::IResult *pResult, void *pUserData)
 	pSelf->Antibot()->Dump();
 }
 
+void CGameContext::ConClearGameTypes(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	pSelf->Teams()->ClearGameTypes();
+}
+
 void CGameContext::ConSetDefaultGameType(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;

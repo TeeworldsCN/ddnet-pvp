@@ -1619,6 +1619,8 @@ void IGameController::Tick()
 			if(m_VoteEnforce == VOTE_ENFORCE_YES && !(GameServer()->PlayerModerating() &&
 									(IsKickVote() || IsSpecVote()) && time_get() < m_VoteCloseTime))
 			{
+				// silence voted command response
+				m_ChatResponseTargetID = -2;
 				Server()->SetRconCID(IServer::RCON_CID_VOTE);
 				InstanceConsole()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
 				Server()->SetRconCID(IServer::RCON_CID_SERV);
@@ -1631,6 +1633,8 @@ void IGameController::Tick()
 			else if(m_VoteEnforce == VOTE_ENFORCE_YES_ADMIN)
 			{
 				char aBuf[64];
+				// silence voted command response
+				m_ChatResponseTargetID = -2;
 				str_format(aBuf, sizeof(aBuf), "Vote passed enforced by authorized player");
 				InstanceConsole()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
 				SendChatTarget(-1, aBuf, CGameContext::CHAT_SIX);
@@ -2275,6 +2279,23 @@ bool IGameController::IsVoting()
 	return m_VoteCloseTime > 0;
 }
 
+void IGameController::ForceVote(int EnforcerID, bool Success)
+{
+	// check if there is a vote running
+	if(!m_VoteCloseTime)
+		return;
+
+	m_VoteEnforce = Success ? VOTE_ENFORCE_YES_ADMIN : VOTE_ENFORCE_NO_ADMIN;
+	m_VoteEnforcer = EnforcerID;
+
+	char aBuf[256];
+	const char *pOption = Success ? "yes" : "no";
+	str_format(aBuf, sizeof(aBuf), "authorized player forced vote %s", pOption);
+	SendChatTarget(-1, aBuf);
+	str_format(aBuf, sizeof(aBuf), "forcing vote %s", pOption);
+	InstanceConsole()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+}
+
 struct CVoteOptionServer *IGameController::GetVoteOption(int Index)
 {
 	CVoteOptionServer *pCurrent;
@@ -2414,10 +2435,6 @@ void IGameController::InstanceConsolePrint(const char *pStr, void *pUser, ColorR
 {
 	IGameController *pController = (IGameController *)pUser;
 
-	int TargetID = pController->m_ChatResponseTargetID;
-	if(TargetID < 0 || TargetID >= MAX_CLIENTS)
-		TargetID = -1;
-
 	const char *pLineOrig = pStr;
 
 	if(pStr[0] == '[')
@@ -2432,8 +2449,10 @@ void IGameController::InstanceConsolePrint(const char *pStr, void *pUser, ColorR
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "%s", pStr);
-	pController->SendChatTarget(TargetID, aBuf);
-	pController->m_ChatResponseTargetID = -1;
+
+	char aBufInstance[32];
+	str_format(aBufInstance, sizeof(aBufInstance), "instance %d", pController->GameWorld()->Team());
+	pController->GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, aBufInstance, aBuf);
 }
 
 void IGameController::ConchainReplyOnly(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)

@@ -413,6 +413,7 @@ public:
 	void StartVote(const char *pDesc, const char *pCommand, const char *pReason, const char *pSixupDesc);
 	void EndVote(bool SendInfo);
 	bool IsVoting();
+	void ForceVote(int EnforcerID, bool Success);
 	void SetVoteVictim(int ClientID) { m_VoteVictim = ClientID; }
 	void SetVoteType(int Type) { m_VoteType = Type; }
 	void VoteUpdate() { m_VoteUpdate = true; }

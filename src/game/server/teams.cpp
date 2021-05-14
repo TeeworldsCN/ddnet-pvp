@@ -290,7 +290,7 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	}
 
 	if(Team == 0 && g_Config.m_SvLobbyOverrideConfig[0])
-		m_aTeamInstances[Team].m_pController->InstanceConsole()->ExecuteLine(g_Config.m_SvLobbyOverrideConfig);
+		m_aTeamInstances[Team].m_pController->InstanceConsole()->ExecuteFile(g_Config.m_SvLobbyOverrideConfig);
 
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "game controller %d is created", Team);
@@ -573,6 +573,19 @@ char CGameTeams::m_aGameTypeName[17] = {0};
 
 void CGameTeams::SetDefaultGameType(const char *pGameType, const char *pSettings, bool IsFile)
 {
+	if(!pGameType || !(*pGameType))
+	{
+		if(m_DefaultGameType.pGameType)
+		{
+			if(m_DefaultGameType.pSettings)
+				free(m_DefaultGameType.pSettings);
+			if(m_DefaultGameType.pName)
+				free(m_DefaultGameType.pName);
+			m_DefaultGameType.pGameType = nullptr;
+		}
+		return;
+	}
+
 	bool IsValidGameType = false;
 	if(false)
 		return;
@@ -714,14 +727,6 @@ void CGameTeams::ClearGameTypes()
 		if(Type.pName)
 			free(Type.pName);
 		m_GameTypes.pop_back();
-	}
-	if(m_DefaultGameType.pGameType)
-	{
-		if(m_DefaultGameType.pSettings)
-			free(m_DefaultGameType.pSettings);
-		if(m_DefaultGameType.pName)
-			free(m_DefaultGameType.pName);
-		m_DefaultGameType.pGameType = nullptr;
 	}
 }
 

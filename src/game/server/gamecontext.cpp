@@ -833,6 +833,8 @@ void CGameContext::OnTick()
 			if(m_VoteEnforce == VOTE_ENFORCE_YES && !(PlayerModerating() &&
 									(IsKickVote() || IsSpecVote()) && time_get() < m_VoteCloseTime))
 			{
+				// silence voted command response
+				m_ChatResponseTargetID = -1;
 				Server()->SetRconCID(IServer::RCON_CID_VOTE);
 				Console()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
 				Server()->SetRconCID(IServer::RCON_CID_SERV);
@@ -845,6 +847,8 @@ void CGameContext::OnTick()
 			else if(m_VoteEnforce == VOTE_ENFORCE_YES_ADMIN)
 			{
 				char aBuf[64];
+				// silence voted command response
+				m_ChatResponseTargetID = -1;
 				str_format(aBuf, sizeof(aBuf), "Vote passed enforced by authorized player");
 				Console()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
 				SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CHAT_SIX);
@@ -1688,7 +1692,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				return;
 
 			m_apPlayers[ClientID]->UpdatePlaytime();
-
 			m_VoteType = VOTE_TYPE_UNKNOWN;
 			char aChatmsg[512] = {0};
 			char aDesc[VOTE_DESC_LENGTH] = {0};
@@ -1985,12 +1988,12 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				if(IsInstanceVote)
 				{
 					SGameInstance Instance = PlayerGameInstance(ClientID);
-					if(!Instance.m_Init)
+					if(!Instance.m_IsCreated)
 					{
 						Console()->Print(
 							IConsole::OUTPUT_LEVEL_STANDARD,
-							"instancecommand",
-							"The room is not ready");
+							"instancevote",
+							"The room does not exist");
 					}
 					else
 					{
@@ -2913,9 +2916,9 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("vote", "r['yes'|'no']", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
 	Console()->Register("dump_antibot", "", CFGFLAG_SERVER, ConDumpAntibot, this, "Dumps the antibot status");
 
-	// backwards compatible
-	Console()->Register("sv_gametype", "s[gametype] ?r[settings]", CFGFLAG_SERVER, ConSetDefaultGameType, this, "Set a default gametype for room 0. The default game type won't be avalible for room id >1");
-	Console()->Register("sv_gametypefile", "s[gametype] r[filename]", CFGFLAG_SERVER, ConSetDefaultGameTypeFile, this, "Set a default gametype for room 0. The default game type won't be avalible for room id >1");
+	Console()->Register("clear_gametypes", "", CFGFLAG_SERVER, ConClearGameTypes, this, "Set a default gametype for room 0. The default game type won't be avalible for room id >1");
+	Console()->Register("lobby_gametype", "s[gametype] ?r[settings]", CFGFLAG_SERVER, ConSetDefaultGameType, this, "Set a default gametype for room 0. The default game type won't be avalible for room id >1");
+	Console()->Register("lobby_gametypefile", "s[gametype] r[filename]", CFGFLAG_SERVER, ConSetDefaultGameTypeFile, this, "Set a default gametype for room 0. The default game type won't be avalible for room id >1");
 	Console()->Register("add_gametype", "s[name] ?s[gametype] ?r[settings]", CFGFLAG_SERVER, ConAddGameType, this, "Register an gametype for rooms. First register will be the default for room 0");
 	Console()->Register("add_gametypefile", "s[name] s[gametype] r[filename]", CFGFLAG_SERVER, ConAddGameTypeFile, this, "Register an gametype for rooms. First register will be the default for room 0");
 	Console()->Register("mega_add_mapname", "r[name]", CFGFLAG_SERVER, ConAddMapName, this, "Mega map sub map names. Add it in order of map indexes, starting from map 1.");
@@ -3384,7 +3387,10 @@ void CGameContext::OnShutdown(bool FullShutdown)
 	Clear();
 
 	if(FullShutdown)
+	{
+		m_Teams.SetDefaultGameType(nullptr, nullptr, false);
 		m_Teams.ClearGameTypes();
+	}
 }
 
 void CGameContext::LoadMapSettings()
@@ -3907,6 +3913,11 @@ bool CGameContext::PlayerModerating() const
 
 void CGameContext::ForceVote(int EnforcerID, bool Success)
 {
+	// try to enforce vote in enforcer's room
+	SGameInstance Instance = PlayerGameInstance(EnforcerID);
+	if(Instance.m_IsCreated)
+		Instance.m_pController->ForceVote(EnforcerID, Success);
+
 	// check if there is a vote running
 	if(!m_VoteCloseTime)
 		return;
