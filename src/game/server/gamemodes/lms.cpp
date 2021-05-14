@@ -44,10 +44,11 @@ bool CGameControllerLMS::DoWincheckRound()
 	{
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 		{
-			if(IsPlayerInRoom(i) && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS &&
-				(!GameServer()->m_apPlayers[i]->m_RespawnDisabled ||
-					(GameServer()->m_apPlayers[i]->GetCharacter() && GameServer()->m_apPlayers[i]->GetCharacter()->IsAlive())))
-				GameServer()->m_apPlayers[i]->m_Score++;
+			CPlayer *pPlayer = GetPlayerIfInRoom(i);
+			if(pPlayer && pPlayer->GetTeam() != TEAM_SPECTATORS &&
+				(!pPlayer->m_RespawnDisabled ||
+					(pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive())))
+				pPlayer->m_Score++;
 		}
 
 		EndRound();
@@ -60,12 +61,13 @@ bool CGameControllerLMS::DoWincheckRound()
 		int AlivePlayerCount = 0;
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 		{
-			if(IsPlayerInRoom(i) && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS &&
-				(!GameServer()->m_apPlayers[i]->m_RespawnDisabled ||
-					(GameServer()->m_apPlayers[i]->GetCharacter() && GameServer()->m_apPlayers[i]->GetCharacter()->IsAlive())))
+			CPlayer *pPlayer = GetPlayerIfInRoom(i);
+			if(pPlayer && pPlayer->GetTeam() != TEAM_SPECTATORS &&
+				(!pPlayer->m_RespawnDisabled ||
+					(pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive())))
 			{
 				++AlivePlayerCount;
-				pAlivePlayer = GameServer()->m_apPlayers[i];
+				pAlivePlayer = pPlayer;
 			}
 		}
 

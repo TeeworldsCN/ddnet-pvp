@@ -63,9 +63,12 @@ static void ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
 	str_format(aBuf, sizeof(aBuf), "All players were moved to the %s", pSelf->GetTeamName(Team));
 	pSelf->SendChatTarget(-1, aBuf);
 
-	for(auto &pPlayer : pSelf->GameServer()->m_apPlayers)
-		if(pPlayer && pSelf->IsPlayerInRoom(pPlayer->GetCID()))
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		CPlayer *pPlayer = pSelf->GetPlayerIfInRoom(i);
+		if(pPlayer)
 			pSelf->DoTeamChange(pPlayer, Team, false);
+	}
 }
 
 static void ConAddVote(IConsole::IResult *pResult, void *pUserData)
@@ -443,8 +446,9 @@ void IGameController::SetPlayersReadyState(bool ReadyState)
 {
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
-		if(GameServer()->IsClientPlayer(i) && (ReadyState || !GameServer()->m_apPlayers[i]->m_DeadSpecMode))
-			GameServer()->m_apPlayers[i]->m_IsReadyToPlay = ReadyState;
+		CPlayer *pPlayer = GetPlayerIfInRoom(i);
+		if(pPlayer && GameServer()->IsClientPlayer(i) && (ReadyState || !pPlayer->m_DeadSpecMode))
+			pPlayer->m_IsReadyToPlay = ReadyState;
 	}
 }
 
@@ -519,11 +523,12 @@ void IGameController::DoTeamBalance()
 	// gather stats
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(IsPlayerInRoom(i) && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS)
+		CPlayer *pPlayer = GetPlayerIfInRoom(i);
+		if(pPlayer && pPlayer->GetTeam() != TEAM_SPECTATORS)
 		{
-			aPlayerScore[i] = GameServer()->m_apPlayers[i]->m_Score * Server()->TickSpeed() * 60.0f /
-					  (Server()->Tick() - GameServer()->m_apPlayers[i]->m_ScoreStartTick);
-			aTeamScore[GameServer()->m_apPlayers[i]->GetTeam()] += aPlayerScore[i];
+			aPlayerScore[i] = pPlayer->m_Score * Server()->TickSpeed() * 60.0f /
+					  (Server()->Tick() - pPlayer->m_ScoreStartTick);
+			aTeamScore[pPlayer->GetTeam()] += aPlayerScore[i];
 		}
 	}
 
@@ -537,14 +542,15 @@ void IGameController::DoTeamBalance()
 		float ScoreDiff = aTeamScore[BiggerTeam];
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
-			if(!IsPlayerInRoom(i) || !CanBeMovedOnBalance(i))
+			CPlayer *pRoomPlayer = GetPlayerIfInRoom(i);
+			if(!pRoomPlayer || !CanBeMovedOnBalance(i))
 				continue;
 
 			// remember the player whom would cause lowest score-difference
-			if(GameServer()->m_apPlayers[i]->GetTeam() == BiggerTeam &&
+			if(pRoomPlayer->GetTeam() == BiggerTeam &&
 				(!pPlayer || absolute((aTeamScore[BiggerTeam ^ 1] + aPlayerScore[i]) - (aTeamScore[BiggerTeam] - aPlayerScore[i])) < ScoreDiff))
 			{
-				pPlayer = GameServer()->m_apPlayers[i];
+				pPlayer = pRoomPlayer;
 				ScoreDiff = absolute((aTeamScore[BiggerTeam ^ 1] + aPlayerScore[i]) - (aTeamScore[BiggerTeam] - aPlayerScore[i]));
 			}
 		}
@@ -645,8 +651,11 @@ int IGameController::OnInternalCharacterDeath(CCharacter *pVictim, CPlayer *pKil
 	if(IsSurvival())
 	{
 		for(int i = 0; i < MAX_CLIENTS; ++i)
-			if(IsPlayerInRoom(i) && GameServer()->m_apPlayers[i]->m_DeadSpecMode)
-				GameServer()->m_apPlayers[i]->UpdateDeadSpecMode();
+		{
+			CPlayer *pPlayer = GetPlayerIfInRoom(i);
+			if(pPlayer && pPlayer->m_DeadSpecMode)
+				pPlayer->UpdateDeadSpecMode();
+		}
 	}
 
 	return DeathFlag & (DEATH_VICTIM_HAS_FLAG | DEATH_KILLER_HAS_FLAG);
@@ -1001,8 +1010,9 @@ void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer, bool ServerLeave)
 
 void IGameController::OnReset()
 {
-	for(auto &pPlayer : GameServer()->m_apPlayers)
+	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
+		CPlayer *pPlayer = GetPlayerIfInRoom(i);
 		if(pPlayer)
 		{
 			pPlayer->m_RespawnDisabled = false;
@@ -1047,8 +1057,9 @@ bool IGameController::DoWincheckMatch()
 		// gather some stats
 		int Topscore = 0;
 		int TopscoreCount = 0;
-		for(auto &pPlayer : GameServer()->m_apPlayers)
+		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
+			CPlayer *pPlayer = GetPlayerIfInRoom(i);
 			if(pPlayer)
 			{
 				if(pPlayer->m_Score > Topscore)
@@ -1114,8 +1125,11 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 				if(IsSurvival())
 				{
 					for(int i = 0; i < MAX_CLIENTS; ++i)
-						if(GameServer()->m_apPlayers[i])
-							GameServer()->m_apPlayers[i]->m_RespawnDisabled = false;
+					{
+						CPlayer *pPlayer = GetPlayerIfInRoom(i);
+						if(pPlayer)
+							pPlayer->m_RespawnDisabled = false;
+					}
 				}
 			}
 			else if(Timer == 0)
@@ -1153,8 +1167,11 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 				if(IsSurvival())
 				{
 					for(int i = 0; i < MAX_CLIENTS; ++i)
-						if(GameServer()->m_apPlayers[i])
-							GameServer()->m_apPlayers[i]->m_RespawnDisabled = false;
+					{
+						CPlayer *pPlayer = GetPlayerIfInRoom(i);
+						if(pPlayer)
+							pPlayer->m_RespawnDisabled = false;
+					}
 				}
 				GameWorld()->m_Paused = false;
 			}
@@ -1531,9 +1548,10 @@ void IGameController::Tick()
 	{
 		// reset sending of vote options
 		// only reset for player in room
-		for(auto &pPlayer : GameServer()->m_apPlayers)
+		for(int i = 0; i < MAX_CLIENTS; ++i)
 		{
-			if(pPlayer && IsPlayerInRoom(pPlayer->GetCID()))
+			CPlayer *pPlayer = GetPlayerIfInRoom(i);
+			if(pPlayer)
 			{
 				// clear vote options
 				CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;
@@ -1563,7 +1581,8 @@ void IGameController::Tick()
 				bool SinglePlayer = true;
 				for(int i = 0; i < MAX_CLIENTS; i++)
 				{
-					if(GameServer()->m_apPlayers[i])
+					CPlayer *pPlayer = GetPlayerIfInRoom(i);
+					if(pPlayer)
 					{
 						Server()->GetClientAddr(i, aaBuf[i], NETADDR_MAXSTRSIZE);
 						if(!pIP)
@@ -1578,21 +1597,22 @@ void IGameController::Tick()
 				int64 Now = Server()->Tick();
 				for(int i = 0; i < MAX_CLIENTS; i++)
 				{
-					if(!GameServer()->m_apPlayers[i] || aVoteChecked[i])
+					CPlayer *pPlayer = GetPlayerIfInRoom(i);
+					if(!pPlayer || aVoteChecked[i])
 						continue;
 
 					if(GameServer()->GetPlayerDDRTeam(i) != GameWorld()->Team())
 						continue;
 
-					if((IsKickVote() || IsSpecVote()) && (GameServer()->m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS ||
+					if((IsKickVote() || IsSpecVote()) && (pPlayer->GetTeam() == TEAM_SPECTATORS ||
 										     (GameServer()->GetPlayerChar(m_VoteCreator) && GameServer()->GetPlayerChar(i))))
 						continue;
 
-					if(GameServer()->m_apPlayers[i]->m_Afk && i != m_VoteCreator)
+					if(pPlayer->m_Afk && i != m_VoteCreator)
 						continue;
 
 					// can't vote in kick and spec votes in the beginning after joining
-					if((IsKickVote() || IsSpecVote()) && Now < GameServer()->m_apPlayers[i]->m_FirstVoteTick)
+					if((IsKickVote() || IsSpecVote()) && Now < pPlayer->m_FirstVoteTick)
 						continue;
 
 					// connecting clients with spoofed ips can clog slots without being ingame
@@ -1603,21 +1623,22 @@ void IGameController::Tick()
 					if(g_Config.m_SvDnsblVote && !m_pServer->DnsblWhite(i) && !SinglePlayer)
 						continue;
 
-					int ActVote = GameServer()->m_apPlayers[i]->m_Vote;
-					int ActVotePos = GameServer()->m_apPlayers[i]->m_VotePos;
+					int ActVote = pPlayer->m_Vote;
+					int ActVotePos = pPlayer->m_VotePos;
 
 					// only allow IPs to vote once
 					// check for more players with the same ip (only use the vote of the one who voted first)
 					for(int j = i + 1; j < MAX_CLIENTS; j++)
 					{
-						if(!GameServer()->m_apPlayers[j] || aVoteChecked[j] || str_comp(aaBuf[j], aaBuf[i]) != 0)
+						CPlayer *pOtherPlayer = GetPlayerIfInRoom(j);
+						if(!pOtherPlayer || aVoteChecked[j] || str_comp(aaBuf[j], aaBuf[i]) != 0)
 							continue;
 
 						// count the latest vote by this ip
-						if(ActVotePos < GameServer()->m_apPlayers[j]->m_VotePos)
+						if(ActVotePos < pOtherPlayer->m_VotePos)
 						{
-							ActVote = GameServer()->m_apPlayers[j]->m_Vote;
-							ActVotePos = GameServer()->m_apPlayers[j]->m_VotePos;
+							ActVote = pOtherPlayer->m_Vote;
+							ActVotePos = pOtherPlayer->m_VotePos;
 						}
 
 						aVoteChecked[j] = true;
@@ -1657,8 +1678,9 @@ void IGameController::Tick()
 				EndVote(true);
 				SendChatTarget(-1, "Vote passed", CGameContext::CHAT_SIX);
 
-				if(GameServer()->m_apPlayers[m_VoteCreator] && !IsKickVote() && !IsSpecVote())
-					GameServer()->m_apPlayers[m_VoteCreator]->m_LastVoteCall = 0;
+				CPlayer *pVotePlayer = GetPlayerIfInRoom(m_VoteCreator);
+				if(pVotePlayer && !IsKickVote() && !IsSpecVote())
+					pVotePlayer->m_LastVoteCall = 0;
 			}
 			else if(m_VoteEnforce == VOTE_ENFORCE_YES_ADMIN)
 			{
@@ -1800,10 +1822,12 @@ bool IGameController::IsFriendlyFire(int ClientID1, int ClientID2) const
 
 	if(IsTeamplay())
 	{
-		if(!GameServer()->m_apPlayers[ClientID1] || !GameServer()->m_apPlayers[ClientID2])
+		CPlayer *pPlayer1 = GetPlayerIfInRoom(ClientID1);
+		CPlayer *pPlayer2 = GetPlayerIfInRoom(ClientID2);
+		if(!pPlayer1 || !pPlayer2)
 			return false;
 
-		if(!m_Teamdamage && GameServer()->m_apPlayers[ClientID1]->GetTeam() == GameServer()->m_apPlayers[ClientID2]->GetTeam())
+		if(!m_Teamdamage && pPlayer1->GetTeam() == pPlayer2->GetTeam())
 			return true;
 	}
 
@@ -1827,7 +1851,7 @@ bool IGameController::IsTeamChangeAllowed() const
 
 void IGameController::UpdateGameInfo(int ClientID)
 {
-	if(!IsPlayerInRoom(ClientID) || !Server()->ClientIngame(ClientID))
+	if(!GetPlayerIfInRoom(ClientID) || !Server()->ClientIngame(ClientID))
 		return;
 
 	if(Server()->IsSixup(ClientID))
@@ -1856,7 +1880,8 @@ void IGameController::SendGameMsg(int GameMsgID, int ClientID, int *i1, int *i2,
 
 	for(int CID = Start; CID < Limit; ++CID)
 	{
-		if(!GameServer()->IsPlayerValid(CID) || GameServer()->GetPlayerDDRTeam(CID) != GameWorld()->Team())
+		CPlayer *pPlayer = GetPlayerIfInRoom(CID);
+		if(!pPlayer)
 			continue;
 
 		if(Server()->IsSixup(CID))
@@ -1917,7 +1942,7 @@ void IGameController::SendGameMsg(int GameMsgID, int ClientID, int *i1, int *i2,
 				if(!i1)
 					break;
 
-				if(GameServer()->m_apPlayers[CID]->GetTeam() == *i1)
+				if(pPlayer->GetTeam() == *i1)
 					GameWorld()->CreateSoundGlobal(SOUND_CTF_GRAB_PL, CID);
 				else
 					GameWorld()->CreateSoundGlobal(SOUND_CTF_GRAB_EN, CID);
@@ -2103,7 +2128,8 @@ bool IGameController::CanJoinTeam(int Team, int ClientID, bool SendReason) const
 	}
 
 	// check if there're enough player slots left
-	int TeamMod = IsPlayerInRoom(ClientID) && GameServer()->m_apPlayers[ClientID]->GetTeam() != TEAM_SPECTATORS ? -1 : 0;
+	CPlayer *pPlayer = GetPlayerIfInRoom(ClientID);
+	int TeamMod = pPlayer && pPlayer->GetTeam() != TEAM_SPECTATORS ? -1 : 0;
 	int MaxPlayers = GameWorld()->Team() == 0 ? Config()->m_SvMaxClients : Config()->m_SvRoomMaxSize;
 
 	bool CanJoin = TeamMod + m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] < MaxPlayers;
@@ -2211,9 +2237,11 @@ int IGameController::GetPlayerTeam(int ClientID) const
 	return GameServer()->GetPlayerDDRTeam(ClientID);
 }
 
-bool IGameController::IsPlayerInRoom(int ClientID) const
+CPlayer *IGameController::GetPlayerIfInRoom(int ClientID) const
 {
-	return GameServer()->IsPlayerValid(ClientID) && GameServer()->GetPlayerDDRTeam(ClientID) == GameWorld()->Team();
+	if(GameServer()->IsPlayerValid(ClientID) && GameServer()->GetPlayerDDRTeam(ClientID) == GameWorld()->Team())
+		return GameServer()->m_apPlayers[ClientID];
+	return nullptr;
 }
 
 void IGameController::InitController(class CGameContext *pGameServer, class CGameWorld *pWorld)
@@ -2257,7 +2285,7 @@ void IGameController::CallVote(int ClientID, const char *pDesc, const char *pCmd
 		return;
 
 	int64 Now = Server()->Tick();
-	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientID];
+	CPlayer *pPlayer = GetPlayerIfInRoom(ClientID);
 
 	if(!pPlayer)
 		return;
@@ -2278,9 +2306,10 @@ void IGameController::StartVote(const char *pDesc, const char *pCommand, const c
 	// reset votes
 	m_VoteEnforce = VOTE_ENFORCE_UNKNOWN;
 	m_VoteEnforcer = -1;
-	for(auto &pPlayer : GameServer()->m_apPlayers)
+	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(pPlayer && IsPlayerInRoom(pPlayer->GetCID()))
+		CPlayer *pPlayer = GetPlayerIfInRoom(i);
+		if(pPlayer)
 		{
 			pPlayer->m_Vote = 0;
 			pPlayer->m_VotePos = 0;
@@ -2342,7 +2371,7 @@ struct CVoteOptionServer *IGameController::GetVoteOption(int Index)
 
 void IGameController::SendVoteSet(int ClientID) const
 {
-	if(ClientID >= 0 && !IsPlayerInRoom(ClientID))
+	if(ClientID >= 0 && !GetPlayerIfInRoom(ClientID))
 		return;
 
 	::CNetMsg_Sv_VoteSet Msg6;
@@ -2386,12 +2415,14 @@ void IGameController::SendVoteSet(int ClientID) const
 	{
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
-			if(!IsPlayerInRoom(i))
-				continue;
-			if(!Server()->IsSixup(i))
-				Server()->SendPackMsg(&Msg6, MSGFLAG_VITAL, i);
-			else
-				Server()->SendPackMsg(&Msg7, MSGFLAG_VITAL, i);
+			CPlayer *pPlayer = GetPlayerIfInRoom(i);
+			if(pPlayer)
+			{
+				if(!Server()->IsSixup(i))
+					Server()->SendPackMsg(&Msg6, MSGFLAG_VITAL, i);
+				else
+					Server()->SendPackMsg(&Msg7, MSGFLAG_VITAL, i);
+			}
 		}
 	}
 	else
@@ -2413,10 +2444,11 @@ void IGameController::SendVoteStatus(int ClientID, int Total, int Yes, int No) c
 		return;
 	}
 
-	if(!IsPlayerInRoom(ClientID))
+	CPlayer *pPlayer = GetPlayerIfInRoom(ClientID);
+	if(!pPlayer)
 		return;
 
-	if(Total > VANILLA_MAX_CLIENTS && GameServer()->IsPlayerValid(ClientID) && GameServer()->m_apPlayers[ClientID]->GetClientVersion() <= VERSION_DDRACE)
+	if(Total > VANILLA_MAX_CLIENTS && pPlayer && pPlayer->GetClientVersion() <= VERSION_DDRACE)
 	{
 		Yes = float(Yes) * VANILLA_MAX_CLIENTS / float(Total);
 		No = float(No) * VANILLA_MAX_CLIENTS / float(Total);
@@ -2443,7 +2475,7 @@ void IGameController::SendChatTarget(int To, const char *pText, int Flags) const
 	}
 
 	for(int i = Start; i < Limit; i++)
-		if(IsPlayerInRoom(i))
+		if(GetPlayerIfInRoom(i))
 			GameServer()->SendChatTarget(i, pText, Flags);
 }
 
@@ -2458,7 +2490,7 @@ void IGameController::SendBroadcast(const char *pText, int ClientID, bool IsImpo
 	}
 
 	for(int i = Start; i < Limit; i++)
-		if(IsPlayerInRoom(i))
+		if(GetPlayerIfInRoom(i))
 			GameServer()->SendBroadcast(pText, i, IsImportant);
 }
 

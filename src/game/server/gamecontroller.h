@@ -10,6 +10,7 @@
 #include <game/generated/protocol.h>
 #include <game/voting.h>
 
+#include <iterator>
 #include <map>
 #include <vector>
 
@@ -404,7 +405,7 @@ public:
 
 	// DDRace
 	int GetPlayerTeam(int ClientID) const;
-	bool IsPlayerInRoom(int ClientID) const;
+	class CPlayer *GetPlayerIfInRoom(int ClientID) const;
 	void InitController(class CGameContext *pGameServer, class CGameWorld *pWorld);
 
 	// vote

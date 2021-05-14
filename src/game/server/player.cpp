@@ -39,6 +39,7 @@ void CPlayer::Reset()
 	m_JoinTick = Server()->Tick();
 	delete m_pCharacter;
 	m_pCharacter = 0;
+	m_RespawnDisabled = false;
 
 	m_IsReadyToEnter = false;
 
@@ -439,9 +440,15 @@ void CPlayer::Snap(int SnappingClient)
 	int Latency = SnappingClient == -1 ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aActLatency[m_ClientID];
 	int Score = m_Score;
 	bool IsEndRound = false;
+	bool IsEndMatch = false;
 	SGameInstance Instance = GameServer()->PlayerGameInstance(m_ClientID);
-	if(Instance.m_Init && Instance.m_pController->IsEndRound())
-		IsEndRound = true;
+	if(Instance.m_Init)
+	{
+		if(Instance.m_pController->IsEndRound())
+			IsEndRound = true;
+		if(Instance.m_pController->IsEndMatch())
+			IsEndMatch = true;
+	}
 
 	if(SnappingClient < 0 || !Server()->IsSixup(SnappingClient))
 	{
@@ -455,7 +462,7 @@ void CPlayer::Snap(int SnappingClient)
 		pPlayerInfo->m_Local = (int)(m_ClientID == SnappingClient);
 		pPlayerInfo->m_Team = m_Team;
 
-		if(m_ClientID == SnappingClient && (m_Paused || m_DeadSpecMode || ((!m_pCharacter || !m_pCharacter->IsAlive()) && Controller() && Controller()->IsGamePaused())))
+		if(m_ClientID == SnappingClient && (m_Paused || (m_DeadSpecMode && !IsEndMatch) || ((!m_pCharacter || !m_pCharacter->IsAlive()) && Controller() && Controller()->IsGamePaused())))
 		{
 			if(ClientVersion < VERSION_DDNET_OLD)
 				pPlayerInfo->m_Local = false;
@@ -466,7 +473,7 @@ void CPlayer::Snap(int SnappingClient)
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 
 		bool DeadAndNoRespawn = m_RespawnDisabled && (!m_pCharacter || !m_pCharacter->IsAlive());
-		if((m_ClientID != SnappingClient || IsEndRound) && DeadAndNoRespawn)
+		if(!IsEndMatch && ((m_ClientID != SnappingClient || IsEndRound) && DeadAndNoRespawn))
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 	}
 	else
@@ -490,7 +497,7 @@ void CPlayer::Snap(int SnappingClient)
 		pPlayerInfo->m_Latency = Latency;
 	}
 
-	if(m_ClientID == SnappingClient && IsSpectating() || m_DeadSpecMode || IsEndRound)
+	if(m_ClientID == SnappingClient && IsSpectating() || (m_DeadSpecMode && !IsEndMatch) || IsEndRound)
 	{
 		if(SnappingClient < 0 || !Server()->IsSixup(SnappingClient))
 		{

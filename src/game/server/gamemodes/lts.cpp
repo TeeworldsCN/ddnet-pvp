@@ -42,10 +42,11 @@ bool CGameControllerLTS::DoWincheckRound()
 	int Count[2] = {0};
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
-		if(IsPlayerInRoom(i) && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS &&
-			(!GameServer()->m_apPlayers[i]->m_RespawnDisabled ||
-				(GameServer()->m_apPlayers[i]->GetCharacter() && GameServer()->m_apPlayers[i]->GetCharacter()->IsAlive())))
-			++Count[GameServer()->m_apPlayers[i]->GetTeam()];
+		CPlayer *pPlayer = GetPlayerIfInRoom(i);
+		if(pPlayer && pPlayer->GetTeam() != TEAM_SPECTATORS &&
+			(!pPlayer->m_RespawnDisabled ||
+				(pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive())))
+			++Count[pPlayer->GetTeam()];
 	}
 
 	if(Count[TEAM_RED] + Count[TEAM_BLUE] == 0 || (m_GameInfo.m_TimeLimit > 0 && (Server()->Tick() - m_GameStartTick) >= m_GameInfo.m_TimeLimit * Server()->TickSpeed() * 60))
