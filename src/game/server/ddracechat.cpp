@@ -447,6 +447,7 @@ void CGameContext::ConJoinOrCreateTeam(IConsole::IResult *pResult, void *pUserDa
 			"join",
 			"You must join a room and play with somebody or else you can\'t play");
 		pPlayer->GetCharacter()->m_LastStartWarning = pSelf->Server()->Tick();
+		return;
 	}
 
 	int NumArgs = pResult->NumArguments();
@@ -523,6 +524,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 			"join",
 			"You must join a room and play with somebody or else you can\'t play");
 		pPlayer->GetCharacter()->m_LastStartWarning = pSelf->Server()->Tick();
+		return;
 	}
 
 	int Team = pResult->GetInteger(0);
@@ -583,6 +585,7 @@ void CGameContext::ConCreateTeam(IConsole::IResult *pResult, void *pUserData)
 			"join",
 			"You must join a room and play with somebody or else you can\'t play");
 		pPlayer->GetCharacter()->m_LastStartWarning = pSelf->Server()->Tick();
+		return;
 	}
 
 	int Team = pSelf->Teams()->FindAEmptyTeam();
