@@ -247,18 +247,15 @@ void CGameContext::SendChatTarget(int To, const char *pText, int Flags)
 	}
 }
 
-void CGameContext::SendChatTeam(int Team, const char *pText)
-{
-	for(int i = 0; i < MAX_CLIENTS; i++)
-		if(Teams()->m_Core.Team(i) == Team)
-			SendChatTarget(i, pText);
-}
-
 void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText, int SpamProtectionClientID, int Flags)
 {
 	if(SpamProtectionClientID >= 0 && SpamProtectionClientID < MAX_CLIENTS)
 		if(ProcessSpamProtection(SpamProtectionClientID))
 			return;
+
+	int Room = -1;
+	if(ChatterClientID >= 0 && ChatterClientID < MAX_CLIENTS)
+		Room = GetPlayerDDRTeam(ChatterClientID);
 
 	char aBuf[256], aText[256];
 	str_copy(aText, pText, sizeof(aText));
@@ -323,7 +320,7 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText, in
 				}
 				else
 				{
-					if(Teams->Team(i) == Team && m_apPlayers[i]->GetTeam() != CHAT_SPEC)
+					if(Teams->Team(i) == Room && m_apPlayers[i]->GetTeam() == Team)
 					{
 						Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, i);
 					}
@@ -997,8 +994,8 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 
 	int VotesLeft = TotalVotes - pPl->m_SendVoteIndex;
 	int NumGlobalVotesToSend = clamp(GlobalVotes - pPl->m_SendVoteIndex, 0, GlobalVotes);
-	int NumInstanceVotesToSend = clamp(NumInstanceVotes - (pPl->m_SendVoteIndex - GlobalVotes), 0, NumInstanceVotes);
-	int NumRoomVotesToSend = clamp(NumRoomVotes - (pPl->m_SendVoteIndex - NumInstanceVotes - GlobalVotes), 0, NumRoomVotes);
+	int NumRoomVotesToSend = clamp(NumRoomVotes - (pPl->m_SendVoteIndex - GlobalVotes), 0, NumRoomVotes);
+	int NumInstanceVotesToSend = clamp(NumInstanceVotes - (pPl->m_SendVoteIndex - GlobalVotes - NumRoomVotes), 0, NumInstanceVotes);
 
 	if(!VotesLeft)
 	{
@@ -1056,6 +1053,37 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 		pCurrent = pCurrent->m_pNext;
 	}
 
+	// room list
+	int RoomIndex = NumRoomVotes - NumRoomVotesToSend;
+
+	while(RoomIndex < NumRoomVotes && CurIndex < g_Config.m_SvSendVotesPerTick)
+	{
+		const char *pRoomVoteDesc = Teams()->m_aRoomVotes[RoomIndex];
+		if(Teams()->m_Core.Team(ClientID) == Teams()->m_RoomNumbers[RoomIndex])
+			pRoomVoteDesc = Teams()->m_aRoomVotesJoined[RoomIndex];
+		switch(CurIndex)
+		{
+		case 0: OptionMsg.m_pDescription0 = pRoomVoteDesc; break;
+		case 1: OptionMsg.m_pDescription1 = pRoomVoteDesc; break;
+		case 2: OptionMsg.m_pDescription2 = pRoomVoteDesc; break;
+		case 3: OptionMsg.m_pDescription3 = pRoomVoteDesc; break;
+		case 4: OptionMsg.m_pDescription4 = pRoomVoteDesc; break;
+		case 5: OptionMsg.m_pDescription5 = pRoomVoteDesc; break;
+		case 6: OptionMsg.m_pDescription6 = pRoomVoteDesc; break;
+		case 7: OptionMsg.m_pDescription7 = pRoomVoteDesc; break;
+		case 8: OptionMsg.m_pDescription8 = pRoomVoteDesc; break;
+		case 9: OptionMsg.m_pDescription9 = pRoomVoteDesc; break;
+		case 10: OptionMsg.m_pDescription10 = pRoomVoteDesc; break;
+		case 11: OptionMsg.m_pDescription11 = pRoomVoteDesc; break;
+		case 12: OptionMsg.m_pDescription12 = pRoomVoteDesc; break;
+		case 13: OptionMsg.m_pDescription13 = pRoomVoteDesc; break;
+		case 14: OptionMsg.m_pDescription14 = pRoomVoteDesc; break;
+		}
+
+		CurIndex++;
+		RoomIndex++;
+	}
+
 	// get current vote option by index
 	pCurrent = NULL;
 	int InstanceVoteIndex = NumInstanceVotes - NumInstanceVotesToSend;
@@ -1086,36 +1114,6 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 		CurIndex++;
 		pCurrent = pCurrent->m_pNext;
 		InstanceVoteIndex++;
-	}
-
-	int RoomIndex = NumRoomVotes - NumRoomVotesToSend;
-
-	while(RoomIndex < NumRoomVotes && CurIndex < g_Config.m_SvSendVotesPerTick)
-	{
-		const char *pRoomVoteDesc = Teams()->m_aRoomVotes[RoomIndex];
-		if(Teams()->m_Core.Team(ClientID) == Teams()->m_RoomNumbers[RoomIndex])
-			pRoomVoteDesc = Teams()->m_aRoomVotesJoined[RoomIndex];
-		switch(CurIndex)
-		{
-		case 0: OptionMsg.m_pDescription0 = pRoomVoteDesc; break;
-		case 1: OptionMsg.m_pDescription1 = pRoomVoteDesc; break;
-		case 2: OptionMsg.m_pDescription2 = pRoomVoteDesc; break;
-		case 3: OptionMsg.m_pDescription3 = pRoomVoteDesc; break;
-		case 4: OptionMsg.m_pDescription4 = pRoomVoteDesc; break;
-		case 5: OptionMsg.m_pDescription5 = pRoomVoteDesc; break;
-		case 6: OptionMsg.m_pDescription6 = pRoomVoteDesc; break;
-		case 7: OptionMsg.m_pDescription7 = pRoomVoteDesc; break;
-		case 8: OptionMsg.m_pDescription8 = pRoomVoteDesc; break;
-		case 9: OptionMsg.m_pDescription9 = pRoomVoteDesc; break;
-		case 10: OptionMsg.m_pDescription10 = pRoomVoteDesc; break;
-		case 11: OptionMsg.m_pDescription11 = pRoomVoteDesc; break;
-		case 12: OptionMsg.m_pDescription12 = pRoomVoteDesc; break;
-		case 13: OptionMsg.m_pDescription13 = pRoomVoteDesc; break;
-		case 14: OptionMsg.m_pDescription14 = pRoomVoteDesc; break;
-		}
-
-		CurIndex++;
-		RoomIndex++;
 	}
 
 	// send msg
@@ -1579,7 +1577,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				dbg_msg("hack", "bot detected, cid=%d", ClientID);
 				return;
 			}
-			int Team = pMsg->m_Team;
+			int IsTeam = pMsg->m_Team;
 
 			// trim right and set maximum length to 256 utf8-characters
 			int Length = 0;
@@ -1612,12 +1610,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				return;
 
 			pPlayer->UpdatePlaytime();
-
-			int GameTeam = Teams()->m_Core.Team(pPlayer->GetCID());
-			if(Team)
-				Team = ((pPlayer->GetTeam() == -1) ? CHAT_SPEC : GameTeam);
-			else
-				Team = CHAT_ALL;
 
 			if(pMsg->m_pMessage[0] == '/')
 			{
@@ -1681,9 +1673,18 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			}
 			else
 			{
+				SGameInstance Instance = PlayerGameInstance(pPlayer->GetCID());
+				if(Instance.m_IsCreated && !Instance.m_pController->IsTeamplay() && g_Config.m_SvTournamentChat == 2)
+					return;
+
+				if(g_Config.m_SvTournamentChat == 2 || (g_Config.m_SvTournamentChat == 1 && pPlayer->GetTeam() == TEAM_SPECTATORS))
+					IsTeam = true;
+
+				int ChatTeam = IsTeam ? pPlayer->GetTeam() : CHAT_ALL;
+
 				char aCensoredMessage[256];
 				CensorMessage(aCensoredMessage, pMsg->m_pMessage, sizeof(aCensoredMessage));
-				SendChat(ClientID, Team, aCensoredMessage, ClientID);
+				SendChat(ClientID, ChatTeam, aCensoredMessage, ClientID);
 			}
 		}
 		else if(MsgID == NETMSGTYPE_CL_CALLVOTE)
@@ -3764,6 +3765,20 @@ void CGameContext::WhisperID(int ClientID, int VictimID, const char *pMessage)
 
 	if(!CheckClientID2(VictimID))
 		return;
+
+	SGameInstance Instance = PlayerGameInstance(ClientID);
+	if(Instance.m_IsCreated && !Instance.m_pController->IsTeamplay() && g_Config.m_SvTournamentChat == 2)
+		return;
+
+	if(g_Config.m_SvTournamentChat > 0)
+	{
+		if(m_apPlayers[ClientID]->GetTeam() == TEAM_SPECTATORS || m_apPlayers[VictimID]->GetTeam() == TEAM_SPECTATORS)
+			return;
+		if(g_Config.m_SvTournamentChat == 2 && m_apPlayers[ClientID]->GetTeam() != m_apPlayers[VictimID]->GetTeam())
+			return;
+		if(m_apPlayers[ClientID]->GetTeam() != TEAM_SPECTATORS && GetPlayerDDRTeam(ClientID) != GetPlayerDDRTeam(VictimID))
+			return;
+	}
 
 	if(m_apPlayers[ClientID])
 		m_apPlayers[ClientID]->m_LastWhisperTo = VictimID;
