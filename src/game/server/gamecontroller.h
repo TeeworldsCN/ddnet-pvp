@@ -373,6 +373,7 @@ public:
 
 	const char *GetGameType() const { return m_pGameType; }
 	int IsEndRound() const { return m_GameState == IGS_END_ROUND; }
+	int IsEndMatch() const { return m_GameState == IGS_END_MATCH; }
 
 	//spawn
 	bool CanSpawn(int Team, vec2 *pPos) const;

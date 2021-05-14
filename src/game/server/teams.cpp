@@ -88,7 +88,7 @@ const char *CGameTeams::SetPlayerTeam(int ClientID, int Team, const char *pGameT
 	}
 
 	if(!SetForcePlayerTeam(ClientID, Team, TEAM_REASON_NORMAL, pGameType))
-		return "You need to specify a game type to create a room";
+		return "Room does not exists. Use /create to create a room";
 
 	return nullptr;
 }
@@ -555,7 +555,7 @@ bool CGameTeams::IsInvited(int Team, int ClientID)
 int CGameTeams::CanSwitchTeam(int ClientID)
 {
 	SGameInstance Instance = GetPlayerGameInstance(ClientID);
-	return Instance.m_Init && !Instance.m_pWorld->m_Paused;
+	return Instance.m_Init && !Instance.m_pController->IsEndMatch();
 }
 
 int CGameTeams::FindAEmptyTeam()

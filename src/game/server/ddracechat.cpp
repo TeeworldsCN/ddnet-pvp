@@ -468,7 +468,7 @@ void CGameContext::ConJoinOrCreateTeam(IConsole::IResult *pResult, void *pUserDa
 	int Team = pResult->GetInteger(0);
 	const char *pGameType = NumArgs > 1 ? pResult->GetString(1) : nullptr;
 
-	if(pPlayer->m_Last_Team + (int64)pSelf->Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay > pSelf->Server()->Tick())
+	if(pPlayer->m_LastRoomChange + (int64)pSelf->Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay > pSelf->Server()->Tick())
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			"You can\'t change rooms that fast!");
@@ -490,7 +490,7 @@ void CGameContext::ConJoinOrCreateTeam(IConsole::IResult *pResult, void *pUserDa
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", pError);
 	}
 	else
-		pPlayer->m_Last_Team = pSelf->Server()->Tick();
+		pPlayer->m_LastRoomChange = pSelf->Server()->Tick();
 }
 
 void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
@@ -529,7 +529,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 
 	int Team = pResult->GetInteger(0);
 
-	if(pPlayer->m_Last_Team + (int64)pSelf->Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay > pSelf->Server()->Tick())
+	if(pPlayer->m_LastRoomChange + (int64)pSelf->Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay > pSelf->Server()->Tick())
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			"You can\'t change rooms that fast!");
@@ -551,7 +551,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", pError);
 	}
 	else
-		pPlayer->m_Last_Team = pSelf->Server()->Tick();
+		pPlayer->m_LastRoomChange = pSelf->Server()->Tick();
 }
 
 void CGameContext::ConCreateTeam(IConsole::IResult *pResult, void *pUserData)
@@ -596,7 +596,7 @@ void CGameContext::ConCreateTeam(IConsole::IResult *pResult, void *pUserData)
 	}
 	const char *pGameType = pResult->NumArguments() > 0 ? pResult->GetString(0) : nullptr;
 
-	if(pPlayer->m_Last_Team + (int64)pSelf->Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay > pSelf->Server()->Tick())
+	if(pPlayer->m_LastRoomChange + (int64)pSelf->Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay > pSelf->Server()->Tick())
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			"You can\'t change rooms that fast!");
@@ -618,7 +618,7 @@ void CGameContext::ConCreateTeam(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join", pError);
 	}
 	else
-		pPlayer->m_Last_Team = pSelf->Server()->Tick();
+		pPlayer->m_LastRoomChange = pSelf->Server()->Tick();
 }
 
 void CGameContext::ConMe(IConsole::IResult *pResult, void *pUserData)

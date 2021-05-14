@@ -111,7 +111,7 @@ void CPlayer::Reset()
 	m_LastPause = 0;
 
 	// Variable initialized:
-	m_Last_Team = 0;
+	m_LastRoomChange = 0;
 
 	int64 Now = Server()->Tick();
 	int64 TickSpeed = Server()->TickSpeed();

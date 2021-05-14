@@ -66,6 +66,7 @@ class CGameTeams
 	static char m_aMapNames[64][128];
 	static int m_NumMaps;
 	static SGameType m_DefaultGameType;
+	static char m_aGameTypeList[512];
 
 public:
 	enum
