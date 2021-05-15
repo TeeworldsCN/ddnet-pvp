@@ -501,7 +501,7 @@ void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int MegaMap
 void CGameTeams::OnSnap(int SnappingClient)
 {
 	CPlayer *pPlayer = GameServer()->m_apPlayers[SnappingClient];
-	int ShowOthers = pPlayer->m_ShowOthers || (m_Core.Team(SnappingClient) == 0 && g_Config.m_SvRoom == 2);
+	int ShowOthers = pPlayer->ShowOthersMode() || (m_Core.Team(SnappingClient) == 0 && g_Config.m_SvRoom == 2);
 
 	int SnapAs = SnappingClient;
 	if(pPlayer->IsSpectating() && pPlayer->m_SpectatorID != SPEC_FREEVIEW)

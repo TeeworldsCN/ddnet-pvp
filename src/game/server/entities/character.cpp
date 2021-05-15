@@ -625,7 +625,7 @@ void CCharacter::Die(int Killer, int Weapon)
 
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
-		if(GameServer()->m_apPlayers[i] && (GameServer()->GetPlayerDDRTeam(i) == GameWorld()->Team() || GameServer()->m_apPlayers[i]->m_ShowOthers == 2))
+		if(GameServer()->m_apPlayers[i] && (GameServer()->GetPlayerDDRTeam(i) == GameWorld()->Team() || GameServer()->m_apPlayers[i]->ShowOthersMode() == CPlayer::SHOWOTHERS_DISTRACTING))
 			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
 	}
 

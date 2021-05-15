@@ -443,7 +443,7 @@ void CGameContext::SendCurrentGameInfo(int ClientID, bool IsJoin)
 			ClientInfoMsg.m_Country = Server()->ClientCountry(i);
 			ClientInfoMsg.m_Silent = 0;
 
-			if(GetDDRaceTeam(i) != GetDDRaceTeam(ClientID) && !pPlayer->m_ShowOthers)
+			if(GetDDRaceTeam(i) != GetDDRaceTeam(ClientID) && !pPlayer->ShowOthersMode())
 				ClientInfoMsg.m_Team = TEAM_SPECTATORS;
 
 			for(int p = 0; p < 6; p++)
@@ -4070,8 +4070,7 @@ void CGameContext::UpdatePlayerMaps()
 				(!m_apPlayers[i] ||
 					m_apPlayers[i]->GetClientVersion() == VERSION_VANILLA ||
 					(m_apPlayers[i]->GetClientVersion() >= VERSION_DDRACE &&
-						(m_apPlayers[i]->m_ShowOthers == 0 ||
-							(m_apPlayers[i]->m_ShowOthers == 2 && !m_Teams.m_Core.SameTeam(i, j))))))
+						(m_apPlayers[i]->ShowOthersMode() == CPlayer::SHOWOTHERS_OFF))))
 				Dist[j].first = 1e8;
 			else
 				Dist[j].first = 0;

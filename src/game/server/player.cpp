@@ -225,7 +225,7 @@ bool CPlayer::SetSpectatorID(int SpecMode, int SpectatorID)
 bool CPlayer::DeadCanFollow(CPlayer *pPlayer) const
 {
 	// check if wanted player is in the same team and alive
-	return (!pPlayer->m_RespawnDisabled || (pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive())) && pPlayer->GetTeam() == m_Team;
+	return (!pPlayer->m_RespawnDisabled || (pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive())) && pPlayer->GetTeam() == m_Team && GameServer()->Teams()->m_Core.SameTeam(m_ClientID, pPlayer->GetCID());
 }
 
 void CPlayer::UpdateDeadSpecMode()
@@ -469,7 +469,7 @@ void CPlayer::Snap(int SnappingClient)
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 		}
 
-		if(GameServer()->GetDDRaceTeam(SnapAs) != GameServer()->GetDDRaceTeam(m_ClientID) && !GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers)
+		if(GameServer()->GetDDRaceTeam(SnapAs) != GameServer()->GetDDRaceTeam(m_ClientID) && !GameServer()->m_apPlayers[SnappingClient]->ShowOthersMode())
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 
 		bool DeadAndNoRespawn = m_RespawnDisabled && (!m_pCharacter || !m_pCharacter->IsAlive());
@@ -554,7 +554,7 @@ void CPlayer::Snap(int SnappingClient)
 	if(SnappingClient >= 0)
 	{
 		CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-		ShowSpec = ShowSpec && (GameServer()->GetDDRaceTeam(m_ClientID) == GameServer()->GetDDRaceTeam(SnappingClient) || pSnapPlayer->m_ShowOthers || pSnapPlayer->IsSpectating());
+		ShowSpec = ShowSpec && (GameServer()->GetDDRaceTeam(m_ClientID) == GameServer()->GetDDRaceTeam(SnappingClient) || pSnapPlayer->ShowOthersMode() || pSnapPlayer->IsSpectating());
 	}
 
 	if(ShowSpec)
@@ -797,7 +797,7 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 			continue;
 
 		CPlayer *pTargetPlayer = GameServer()->m_apPlayers[i];
-		if(GameServer()->GetDDRaceTeam(i) != GameServer()->GetDDRaceTeam(m_ClientID) && !pTargetPlayer->m_ShowOthers)
+		if(GameServer()->GetDDRaceTeam(i) != GameServer()->GetDDRaceTeam(m_ClientID) && !pTargetPlayer->ShowOthersMode())
 			Msg.m_Team = TEAM_SPECTATORS;
 		else
 			Msg.m_Team = m_Team;
@@ -834,7 +834,7 @@ void CPlayer::SendCurrentTeamInfo()
 		Msg.m_Team = pPlayer->m_Team;
 		Msg.m_Silent = true;
 		Msg.m_CooldownTick = pPlayer->m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay;
-		if(GameServer()->GetDDRaceTeam(i) != GameServer()->GetDDRaceTeam(m_ClientID) && !m_ShowOthers)
+		if(GameServer()->GetDDRaceTeam(i) != GameServer()->GetDDRaceTeam(m_ClientID) && !ShowOthersMode())
 			Msg.m_Team = TEAM_SPECTATORS;
 
 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, m_ClientID);

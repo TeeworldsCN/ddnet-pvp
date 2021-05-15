@@ -481,11 +481,6 @@ void IGameController::CheckReadyStates(int WithoutID)
 }
 
 // balancing
-bool IGameController::CanBeMovedOnBalance(int ClientID) const
-{
-	return true;
-}
-
 void IGameController::CheckTeamBalance()
 {
 	if(!IsTeamplay() || !m_TeambalanceTime)
@@ -496,7 +491,7 @@ void IGameController::CheckTeamBalance()
 
 	// check if teams are unbalanced
 	char aBuf[256];
-	if(absolute(m_aTeamSize[TEAM_RED] - m_aTeamSize[TEAM_BLUE]) >= 2)
+	if(AreTeamsUnbalanced())
 	{
 		str_format(aBuf, sizeof(aBuf), "Teams are NOT balanced (red=%d blue=%d)", m_aTeamSize[TEAM_RED], m_aTeamSize[TEAM_BLUE]);
 		if(m_UnbalancedTick <= TBALANCE_OK)
@@ -512,7 +507,7 @@ void IGameController::CheckTeamBalance()
 
 void IGameController::DoTeamBalance()
 {
-	if(!IsTeamplay() || !m_TeambalanceTime || absolute(m_aTeamSize[TEAM_RED] - m_aTeamSize[TEAM_BLUE]) < 2)
+	if(!IsTeamplay() || !m_TeambalanceTime || !AreTeamsUnbalanced())
 		return;
 
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", "Balancing teams");
@@ -569,55 +564,6 @@ void IGameController::DoTeamBalance()
 
 	m_UnbalancedTick = TBALANCE_OK;
 	SendGameMsg(GAMEMSG_TEAM_BALANCE, -1);
-}
-
-// virtual events
-void IGameController::OnInit()
-{
-}
-
-void IGameController::OnControllerStart()
-{
-}
-
-void IGameController::OnPlayerJoin(CPlayer *pPlayer)
-{
-}
-
-void IGameController::OnPlayerLeave(CPlayer *pPlayer)
-{
-}
-
-int IGameController::OnCharacterDeath(CCharacter *pVictim, CPlayer *pKiller, int Weapon)
-{
-	return DEATH_NORMAL;
-}
-
-void IGameController::OnCharacterSpawn(CCharacter *pChr)
-{
-}
-
-bool IGameController::OnCharacterTile(CCharacter *pChr, int MapIndex)
-{
-	return false;
-}
-
-bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
-{
-	return false;
-}
-
-void IGameController::OnFlagReset(CFlag *pFlag)
-{
-}
-
-void IGameController::OnKill(int ClientID) const
-{
-}
-
-bool IGameController::IsDisruptiveLeave(int ClientID) const
-{
-	return false;
 }
 
 // event
@@ -1029,11 +975,6 @@ void IGameController::OnReset()
 }
 
 // game
-bool IGameController::GetFlagState(SFlagState *pState)
-{
-	return false;
-}
-
 bool IGameController::DoWincheckMatch()
 {
 	if(IsTeamplay())
@@ -2041,8 +1982,6 @@ float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos) const
 void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type) const
 {
 	// get spawn point
-	if(Type == 0)
-		dbg_msg("spwanresult", "eval");
 	for(int i = 0; i < m_aNumSpawnPoints[Type]; i++)
 	{
 		// check if the position is occupado
@@ -2069,15 +2008,9 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type) const
 			continue; // try next spawn point
 
 		vec2 P = m_aaSpawnPoints[Type][i] + Positions[Result];
-		// MYTODO: frandom to pRng?
-		float RandomScore = Result + frandom();
-		if(Type == 0)
-			dbg_msg("spwanresult", "%d: %.02f", i, RandomScore);
-		float S = pEval->m_RandomSpawn ? RandomScore : EvaluateSpawnPos(pEval, P);
+		float S = pEval->m_RandomSpawn ? Result + frandom() : EvaluateSpawnPos(pEval, P);
 		if(!pEval->m_Got || pEval->m_Score > S)
 		{
-			if(Type == 0)
-				dbg_msg("spwanresult", "%.02f > %.02f got %d", pEval->m_Score, S, i);
 			pEval->m_Got = true;
 			pEval->m_Score = S;
 			pEval->m_Pos = P;

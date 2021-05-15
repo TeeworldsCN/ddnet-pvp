@@ -183,6 +183,13 @@ public:
 		TIMERTYPE_NONE,
 	};
 
+	enum
+	{
+		SHOWOTHERS_OFF = 0,
+		SHOWOTHERS_ON = 1,
+		SHOWOTHERS_DISTRACTING = 2,
+	};
+
 	bool m_DND;
 	int64 m_FirstVoteTick;
 	char m_TimeoutCode[64];
@@ -195,6 +202,7 @@ public:
 	int64 m_Last_KickVote;
 	int64 m_LastRoomChange;
 	int m_ShowOthers;
+	int ShowOthersMode() { return m_DeadSpecMode ? 0 : m_ShowOthers; }
 	vec2 m_ShowDistance;
 	bool m_SpecTeam;
 	bool m_NinjaJetpack;

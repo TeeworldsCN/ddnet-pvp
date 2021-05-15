@@ -10,7 +10,6 @@
 #include <game/generated/protocol.h>
 #include <game/voting.h>
 
-#include <iterator>
 #include <map>
 #include <vector>
 
@@ -37,6 +36,216 @@
 */
 class IGameController
 {
+protected:
+	struct SFlagState
+	{
+		int m_RedFlagDroppedTick;
+		int m_RedFlagCarrier;
+		int m_BlueFlagDroppedTick;
+		int m_BlueFlagCarrier;
+	};
+
+	// GameController Interface
+
+	// =================
+	//    GAME STATES
+	// =================
+	/*
+		Function: CanBeMovedOnBalance
+			Whether a player can be moved to the other team when a team balancing is taking place
+
+		Arguments:
+			ClientID - which player is being evaluated.
+
+		Return:
+			return true if the player can be killed and moved to the other team
+
+		Note:
+			Team balancing will always try to match both team's player score.
+			If you don't want this, you should override DoTeamBalance instead.
+	*/
+	virtual bool CanBeMovedOnBalance(int ClientID) const { return true; };
+
+	/*
+		Function: AreTeamsUnbalanced
+			Whether the teams are balanced and should call DoTeamBalance
+
+		Return:
+			return true if the teams need balancing
+	*/
+	virtual bool AreTeamsUnbalanced() const { return absolute(m_aTeamSize[TEAM_RED] - m_aTeamSize[TEAM_BLUE]) >= 2; };
+
+	// ==================
+	//    GAME ACTIONS
+	// ==================
+	/*
+		Function: DoTeamBalance
+			Called when team balance time occurs and allowed team difference is 
+	*/
+	virtual void DoTeamBalance();
+
+	/*
+		Function: DoWincheckRound
+			Called after gamestate is updated and before OnPostTick
+				when the gamestate is IGS_GAME_RUNNING or IGS_GAME_PAUSED
+		
+		Return:
+			true if the match should be ended.
+
+		Note:
+			The result allows you to skip extra logics during a tick,
+				but it won't end the game for you.
+				You should call EndMatch() in this function to end the match.
+	*/
+	virtual bool DoWincheckRound();
+
+	/*
+		Function: DoWincheckMatch
+			Called after gamestate is updated and before OnPostTick
+				when the gamestate is IGS_GAME_RUNNING or IGS_GAME_PAUSED
+				AND when DoWincheckRound is true
+		
+		Return:
+			true if the match should be ended.
+
+		Note:
+			The result allows you to skip extra logics during a tick,
+				but it won't end the game for you.
+				You should call EndMatch() in this function to end the match.
+	*/
+	virtual bool DoWincheckMatch();
+
+	/*
+		Function: GetFlagState
+			Called during Snap() to send flag information to clients
+		
+		Return:
+			true if the game wants to send flag info.
+	*/
+	virtual bool GetFlagState(SFlagState *pState) { return false; };
+
+	virtual bool IsSpawnRandom() const { return IsSurvival(); };
+	virtual bool ShouldSpawnAwayFromCharacter(class CCharacter *pChar) const { return true; };
+
+	// =============
+	//   GAME CORE
+	// =============
+	/*
+		Function: OnPreTick
+			Called before the gamestate is updated during a Tick
+	*/
+	virtual void OnPreTick(){};
+
+	/*
+		Function: OnPostTick
+			Called after the gamestate is updated during a Tick
+	*/
+	virtual void OnPostTick(){};
+
+	// =================
+	//    GAME EVENTS
+	// =================
+	/*
+		Function: OnInit
+			Called when the controller is initialized or reloaded.
+			When this is called, pWorld is garanteed to be empty and
+				all existing entities has already been destroyed.
+
+			You should reset any pointers to entities during OnInit.
+	*/
+	virtual void OnInit(){};
+	/*
+		Function: OnControllerStart()
+			Called when the controller and its world are fully prepared.
+			When this is called, the controllers gamestate is properly set.
+	*/
+	virtual void OnControllerStart(){};
+	/*
+		Function: OnPlayerJoin
+			Called when a player joins the game controlled by this controller.
+			This is called before the player's character is spawned.
+
+		Arguments:
+			pPlayer - The CPlayer that is joining.
+	*/
+	virtual void OnPlayerJoin(class CPlayer *pPlayer){};
+
+	/*
+		Function: OnPlayerLeave
+			Called when a player leaves the game controlled by this controller.
+			This is called before the player's character is killed.
+
+		Arguments:
+			pPlayer - The CPlayer that is leaving.
+	*/
+	virtual void OnPlayerLeave(class CPlayer *pPlayer){};
+	/*
+		Function: OnCharacterDeath
+			Called when a CCharacter in the world dies.
+
+		Arguments:
+			pVictim - The CCharacter that died.
+			pKiller - The player that killed it.
+			Weapon - What weapon that killed it. Can be -1 for undefined
+				weapon when switching team or player suicides.
+
+		Return:
+			A flag indicating the behaviour of character's death
+
+	*/
+	virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon) { return DEATH_NORMAL; };
+	/*
+		Function: OnCharacterSpawn
+			Called when a CCharacter spawns into the game world.
+
+		Arguments:
+			pChr - The CCharacter that was spawned.
+	*/
+	virtual void OnCharacterSpawn(class CCharacter *pChr){};
+
+	/*
+		Function: OnCharacterTile
+			Called when a CCharacter intersects with a tile.
+
+		Arguments:
+			pChr - The CCharacter that is touching the tile.
+			MapIndex - Use GameServer()->Collison() to find more
+				information about the tile.
+
+		Return:
+			bool - any internal handling of the tile will be skipped
+				if set to true.
+	*/
+	virtual bool OnCharacterTile(class CCharacter *pChr, int MapIndex) { return false; };
+
+	/*
+		Function: OnEntity
+			Called when the map is loaded to process an entity
+			in the map.
+
+		Arguments:
+			index - Entity index.
+			pos - Where the entity is located in the world.
+
+		Return:
+			bool - any internal entity will be skipped if set to true.
+	*/
+	virtual bool OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0) { return false; };
+
+public:
+	// =================
+	//   ENTITY EVENTS
+	// =================
+	/*
+		Function: OnFlagReset
+			Called when a CFlag resets it's position to its stand due to out of bounds
+
+		Arguments:
+			pFlag - The CFlag that was reset.
+	*/
+	virtual void OnFlagReset(class CFlag *pFlag){};
+
+private:
 	class CGameContext *m_pGameServer;
 	class CConfig *m_pConfig;
 	class IServer *m_pServer;
@@ -68,9 +277,7 @@ protected:
 	int m_aTeamSize[2];
 	int m_UnbalancedTick;
 
-	virtual bool CanBeMovedOnBalance(int ClientID) const;
 	void CheckTeamBalance();
-	void DoTeamBalance();
 
 	// game
 	enum EGameState
@@ -90,8 +297,6 @@ protected:
 	EGameState m_GameState;
 	int m_GameStateTimer;
 
-	virtual bool DoWincheckMatch(); // returns true when the match is over
-	virtual bool DoWincheckRound(); // returns true when the round is over
 	bool HasEnoughPlayers() const { return (IsTeamplay() && m_aTeamSize[TEAM_RED] > 0 && m_aTeamSize[TEAM_BLUE] > 0) || (!IsTeamplay() && m_aTeamSize[TEAM_RED] > 1); }
 	void ResetGame();
 	void SetGameState(EGameState GameState, int Timer = 0);
@@ -149,24 +354,19 @@ protected:
 	int m_SuddenDeath;
 	int m_aTeamscore[2];
 
-	struct SFlagState
-	{
-		int m_RedFlagDroppedTick;
-		int m_RedFlagCarrier;
-		int m_BlueFlagDroppedTick;
-		int m_BlueFlagCarrier;
-	};
-	virtual bool GetFlagState(SFlagState *pState);
-
 	enum
 	{
 		DEATH_NORMAL = 0,
 		DEATH_VICTIM_HAS_FLAG = 1,
 		DEATH_KILLER_HAS_FLAG = 2,
+
+		// Do not increase killers score
 		DEATH_SKIP_SCORE = 4,
+
+		// Do not delay respawn if player killed
 		DEATH_NO_SUICIDE_PANATY = 8,
 
-		// be careful when using this
+		// Keep solo states when a character killed, be careful when using this
 		DEATH_KEEP_SOLO = 16
 	};
 
@@ -188,90 +388,6 @@ protected:
 		int m_TimeLimit;
 	} m_GameInfo;
 	int m_DDNetServerCapability;
-
-	// event
-	/*
-		Function: OnInit
-			Called when the controller is initialized or reloaded.
-			When this is called, pWorld is garanteed to be empty and
-				all existing entities has already been destroyed.
-
-			You should reset any pointers to entities during OnInit.
-	*/
-	virtual void OnInit();
-	/*
-		Function: OnControllerStart()
-			Called when the controller and its world are fully prepared.
-			When this is called, the controllers gamestate is properly set.
-	*/
-	virtual void OnControllerStart();
-	/*
-		Function: OnPlayerJoin
-			Called when a player joins the game controlled by this controller.
-			This is called before the player's character is spawned.
-
-		Arguments:
-			pPlayer - The CPlayer that is joining.
-	*/
-	virtual void OnPlayerJoin(class CPlayer *pPlayer);
-
-	/*
-		Function: OnPlayerLeave
-			Called when a player leaves the game controlled by this controller.
-			This is called before the player's character is killed.
-
-		Arguments:
-			pPlayer - The CPlayer that is leaving.
-	*/
-	virtual void OnPlayerLeave(class CPlayer *pPlayer);
-	/*
-		Function: OnCharacterDeath
-			Called when a CCharacter in the world dies.
-
-		Arguments:
-			pVictim - The CCharacter that died.
-			pKiller - The player that killed it.
-			Weapon - What weapon that killed it. Can be -1 for undefined
-				weapon when switching team or player suicides.
-	*/
-	virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
-	/*
-		Function: OnCharacterSpawn
-			Called when a CCharacter spawns into the game world.
-
-		Arguments:
-			pChr - The CCharacter that was spawned.
-	*/
-	virtual void OnCharacterSpawn(class CCharacter *pChr);
-
-	/*
-		Function: OnCharacterTile
-			Called when a CCharacter intersects with a tile.
-
-		Arguments:
-			pChr - The CCharacter that is touching the tile.
-			MapIndex - Use GameServer()->Collison() to find more
-				information about the tile.
-
-		Return:
-			bool - any internal handling of the tile will be skipped
-				if set to true.
-	*/
-	virtual bool OnCharacterTile(class CCharacter *pChr, int MapIndex);
-
-	/*
-		Function: OnEntity
-			Called when the map is loaded to process an entity
-			in the map.
-
-		Arguments:
-			index - Entity index.
-			pos - Where the entity is located in the world.
-
-		Return:
-			bool - any internal entity will be skipped if set to true.
-	*/
-	virtual bool OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number = 0);
 
 public:
 	IGameController();
@@ -297,16 +413,6 @@ public:
 	int m_TeambalanceTime;
 	char m_aMap[128];
 	int m_MapIndex;
-
-	// events
-	/*
-		Function: OnFlagReset
-			Called when a CFlag resets it's position its stand.
-
-		Arguments:
-			pFlag - The CFlag that was reset.
-	*/
-	virtual void OnFlagReset(class CFlag *pFlag);
 
 	// internal events
 	void StartController();
@@ -352,7 +458,7 @@ public:
 		Arguments:
 			ClientID - player's cid
 	*/
-	virtual void OnKill(int ClientID) const;
+	virtual void OnKill(int ClientID) const {};
 
 	/*
 		Function: IsDisruptiveLeave
@@ -366,7 +472,7 @@ public:
 				also, disconnected players' characters will not be
 				killed until this check returns false.
 	*/
-	virtual bool IsDisruptiveLeave(int ClientID) const;
+	virtual bool IsDisruptiveLeave(int ClientID) const { return false; };
 
 	// info
 	void CheckGameInfo();
@@ -384,13 +490,13 @@ public:
 	int IsEndRound() const { return m_GameState == IGS_END_ROUND; }
 	int IsEndMatch() const { return m_GameState == IGS_END_MATCH; }
 
-	//spawn
+	// spawn
 	bool CanSpawn(int Team, vec2 *pPos) const;
-	virtual bool GetStartRespawnState() const;
+	bool GetStartRespawnState() const;
 
 	// team
 	bool CanJoinTeam(int Team, int ClientID, bool SendReason) const;
-	virtual bool CanChangeTeam(CPlayer *pPplayer, int JoinTeam) const;
+	virtual bool CanChangeTeam(CPlayer *pPlayer, int JoinTeam) const;
 
 	void DoTeamChange(class CPlayer *pPlayer, int Team, bool DoChatMsg = true);
 	void ForceTeamBalance()
