@@ -839,6 +839,21 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 				pCharacter->m_HookedPlayer = -1;
 		}
 
+		// HACK: try disable weapon antiping when the weapon is non-standard or is using quick switch
+		if(m_WeaponTimerType == WEAPON_TIMER_INDIVIDUAL && (!pCurrentWeapon || pCurrentWeapon->GetTypeID() != WEAPON_TYPE_NINJA))
+			AttackTick = AttackTick > Server()->Tick() - 25 ? AttackTick : Server()->Tick() - 12;
+		else if(pCurrentWeapon)
+		{
+			int WeaponType = pCurrentWeapon->GetTypeID();
+			if(WeaponType != WEAPON_TYPE_HAMMER ||
+				WeaponType != WEAPON_TYPE_PISTOL ||
+				WeaponType != WEAPON_TYPE_SHOTGUN ||
+				WeaponType != WEAPON_TYPE_GRENADE ||
+				WeaponType != WEAPON_TYPE_LASER ||
+				WeaponType != WEAPON_TYPE_NINJA)
+				AttackTick = AttackTick > Server()->Tick() - 25 ? AttackTick : Server()->Tick() - 12;
+		}
+
 		pCharacter->m_AttackTick = AttackTick;
 		pCharacter->m_Direction = m_Input.m_Direction;
 		pCharacter->m_Weapon = Weapon;

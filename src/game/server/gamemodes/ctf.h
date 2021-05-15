@@ -12,7 +12,7 @@ class CGameControllerCTF : public IGameController
 
 	// game
 	class CFlag *m_apFlags[2];
-	virtual bool DoWincheckMatch() override;
+	virtual void DoWincheckMatch() override;
 
 protected:
 	// game

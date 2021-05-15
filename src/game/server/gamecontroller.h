@@ -167,13 +167,14 @@ protected:
 		DEATH_KEEP_SOLO = 16
 	};
 
-	// internal game flag (for sixup)
+	// internal game flag
 	enum
 	{
 		IGF_TEAMS = 1,
 		IGF_FLAGS = 2,
 		IGF_SURVIVAL = 4,
-		IGF_RACE = 8
+		IGF_RACE = 8,
+		IGF_ROUND = 16,
 	};
 	int m_GameFlags;
 	const char *m_pGameType;
@@ -261,6 +262,7 @@ public:
 	bool IsTeamChangeAllowed() const;
 	bool IsTeamplay() const { return m_GameFlags & IGF_TEAMS; }
 	bool IsSurvival() const { return m_GameFlags & IGF_SURVIVAL; }
+	bool IsRoundBased() const { return m_GameFlags & IGF_ROUND; }
 	void SendGameMsg(int GameMsgID, int ClientID, int *i1 = nullptr, int *i2 = nullptr, int *i3 = nullptr);
 
 	const char *GetGameType() const { return m_pGameType; }
@@ -382,34 +384,30 @@ public:
 
 	/*
 		Function: DoWincheckRound
-			Called after gamestate is updated and before OnPostTick
-				when the gamestate is IGS_GAME_RUNNING or IGS_GAME_PAUSED
+			In round based game:
+				this will be called after gamestate is updated and before OnPostTick
+				and if you call EndRound(), DoWincheckMatch() will be also called
+				to check whether it is gameover
+			In non-round game:
+				this won't be called
 		
-		Return:
-			true if the match should be ended.
-
 		Note:
-			The result allows you to skip extra logics during a tick,
-				but it won't end the game for you.
-				You should call EndMatch() in this function to end the match.
+			You should call EndRound() to end the round
 	*/
-	virtual bool DoWincheckRound();
+	virtual void DoWincheckRound(){};
 
 	/*
 		Function: DoWincheckMatch
-			Called after gamestate is updated and before OnPostTick
-				when the gamestate is IGS_GAME_RUNNING or IGS_GAME_PAUSED
-				AND when DoWincheckRound is true
-		
-		Return:
-			true if the match should be ended.
-
+			In round based game:
+				this will be called if EndRound is called
+			In non-round game:
+				this will be called after gamestate is updated and before OnPostTick
+			
 		Note:
-			The result allows you to skip extra logics during a tick,
-				but it won't end the game for you.
-				You should call EndMatch() in this function to end the match.
+			You should call EndMatch() to end the match
+
 	*/
-	virtual bool DoWincheckMatch();
+	virtual void DoWincheckMatch();
 
 	/*
 		Function: GetFlagState

@@ -12,7 +12,7 @@ CGameControllerLMS::CGameControllerLMS() :
 	IGameController()
 {
 	m_pGameType = "LMS";
-	m_GameFlags = IGF_SURVIVAL;
+	m_GameFlags = IGF_SURVIVAL | IGF_ROUND;
 }
 
 // event
@@ -26,6 +26,8 @@ void CGameControllerLMS::OnCharacterSpawn(CCharacter *pChr)
 	pChr->GiveWeapon(WEAPON_SHOTGUN, WEAPON_TYPE_SHOTGUN, 10);
 	pChr->GiveWeapon(WEAPON_GRENADE, WEAPON_TYPE_GRENADE, 10);
 	pChr->GiveWeapon(WEAPON_LASER, WEAPON_TYPE_LASER, 5);
+
+	pChr->SetWeaponTimerType(WEAPON_TIMER_INDIVIDUAL);
 }
 
 bool CGameControllerLMS::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)
@@ -37,7 +39,7 @@ bool CGameControllerLMS::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int
 }
 
 // game
-bool CGameControllerLMS::DoWincheckRound()
+void CGameControllerLMS::DoWincheckRound()
 {
 	// check for time based win
 	if(m_GameInfo.m_TimeLimit > 0 && (Server()->Tick() - m_GameStartTick) >= m_GameInfo.m_TimeLimit * Server()->TickSpeed() * 60)
@@ -52,7 +54,6 @@ bool CGameControllerLMS::DoWincheckRound()
 		}
 
 		EndRound();
-		return true;
 	}
 	else
 	{
@@ -74,15 +75,11 @@ bool CGameControllerLMS::DoWincheckRound()
 		if(AlivePlayerCount == 0) // no winner
 		{
 			EndRound();
-			return true;
 		}
 		else if(AlivePlayerCount == 1) // 1 winner
 		{
 			pAlivePlayer->m_Score++;
 			EndRound();
-			return true;
 		}
 	}
-
-	return false;
 }

@@ -999,7 +999,7 @@ void IGameController::OnReset()
 }
 
 // game
-bool IGameController::DoWincheckMatch()
+void IGameController::DoWincheckMatch()
 {
 	if(IsTeamplay())
 	{
@@ -1009,10 +1009,7 @@ bool IGameController::DoWincheckMatch()
 			(m_GameInfo.m_MatchNum > 0 && m_GameInfo.m_MatchCurrent >= m_GameInfo.m_MatchNum))
 		{
 			if(m_aTeamscore[TEAM_RED] != m_aTeamscore[TEAM_BLUE] || IsSurvival())
-			{
 				EndMatch();
-				return true;
-			}
 			else
 				m_SuddenDeath = 1;
 		}
@@ -1043,20 +1040,11 @@ bool IGameController::DoWincheckMatch()
 			(m_GameInfo.m_MatchNum > 0 && m_GameInfo.m_MatchCurrent >= m_GameInfo.m_MatchNum))
 		{
 			if(TopscoreCount == 1)
-			{
 				EndMatch();
-				return true;
-			}
 			else
 				m_SuddenDeath = 1;
 		}
 	}
-	return false;
-}
-
-bool IGameController::DoWincheckRound()
-{
-	return true;
 }
 
 void IGameController::ResetGame()
@@ -1204,8 +1192,12 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 		break;
 	case IGS_END_ROUND:
 	case IGS_END_MATCH:
-		if(GameState == IGS_END_ROUND && DoWincheckMatch())
-			break;
+		if(GameState == IGS_END_ROUND)
+		{
+			DoWincheckMatch();
+			if(IsEndMatch())
+				break;
+		}
 		// only possible when game is running or over
 		if(m_GameState == IGS_GAME_RUNNING || m_GameState == IGS_END_MATCH || m_GameState == IGS_END_ROUND || m_GameState == IGS_GAME_PAUSED)
 		{
@@ -1763,7 +1755,9 @@ void IGameController::Tick()
 	if((m_GameState == IGS_GAME_RUNNING || m_GameState == IGS_GAME_PAUSED) && !GameWorld()->m_ResetRequested)
 	{
 		// win check
-		if(DoWincheckRound())
+		if(IsRoundBased())
+			DoWincheckRound();
+		else
 			DoWincheckMatch();
 	}
 

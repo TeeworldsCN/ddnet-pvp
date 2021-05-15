@@ -12,7 +12,7 @@ CGameControllerLTS::CGameControllerLTS() :
 	IGameController()
 {
 	m_pGameType = "LTS";
-	m_GameFlags = IGF_TEAMS | IGF_SURVIVAL;
+	m_GameFlags = IGF_TEAMS | IGF_SURVIVAL | IGF_ROUND;
 }
 
 // event
@@ -37,7 +37,7 @@ bool CGameControllerLTS::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int
 }
 
 // game
-bool CGameControllerLTS::DoWincheckRound()
+void CGameControllerLTS::DoWincheckRound()
 {
 	int Count[2] = {0};
 	for(int i = 0; i < MAX_CLIENTS; ++i)
@@ -54,19 +54,15 @@ bool CGameControllerLTS::DoWincheckRound()
 		++m_aTeamscore[TEAM_BLUE];
 		++m_aTeamscore[TEAM_RED];
 		EndRound();
-		return true;
 	}
 	else if(Count[TEAM_RED] == 0)
 	{
 		++m_aTeamscore[TEAM_BLUE];
 		EndRound();
-		return true;
 	}
 	else if(Count[TEAM_BLUE] == 0)
 	{
 		++m_aTeamscore[TEAM_RED];
 		EndRound();
-		return true;
 	}
-	return false;
 }
