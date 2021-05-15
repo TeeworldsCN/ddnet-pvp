@@ -1519,11 +1519,6 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		}
 		else if(Msg == NETMSG_INPUT)
 		{
-			// // HACK: Fake drop to force client to rethink
-			// MYTODO: maybe remove this
-			if(m_aClients[ClientID].m_SnapRate == CClient::SNAPRATE_FORCE_STOP)
-				return;
-
 			CClient::CInput *pInput;
 			int64 TagTime;
 
