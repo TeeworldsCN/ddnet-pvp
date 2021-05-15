@@ -1451,12 +1451,17 @@ void *CGameContext::PreProcessMsg(int *MsgID, CUnpacker *pUnpacker, int ClientID
 			protocol7::CNetMsg_Cl_SetSpectatorMode *pMsg7 = (protocol7::CNetMsg_Cl_SetSpectatorMode *)pRawMsg;
 			::CNetMsg_Cl_SetSpectatorMode *pMsg = (::CNetMsg_Cl_SetSpectatorMode *)s_aRawMsg;
 
-			if(pMsg7->m_SpecMode == protocol7::SPEC_FREEVIEW)
-				pMsg->m_SpectatorID = SPEC_FREEVIEW;
-			else if(pMsg7->m_SpecMode == protocol7::SPEC_PLAYER)
-				pMsg->m_SpectatorID = pMsg7->m_SpectatorID;
-			else
-				pMsg->m_SpectatorID = SPEC_FREEVIEW; // Probably not needed
+			pMsg7->m_SpectatorID = clamp(pMsg7->m_SpectatorID, (int)SPEC_FREEVIEW, MAX_CLIENTS - 1);
+
+			if((g_Config.m_SvSpamprotection && pPlayer->m_LastSetSpectatorMode && pPlayer->m_LastSetSpectatorMode + Server()->TickSpeed() / 4 > Server()->Tick()))
+				return 0;
+
+			pPlayer->m_LastSetSpectatorMode = Server()->Tick();
+			pPlayer->UpdatePlaytime();
+			SGameInstance Instance = PlayerGameInstance(ClientID);
+			if(!pPlayer->SetSpectatorID(pMsg7->m_SpecMode, pMsg7->m_SpectatorID) && Instance.m_Init)
+				Instance.m_pController->SendGameMsg(GAMEMSG_SPEC_INVALIDID, ClientID);
+			return 0;
 		}
 		else if(*MsgID == protocol7::NETMSGTYPE_CL_SETTEAM)
 		{
@@ -1977,7 +1982,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				str_format(aSixupDesc, sizeof(aSixupDesc), "%2d: %s", SpectateID, Server()->ClientName(SpectateID));
 				str_format(aChatmsg, sizeof(aChatmsg), "'%s' called for vote to move '%s' to spectators (%s)", Server()->ClientName(ClientID), Server()->ClientName(SpectateID), aReason);
 				str_format(aDesc, sizeof(aDesc), "Move '%s' to spectators", Server()->ClientName(SpectateID));
-				str_format(aCmd, sizeof(aCmd), "vote_command set_team %d -1 %d", SpectateID, g_Config.m_SvVoteSpectateRejoindelay);
+				str_format(aCmd, sizeof(aCmd), "server_command set_team %d -1 %d", SpectateID, g_Config.m_SvVoteSpectateRejoindelay);
 				IsInstanceVote = true;
 				m_VoteType = VOTE_TYPE_SPECTATE;
 				m_VoteVictim = SpectateID;
@@ -2065,7 +2070,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			}
 
 			SGameInstance Instance = PlayerGameInstance(ClientID);
-			if(Instance.m_Init)
+			if(!Instance.m_Init)
 			{
 				SendChatTarget(ClientID, "You can't change your team before the room is ready");
 				return;
@@ -2141,9 +2146,15 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			pPlayer->m_LastSetSpectatorMode = Server()->Tick();
 			pPlayer->UpdatePlaytime();
+
 			SGameInstance Instance = PlayerGameInstance(ClientID);
-			if(!pPlayer->SetSpectatorID(CPlayer::SPECMODE_PLAYER, pMsg->m_SpectatorID) && Instance.m_Init)
-				Instance.m_pController->SendGameMsg(GAMEMSG_SPEC_INVALIDID, ClientID);
+			if(!pPlayer->SetSpectatorID(pMsg->m_SpectatorID == -1 ? CPlayer::SPECMODE_FREEVIEW : CPlayer::SPECMODE_PLAYER, pMsg->m_SpectatorID) && Instance.m_Init)
+			{
+				if(pMsg->m_SpectatorID == -1 && !Server()->IsSixup(ClientID))
+					SendChatTarget(ClientID, "You can't freeview right now");
+				else
+					Instance.m_pController->SendGameMsg(GAMEMSG_SPEC_INVALIDID, ClientID);
+			}
 		}
 		else if(MsgID == NETMSGTYPE_CL_CHANGEINFO)
 		{

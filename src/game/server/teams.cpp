@@ -140,7 +140,7 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 	if(OldTeam != Team)
 	{
 		if(State != TEAM_REASON_DISCONNECT)
-			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], false, false);
+			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], false, m_aTeamInstances[Team].m_Creator == ClientID, true);
 
 		for(int LoopClientID = 0; LoopClientID < MAX_CLIENTS; ++LoopClientID)
 			if(GameServer()->IsPlayerValid(LoopClientID))
@@ -281,6 +281,8 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	m_aTeamInstances[Team].m_Entities = 0;
 	m_aTeamInstances[Team].m_Creator = Asker;
 
+	m_aTeamInstances[Team].m_pController->InstanceConsole()->SetFlagMask(CFGFLAG_INSTANCE);
+
 	if(Type.pSettings && Type.pSettings[0])
 	{
 		if(Type.IsFile)
@@ -298,7 +300,7 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 
 	for(int i = 0; i < MAX_CLIENTS; i++)
 		if(GameServer()->IsPlayerValid(i) && m_Core.Team(i) == Team)
-			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[i], false, false);
+			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[i], false, false, false);
 
 	UpdateGameTypeName();
 	return true;
@@ -369,7 +371,7 @@ void CGameTeams::OnPlayerConnect(CPlayer *pPlayer)
 	SetForcePlayerTeam(ClientID, 0, TEAM_REASON_CONNECT);
 
 	if(m_aTeamInstances[m_Core.Team(ClientID)].m_IsCreated)
-		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerJoin(pPlayer, true, false);
+		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerJoin(pPlayer, true, false, true);
 
 	if(!GameServer()->Server()->ClientPrevIngame(ClientID))
 	{

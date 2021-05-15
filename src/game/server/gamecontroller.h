@@ -217,7 +217,7 @@ public:
 
 	// internal events
 	void StartController();
-	void OnInternalPlayerJoin(class CPlayer *pPlayer, bool ServerJoin, bool Creating);
+	void OnInternalPlayerJoin(class CPlayer *pPlayer, bool ServerJoin, bool Creating, bool SendMessage);
 	void OnInternalPlayerLeave(class CPlayer *pPlayer, bool ServerLeave);
 	int OnInternalCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
 	void OnInternalCharacterSpawn(class CCharacter *pChr);

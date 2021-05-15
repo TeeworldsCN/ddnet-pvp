@@ -616,5 +616,27 @@ void CGameContext::ConAddMapName(IConsole::IResult *pResult, void *pUserData)
 
 void CGameContext::ConRoomSetting(IConsole::IResult *pResult, void *pUserData)
 {
-	// MYTODO: room settings
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	int Room = pResult->GetInteger(0);
+
+	char aInstanceBuf[32];
+	str_format(aInstanceBuf, sizeof(aInstanceBuf), "instance %d", Room);
+
+	SGameInstance Instance = pSelf->GameInstance(Room);
+	if(!Instance.m_Init)
+	{
+		pSelf->Console()->Print(
+			IConsole::OUTPUT_LEVEL_STANDARD,
+			aInstanceBuf,
+			"The room is not ready or does not exist.");
+		return;
+	}
+
+	Instance.m_pController->InstanceConsole()->SetFlagMask(CFGFLAG_INSTANCE);
+
+	if(pResult->NumArguments() > 1)
+		Instance.m_pController->InstanceConsole()->ExecuteLine(pResult->GetString(1), pResult->m_ClientID);
+	else
+		Instance.m_pController->InstanceConsole()->ExecuteLine("cmdlist", pResult->m_ClientID);
 }

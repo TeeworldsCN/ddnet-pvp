@@ -240,7 +240,7 @@ static void ConKick(IConsole::IResult *pResult, void *pUserData)
 	}
 }
 
-static void ConVoteCommand(IConsole::IResult *pResult, void *pUserData)
+static void ConServerCommand(IConsole::IResult *pResult, void *pUserData)
 {
 	IGameController *pSelf = (IGameController *)pUserData;
 	pSelf->GameServer()->Console()->ExecuteLine(pResult->GetString(0));
@@ -396,7 +396,7 @@ IGameController::IGameController()
 
 	// vote helper
 	m_pInstanceConsole->Register("vote_kick", "i[id] r[real-command]", CFGFLAG_INSTANCE, ConKick, this, "Helper command for vote kicking, it is not recommended to call this directly");
-	m_pInstanceConsole->Register("vote_command", "r[real-command]", CFGFLAG_INSTANCE, ConVoteCommand, this, "Helper command for vote commands, it is not recommended to call this directly");
+	m_pInstanceConsole->Register("server_command", "r[real-command]", CFGFLAG_INSTANCE, ConServerCommand, this, "Pass the command to GameServer to process, it is not recommended to call this directly");
 }
 
 IGameController::~IGameController()
@@ -894,7 +894,7 @@ void IGameController::OnKill(CPlayer *pPlayer)
 	pPlayer->KillCharacter(WEAPON_SELF);
 }
 
-void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bool Creating)
+void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bool Creating, bool SendMessage)
 {
 	int ClientID = pPlayer->GetCID();
 	pPlayer->GameReset();
@@ -920,7 +920,7 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	GameServer()->SendBroadcast(" ", ClientID, false);
 
 	// change team second
-	pPlayer->SetTeam(GetStartTeam(), false);
+	pPlayer->SetTeam(GetStartTeam());
 
 	// sixup: update team info for fake spectators
 	pPlayer->SendCurrentTeamInfo();
@@ -935,12 +935,15 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	str_format(aBuf, sizeof(aBuf), "ddrteam_join player='%d:%s' team=%d ddrteam='%d'", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam(), GameWorld()->Team());
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
-	if(ServerJoin)
-		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s in %s room %d", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()), m_pGameType, GameWorld()->Team());
-	else
-		str_format(aBuf, sizeof(aBuf), "'%s' %sjoined the %s in %s room %d", Server()->ClientName(ClientID), Creating ? "created and " : "", GetTeamName(pPlayer->GetTeam()), m_pGameType, GameWorld()->Team());
+	if(SendMessage)
+	{
+		if(ServerJoin)
+			str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s in %s room %d", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()), m_pGameType, GameWorld()->Team());
+		else
+			str_format(aBuf, sizeof(aBuf), "'%s' joined the %s in %s%s room %d", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()), Creating ? "a new " : "", m_pGameType, GameWorld()->Team());
 
-	GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1);
+		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1);
+	}
 
 	OnPlayerJoin(pPlayer);
 
@@ -1633,6 +1636,7 @@ void IGameController::Tick()
 				// silence voted command response
 				m_ChatResponseTargetID = -2;
 				Server()->SetRconCID(IServer::RCON_CID_VOTE);
+				InstanceConsole()->SetFlagMask(CFGFLAG_INSTANCE);
 				InstanceConsole()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
 				Server()->SetRconCID(IServer::RCON_CID_SERV);
 				EndVote(true);
@@ -1648,6 +1652,7 @@ void IGameController::Tick()
 				// silence voted command response
 				m_ChatResponseTargetID = -2;
 				str_format(aBuf, sizeof(aBuf), "Vote passed enforced by authorized player");
+				InstanceConsole()->SetFlagMask(CFGFLAG_INSTANCE);
 				InstanceConsole()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
 				SendChatTarget(-1, aBuf, CGameContext::CHAT_SIX);
 				EndVote(true);
@@ -2119,11 +2124,17 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 	if(Team == OldTeam)
 		return;
 
-	pPlayer->SetTeam(Team, DoChatMsg);
-
+	char aBuf[512];
 	int ClientID = pPlayer->GetCID();
 
-	char aBuf[128];
+	pPlayer->SetTeam(Team);
+
+	if(DoChatMsg)
+	{
+		str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(ClientID), GetTeamName(Team));
+		SendChatTarget(-1, aBuf);
+	}
+
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d->%d", ClientID, Server()->ClientName(ClientID), OldTeam, Team);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 

@@ -775,7 +775,7 @@ CCharacter *CPlayer::ForceSpawn(vec2 Pos)
 	return m_pCharacter;
 }
 
-void CPlayer::SetTeam(int Team, bool DoChatMsg)
+void CPlayer::SetTeam(int Team)
 {
 	KillCharacter();
 
@@ -787,7 +787,7 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	protocol7::CNetMsg_Sv_Team Msg;
 	Msg.m_ClientID = m_ClientID;
 	Msg.m_Team = m_Team;
-	Msg.m_Silent = !DoChatMsg;
+	Msg.m_Silent = false; // change team is always silent for sixup since we have custom message for that.
 	Msg.m_CooldownTick = m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay;
 
 	// Update team info for sixup

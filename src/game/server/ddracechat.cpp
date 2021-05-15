@@ -789,7 +789,9 @@ void CGameContext::ConInstanceCommand(IConsole::IResult *pResult, void *pUserDat
 	char aInstanceBuf[32];
 	str_format(aInstanceBuf, sizeof(aInstanceBuf), "instance %d", Room);
 
-	if(g_Config.m_SvRoomSetting == 0)
+	int Auth = pSelf->Server()->GetAuthedState(ClientID);
+
+	if(g_Config.m_SvRoomSetting == 0 && Auth < AUTHED_MOD)
 	{
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
@@ -808,7 +810,7 @@ void CGameContext::ConInstanceCommand(IConsole::IResult *pResult, void *pUserDat
 		return;
 	}
 
-	if(Instance.m_pWorld->Team() == 0)
+	if(Instance.m_pWorld->Team() == 0 && Auth < AUTHED_MOD)
 	{
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
@@ -841,15 +843,18 @@ void CGameContext::ConInstanceCommand(IConsole::IResult *pResult, void *pUserDat
 		}
 
 		if(pCmdInfo->m_Flags & CFGFLAG_NO_CONSENT)
-			Instance.m_pController->InstanceConsole()->ExecuteLine(pLine);
+			Instance.m_pController->InstanceConsole()->ExecuteLine(pLine, ClientID, false);
 		else
 		{
-			if(g_Config.m_SvRoomSetting != 1)
+			if(g_Config.m_SvRoomSetting != 1 && Auth < AUTHED_MOD)
 			{
 				if(pSelf->m_VoteCloseTime > 0)
 				{
 					str_format(aBuf, sizeof(aBuf), "You can not call a setting vote now, because a server vote is in progress.");
-					Instance.m_pController->SendChatTarget(ClientID, aBuf);
+					pSelf->Console()->Print(
+						IConsole::OUTPUT_LEVEL_STANDARD,
+						aInstanceBuf,
+						"You cannot execute command in lobby room / room 0");
 				}
 				else
 				{
@@ -861,7 +866,7 @@ void CGameContext::ConInstanceCommand(IConsole::IResult *pResult, void *pUserDat
 			{
 				str_format(aBuf, sizeof(aBuf), "'%s' called '%s'", pSelf->Server()->ClientName(ClientID), pLine);
 				Instance.m_pController->SendChatTarget(-1, aBuf);
-				Instance.m_pController->InstanceConsole()->ExecuteLine(pLine);
+				Instance.m_pController->InstanceConsole()->ExecuteLine(pLine, ClientID, false);
 			}
 		}
 	}
