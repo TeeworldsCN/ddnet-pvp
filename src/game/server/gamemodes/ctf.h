@@ -29,7 +29,7 @@ public:
 	virtual bool OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number) override;
 
 	// general
-	virtual void Tick() override;
+	virtual void OnPostTick() override;
 };
 
 #endif

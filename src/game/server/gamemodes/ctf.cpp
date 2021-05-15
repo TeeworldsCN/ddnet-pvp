@@ -166,10 +166,8 @@ bool CGameControllerCTF::GetFlagState(SFlagState *pState)
 }
 
 // general
-void CGameControllerCTF::Tick()
+void CGameControllerCTF::OnPostTick()
 {
-	IGameController::Tick();
-
 	if(GameWorld()->m_ResetRequested || GameWorld()->m_Paused)
 		return;
 

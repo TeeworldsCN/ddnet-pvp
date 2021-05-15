@@ -373,6 +373,8 @@ IGameController::IGameController()
 	INSTANCE_CONFIG_INT(&m_Timelimit, "timelimit", 0, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Time limit in minutes (0 disables)")
 	INSTANCE_CONFIG_INT(&m_Roundlimit, "roundlimit", 0, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Round limit for game with rounds (0 disables)")
 	INSTANCE_CONFIG_INT(&m_TeambalanceTime, "teambalance_time", 1, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "How many minutes to wait before autobalancing teams")
+	INSTANCE_CONFIG_INT(&m_KillDelay, "kill_delay", 1, -1, 9999, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "The minimum time in seconds between kills (-1 = disable kill)")
+	INSTANCE_CONFIG_INT(&m_PlayerSlots, "player_slots", MAX_CLIENTS, 2, MAX_CLIENTS, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Maximum room size (from 2 to 64)")
 
 	m_pInstanceConsole->Chain("scorelimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("timelimit", ConchainGameInfoUpdate, this);
@@ -427,6 +429,8 @@ void IGameController::StartController()
 
 	if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
 		SetGameState(IGS_WARMUP_GAME, 0);
+
+	OnControllerStart();
 }
 
 bool IGameController::GetPlayersReadyState(int WithoutID)
@@ -871,6 +875,23 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 		CPickup *pPickup = new CPickup(GameWorld(), Type, SubType, Value, SubType, WeaponType);
 		pPickup->m_Pos = Pos;
 	}
+}
+
+void IGameController::OnKill(CPlayer *pPlayer)
+{
+	if(m_KillDelay == -1)
+		return;
+	if(pPlayer->m_LastKill && pPlayer->m_LastKill + Server()->TickSpeed() * m_KillDelay > Server()->Tick())
+		return;
+	if(pPlayer->IsPaused())
+		return;
+
+	CCharacter *pChr = pPlayer->GetCharacter();
+	if(!pChr)
+		return;
+
+	pPlayer->m_LastKill = Server()->Tick();
+	pPlayer->KillCharacter(WEAPON_SELF);
 }
 
 void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bool Creating)
@@ -1481,6 +1502,8 @@ void IGameController::Snap(int SnappingClient)
 			pGameInfo->m_MatchCurrent = m_GameInfo.m_MatchCurrent;
 		}
 	}
+
+	OnSnap(SnappingClient);
 }
 
 void IGameController::Tick()
@@ -1542,11 +1565,7 @@ void IGameController::Tick()
 					if(!pPlayer || aVoteChecked[i])
 						continue;
 
-					if(GameServer()->GetPlayerDDRTeam(i) != GameWorld()->Team())
-						continue;
-
-					if((IsKickVote() || IsSpecVote()) && (pPlayer->GetTeam() == TEAM_SPECTATORS ||
-										     (GameServer()->GetPlayerChar(m_VoteCreator) && GameServer()->GetPlayerChar(i))))
+					if(pPlayer->GetTeam() == TEAM_SPECTATORS)
 						continue;
 
 					if(pPlayer->m_Afk && i != m_VoteCreator)
@@ -1653,6 +1672,8 @@ void IGameController::Tick()
 		}
 	}
 
+	OnPreTick();
+
 	// handle game states
 	if(m_GameState != IGS_GAME_RUNNING)
 	{
@@ -1740,6 +1761,8 @@ void IGameController::Tick()
 		if(DoWincheckRound())
 			DoWincheckMatch();
 	}
+
+	OnPostTick();
 }
 
 // info
@@ -1930,12 +1953,11 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos) const
 		return false;
 
 	CSpawnEval Eval;
-	Eval.m_RandomSpawn = IsSurvival();
+	Eval.m_RandomSpawn = IsSpawnRandom();
+	Eval.m_SpawningTeam = Team;
 
 	if(IsTeamplay())
 	{
-		Eval.m_FriendlyTeam = Team;
-
 		// first try own team spawn, then normal spawn and then enemy
 		EvaluateSpawnType(&Eval, 1 + (Team & 1));
 		if(!Eval.m_Got)
@@ -1947,13 +1969,12 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos) const
 	}
 	else
 	{
-		// first try normal spawn, then red spawn and then blue
+		// first try normal spawn, then team spawn
 		EvaluateSpawnType(&Eval, 0);
 		if(!Eval.m_Got)
 		{
 			EvaluateSpawnType(&Eval, 1);
-			if(!Eval.m_Got)
-				EvaluateSpawnType(&Eval, 2);
+			EvaluateSpawnType(&Eval, 2);
 		}
 	}
 
@@ -1967,10 +1988,7 @@ float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos) const
 	CCharacter *pC = static_cast<CCharacter *>(GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER));
 	for(; pC; pC = (CCharacter *)pC->TypeNext())
 	{
-		// team mates are not as dangerous as enemies
-		float Scoremod = 1.0f;
-		if(pEval->m_FriendlyTeam != -1 && pC->GetPlayer()->GetTeam() == pEval->m_FriendlyTeam)
-			Scoremod = 0.5f;
+		float Scoremod = SpawnPosDangerScore(Pos, pEval->m_SpawningTeam, pC);
 
 		float d = distance(Pos, pC->m_Pos);
 		Score += Scoremod * (d == 0 ? 1000000000.0f : 1.0f / d);
@@ -2018,6 +2036,15 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type) const
 	}
 }
 
+float IGameController::SpawnPosDangerScore(vec2 Pos, int SpawningTeam, class CCharacter *pChar) const
+{
+	// team mates are not as dangerous as enemies
+	if(IsTeamplay() && pChar->GetPlayer()->GetTeam() == SpawningTeam)
+		return 0.5f;
+	else
+		return 1.0f;
+}
+
 bool IGameController::GetStartRespawnState() const
 {
 	if(IsSurvival())
@@ -2063,14 +2090,13 @@ bool IGameController::CanJoinTeam(int Team, int ClientID, bool SendReason) const
 	// check if there're enough player slots left
 	CPlayer *pPlayer = GetPlayerIfInRoom(ClientID);
 	int TeamMod = pPlayer && pPlayer->GetTeam() != TEAM_SPECTATORS ? -1 : 0;
-	int MaxPlayers = GameWorld()->Team() == 0 ? Config()->m_SvMaxClients : Config()->m_SvRoomMaxSize;
 
-	bool CanJoin = TeamMod + m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] < MaxPlayers;
+	bool CanJoin = TeamMod + m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] < m_PlayerSlots;
 
 	if(!CanJoin && SendReason)
 	{
 		char aBuf[128];
-		str_format(aBuf, sizeof(aBuf), "Only %d active players are allowed in this room", MaxPlayers);
+		str_format(aBuf, sizeof(aBuf), "Only %d active players are allowed in this room", m_PlayerSlots);
 		GameServer()->SendBroadcast(aBuf, ClientID);
 	}
 	return CanJoin;
@@ -2142,10 +2168,8 @@ int IGameController::GetStartTeam()
 		Team = m_aTeamSize[TEAM_RED] > m_aTeamSize[TEAM_BLUE] ? TEAM_BLUE : TEAM_RED;
 	}
 
-	int MaxPlayers = GameWorld()->Team() == 0 ? Config()->m_SvMaxClients : Config()->m_SvRoomMaxSize;
-
 	// check if there're enough player slots left
-	if(m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] < MaxPlayers)
+	if(m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] < m_PlayerSlots)
 	{
 		++m_aTeamSize[Team];
 		dbg_msg("game", "team size increased to %d, team='%d', ddrteam='%d'", m_aTeamSize[Team], Team, GameWorld()->Team());
@@ -2159,9 +2183,20 @@ int IGameController::GetStartTeam()
 
 const char *IGameController::GetTeamName(int Team)
 {
-	if(Team == 0)
-		return "game";
-	return "spectators";
+	if(IsTeamplay())
+	{
+		if(Team == 0)
+			return "red team";
+		if(Team == 1)
+			return "blue team";
+		return "spectators";
+	}
+	else
+	{
+		if(Team == 0)
+			return "game";
+		return "spectators";
+	}
 }
 
 // ddrace

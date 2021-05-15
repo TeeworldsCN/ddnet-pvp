@@ -764,6 +764,8 @@ void CGameContext::OnTick()
 					if(!m_apPlayers[i] || aVoteChecked[i])
 						continue;
 
+					// MYTODO: get rid of kick vote checks, no gonna happen here
+
 					if((IsKickVote() || IsSpecVote()) && (m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS ||
 										     (GetPlayerChar(m_VoteCreator) && GetPlayerChar(i) &&
 											     GetPlayerChar(m_VoteCreator)->Team() != GetPlayerChar(i)->Team())))
@@ -2062,10 +2064,15 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				return;
 			}
 
-			int DDRTeam = Teams()->m_Core.Team(ClientID);
+			SGameInstance Instance = PlayerGameInstance(ClientID);
+			if(Instance.m_Init)
+			{
+				SendChatTarget(ClientID, "You can't change your team before the room is ready");
+				return;
+			}
 
 			// Switch team on given client and kill/respawn him
-			if(GameInstance(DDRTeam).m_pController->CanJoinTeam(pMsg->m_Team, ClientID, true))
+			if(Instance.m_pController->CanJoinTeam(pMsg->m_Team, ClientID, true) && Instance.m_pController->CanChangeTeam(pPlayer, pMsg->m_Team))
 			{
 				if(pPlayer->IsPaused())
 					SendChatTarget(ClientID, "Use /pause first then you can kill");
@@ -2073,7 +2080,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				{
 					if(pPlayer->GetTeam() == TEAM_SPECTATORS || pMsg->m_Team == TEAM_SPECTATORS)
 						m_VoteUpdate = true;
-					GameInstance(DDRTeam).m_pController->DoTeamChange(pPlayer, pMsg->m_Team);
+					Instance.m_pController->DoTeamChange(pPlayer, pMsg->m_Team);
 					pPlayer->m_TeamChangeTick = Server()->Tick();
 				}
 			}
@@ -2282,22 +2289,12 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		}
 		else if(MsgID == NETMSGTYPE_CL_KILL && !pPlayerWorld->m_Paused)
 		{
-			if(m_VoteCloseTime && m_VoteCreator == ClientID && GetDDRaceTeam(ClientID) && (IsKickVote() || IsSpecVote()))
-			{
-				SendChatTarget(ClientID, "You are running a vote please try again after the vote is done!");
-				return;
-			}
-			if(pPlayer->m_LastKill && pPlayer->m_LastKill + Server()->TickSpeed() * g_Config.m_SvKillDelay > Server()->Tick())
-				return;
-			if(pPlayer->IsPaused())
+			SGameInstance Instance = PlayerGameInstance(pPlayer->GetCID());
+
+			if(!Instance.m_Init)
 				return;
 
-			CCharacter *pChr = pPlayer->GetCharacter();
-			if(!pChr)
-				return;
-
-			pPlayer->m_LastKill = Server()->Tick();
-			pPlayer->KillCharacter(WEAPON_SELF);
+			Instance.m_pController->OnKill(pPlayer);
 		}
 	}
 	if(MsgID == NETMSGTYPE_CL_STARTINFO)
