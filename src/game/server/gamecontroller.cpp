@@ -2094,7 +2094,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type) const
 		for(int Index = 0; Index < 5 && Result == -1; ++Index)
 		{
 			Result = Index;
-			if(!GameWorld()->m_Core.m_Tuning[0].m_PlayerCollision)
+			if(!GameWorld()->m_Core.m_Tuning.m_PlayerCollision)
 				break;
 			for(int c = 0; c < Num; ++c)
 			{

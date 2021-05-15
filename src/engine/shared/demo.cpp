@@ -8,10 +8,6 @@
 
 #include <engine/shared/config.h>
 
-#if defined(CONF_VIDEORECORDER)
-#include <engine/shared/video.h>
-#endif
-
 #include <game/generated/protocol.h>
 
 #include "compression.h"
@@ -560,10 +556,6 @@ void CDemoPlayer::DoTick()
 			// stop on error or eof
 			if(m_pConsole)
 				m_pConsole->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "demo_player", "end of file");
-#if defined(CONF_VIDEORECORDER)
-			if(IVideo::Current())
-				Stop();
-#endif
 			if(m_Info.m_PreviousTick == -1)
 			{
 				if(m_pConsole)
@@ -672,10 +664,6 @@ void CDemoPlayer::DoTick()
 void CDemoPlayer::Pause()
 {
 	m_Info.m_Info.m_Paused = 1;
-#if defined(CONF_VIDEORECORDER)
-	if(IVideo::Current() && g_Config.m_ClVideoPauseWithDemo)
-		IVideo::Current()->Pause(true);
-#endif
 }
 
 void CDemoPlayer::Unpause()
@@ -686,10 +674,6 @@ void CDemoPlayer::Unpause()
 		m_Info.start_time = time_get();*/
 		m_Info.m_Info.m_Paused = 0;
 	}
-#if defined(CONF_VIDEORECORDER)
-	if(IVideo::Current() && g_Config.m_ClVideoPauseWithDemo)
-		IVideo::Current()->Pause(false);
-#endif
 }
 
 int CDemoPlayer::Load(class IStorage *pStorage, class IConsole *pConsole, const char *pFilename, int StorageType)
@@ -812,10 +796,6 @@ int CDemoPlayer::Load(class IStorage *pStorage, class IConsole *pConsole, const 
 	// scan the file for interesting points
 	ScanFile();
 
-	// reset slice markers
-	g_Config.m_ClDemoSliceBegin = -1;
-	g_Config.m_ClDemoSliceEnd = -1;
-
 	// ready for playback
 	return 0;
 }
@@ -870,30 +850,7 @@ int CDemoPlayer::NextFrame()
 
 int64 CDemoPlayer::time()
 {
-#if defined(CONF_VIDEORECORDER)
-	static bool s_Recording = false;
-	if(IVideo::Current())
-	{
-		if(!s_Recording)
-		{
-			s_Recording = true;
-			m_Info.m_LastUpdate = IVideo::Time();
-		}
-		return IVideo::Time();
-	}
-	else
-	{
-		int64 Now = time_get();
-		if(s_Recording)
-		{
-			s_Recording = false;
-			m_Info.m_LastUpdate = Now;
-		}
-		return Now;
-	}
-#else
 	return time_get();
-#endif
 }
 
 int CDemoPlayer::Play()
@@ -1028,11 +985,6 @@ int CDemoPlayer::Update(bool RealTime)
 
 int CDemoPlayer::Stop()
 {
-#if defined(CONF_VIDEORECORDER)
-	if(IVideo::Current())
-		IVideo::Current()->Stop();
-#endif
-
 	if(!m_File)
 		return -1;
 

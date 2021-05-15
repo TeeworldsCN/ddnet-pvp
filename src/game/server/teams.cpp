@@ -440,7 +440,7 @@ void CGameTeams::OnTick()
 			}
 			else
 			{
-				m_aTeamInstances[i].m_pWorld->m_Core.m_Tuning[0] = *GameServer()->Tuning();
+				m_aTeamInstances[i].m_pWorld->m_Core.m_Tuning = *GameServer()->Tuning();
 				m_aTeamInstances[i].m_pWorld->Tick();
 				m_aTeamInstances[i].m_pController->Tick();
 			}

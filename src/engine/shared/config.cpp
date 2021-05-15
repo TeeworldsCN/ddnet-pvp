@@ -41,7 +41,7 @@ void CConfigManager::Reset()
 
 bool CConfigManager::Save()
 {
-	if(!m_pStorage || !g_Config.m_ClSaveSettings)
+	if(!m_pStorage)
 		return true;
 
 	char aConfigFileTmp[64];

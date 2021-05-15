@@ -3,7 +3,6 @@
 #include "linereader.h"
 #include <base/math.h>
 #include <base/system.h>
-#include <engine/client/updater.h>
 #include <engine/storage.h>
 
 #ifdef CONF_PLATFORM_HAIKU
@@ -18,7 +17,6 @@ public:
 	char m_aDatadir[MAX_PATH_LENGTH];
 	char m_aUserdir[MAX_PATH_LENGTH];
 	char m_aCurrentdir[MAX_PATH_LENGTH];
-	char m_aBinarydir[MAX_PATH_LENGTH];
 
 	CStorage()
 	{
@@ -35,9 +33,6 @@ public:
 
 		// get datadir
 		FindDatadir(ppArguments[0]);
-
-		// get binarydir
-		FindBinarydir(ppArguments[0]);
 
 		// get currentdir
 		if(!fs_getcwd(m_aCurrentdir, sizeof(m_aCurrentdir)))
@@ -72,9 +67,6 @@ public:
 				fs_makedir(GetPath(TYPE_SAVE, "assets/entities", aPath, sizeof(aPath)));
 				fs_makedir(GetPath(TYPE_SAVE, "assets/game", aPath, sizeof(aPath)));
 				fs_makedir(GetPath(TYPE_SAVE, "assets/particles", aPath, sizeof(aPath)));
-#if defined(CONF_VIDEORECORDER)
-				fs_makedir(GetPath(TYPE_SAVE, "videos", aPath, sizeof(aPath)));
-#endif
 			}
 			fs_makedir(GetPath(TYPE_SAVE, "dumps", aPath, sizeof(aPath)));
 			fs_makedir(GetPath(TYPE_SAVE, "demos", aPath, sizeof(aPath)));
@@ -250,54 +242,6 @@ public:
 #endif
 
 		dbg_msg("storage", "warning: no data directory found");
-	}
-
-	void FindBinarydir(const char *pArgv0)
-	{
-#if defined(BINARY_DIR)
-		str_copy(m_aBinarydir, BINARY_DIR, sizeof(m_aBinarydir));
-		return;
-#endif
-
-		// check for usable path in argv[0]
-		{
-			unsigned int Pos = ~0U;
-			for(unsigned i = 0; pArgv0[i]; i++)
-				if(pArgv0[i] == '/' || pArgv0[i] == '\\')
-					Pos = i;
-
-			if(Pos < MAX_PATH_LENGTH)
-			{
-				char aBuf[MAX_PATH_LENGTH];
-				str_copy(m_aBinarydir, pArgv0, Pos + 1);
-				str_format(aBuf, sizeof(aBuf), "%s/" PLAT_SERVER_EXEC, m_aBinarydir);
-				IOHANDLE File = io_open(aBuf, IOFLAG_READ);
-				if(File)
-				{
-					io_close(File);
-					return;
-				}
-				else
-				{
-#if defined(CONF_PLATFORM_MACOS)
-					str_append(m_aBinarydir, "/../../../DDNet-Server.app/Contents/MacOS", sizeof(m_aBinarydir));
-					str_format(aBuf, sizeof(aBuf), "%s/" PLAT_SERVER_EXEC, m_aBinarydir);
-					IOHANDLE File = io_open(aBuf, IOFLAG_READ);
-					if(File)
-					{
-						io_close(File);
-						return;
-					}
-					else
-						m_aBinarydir[0] = 0;
-#else
-					m_aBinarydir[0] = 0;
-#endif
-				}
-			}
-		}
-
-		// no binary directory found, use $PATH on Posix, $PWD on Windows
 	}
 
 	virtual void ListDirectoryInfo(int Type, const char *pPath, FS_LISTDIR_INFO_CALLBACK pfnCallback, void *pUser)
@@ -484,17 +428,6 @@ public:
 		return Success;
 	}
 
-	virtual bool RemoveBinaryFile(const char *pFilename)
-	{
-		char aBuffer[MAX_PATH_LENGTH];
-		GetBinaryPath(pFilename, aBuffer, sizeof(aBuffer));
-
-		bool Success = !fs_remove(aBuffer);
-		if(!Success)
-			dbg_msg("storage", "failed to remove binary: %s", aBuffer);
-		return Success;
-	}
-
 	virtual bool RenameFile(const char *pOldFilename, const char *pNewFilename, int Type)
 	{
 		if(Type < 0 || Type >= m_NumPaths)
@@ -504,22 +437,6 @@ public:
 		char aNewBuffer[MAX_PATH_LENGTH];
 		GetPath(Type, pOldFilename, aOldBuffer, sizeof(aOldBuffer));
 		GetPath(Type, pNewFilename, aNewBuffer, sizeof(aNewBuffer));
-
-		bool Success = !fs_rename(aOldBuffer, aNewBuffer);
-		if(!Success)
-			dbg_msg("storage", "failed to rename: %s -> %s", aOldBuffer, aNewBuffer);
-		return Success;
-	}
-
-	virtual bool RenameBinaryFile(const char *pOldFilename, const char *pNewFilename)
-	{
-		char aOldBuffer[MAX_PATH_LENGTH];
-		char aNewBuffer[MAX_PATH_LENGTH];
-		GetBinaryPath(pOldFilename, aOldBuffer, sizeof(aOldBuffer));
-		GetBinaryPath(pNewFilename, aNewBuffer, sizeof(aNewBuffer));
-
-		if(fs_makedir_rec_for(aNewBuffer) < 0)
-			dbg_msg("storage", "cannot create folder for: %s", aNewBuffer);
 
 		bool Success = !fs_rename(aOldBuffer, aNewBuffer);
 		if(!Success)
@@ -551,12 +468,6 @@ public:
 		}
 
 		GetPath(Type, pDir, pBuffer, BufferSize);
-	}
-
-	virtual const char *GetBinaryPath(const char *pFilename, char *pBuffer, unsigned BufferSize)
-	{
-		str_format(pBuffer, BufferSize, "%s%s%s", m_aBinarydir, !m_aBinarydir[0] ? "" : "/", pFilename);
-		return pBuffer;
 	}
 
 	static IStorage *Create(const char *pApplicationName, int StorageType, int NumArgs, const char **ppArguments)
