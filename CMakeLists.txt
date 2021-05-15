@@ -1153,7 +1153,6 @@ if(GTEST_FOUND OR DOWNLOAD_GTEST)
   set_src(TESTS GLOB src/test
     aio.cpp
     bezier.cpp
-    blocklist_driver.cpp
     color.cpp
     csv.cpp
     datafile.cpp
