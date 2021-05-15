@@ -997,8 +997,6 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   player.h
   teams.cpp
   teams.h
-  teehistorian.cpp
-  teehistorian.h
   teeinfo.cpp
   teeinfo.h
   weapon.cpp
@@ -1168,7 +1166,6 @@ if(GTEST_FOUND OR DOWNLOAD_GTEST)
     prng.cpp
     str.cpp
     strip_path_and_extension.cpp
-    teehistorian.cpp
     test.cpp
     test.h
     thread.cpp
@@ -1178,8 +1175,6 @@ if(GTEST_FOUND OR DOWNLOAD_GTEST)
   set(TESTS_EXTRA
     src/engine/server/name_ban.cpp
     src/engine/server/name_ban.h
-    src/game/server/teehistorian.cpp
-    src/game/server/teehistorian.h
   )
 
   set(TARGET_TESTRUNNER testrunner)

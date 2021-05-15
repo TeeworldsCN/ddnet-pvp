@@ -497,7 +497,7 @@ void CPlayer::Snap(int SnappingClient)
 		pPlayerInfo->m_Latency = Latency;
 	}
 
-	if(m_ClientID == SnappingClient && IsSpectating() || (m_DeadSpecMode && !IsEndMatch) || IsEndRound)
+	if(m_ClientID == SnappingClient && (IsSpectating() || (m_DeadSpecMode && !IsEndMatch) || IsEndRound))
 	{
 		if(SnappingClient < 0 || !Server()->IsSixup(SnappingClient))
 		{

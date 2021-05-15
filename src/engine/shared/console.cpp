@@ -431,12 +431,6 @@ void CConsole::Print(int Level, const char *pFrom, const char *pStr, ColorRGBA P
 	}
 }
 
-void CConsole::SetTeeHistorianCommandCallback(FTeeHistorianCommandCallback pfnCallback, void *pUser)
-{
-	m_pfnTeeHistorianCommandCallback = pfnCallback;
-	m_pTeeHistorianCommandUserdata = pUser;
-}
-
 bool CConsole::LineIsValid(const char *pStr)
 {
 	if(!pStr || *pStr == 0)
@@ -583,11 +577,6 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientID, bo
 					{
 						if(pCommand->m_Flags & CMDFLAG_TEST && !g_Config.m_SvTestingCommands)
 							return;
-
-						if(m_pfnTeeHistorianCommandCallback && !(pCommand->m_Flags & CFGFLAG_NONTEEHISTORIC))
-						{
-							m_pfnTeeHistorianCommandCallback(ClientID, m_FlagMask, pCommand->m_pName, &Result, m_pTeeHistorianCommandUserdata);
-						}
 
 						if(Result.GetVictim() == CResult::VICTIM_ME)
 							Result.SetVictim(ClientID);
@@ -907,8 +896,6 @@ CConsole::CConsole(int FlagMask)
 	m_pFirstExec = 0;
 	mem_zero(m_aPrintCB, sizeof(m_aPrintCB));
 	m_NumPrintCB = 0;
-	m_pfnTeeHistorianCommandCallback = 0;
-	m_pTeeHistorianCommandUserdata = 0;
 
 	m_pStorage = 0;
 

@@ -18,7 +18,6 @@
 
 #include "gamecontroller.h"
 #include "gameworld.h"
-#include "teehistorian.h"
 
 #include <memory>
 
@@ -103,15 +102,9 @@ class CGameContext : public IGameServer
 	CTuningParams m_aTuningList[NUM_TUNEZONES];
 	array<string> m_aCensorlist;
 
-	bool m_TeeHistorianActive;
-	CTeeHistorian m_TeeHistorian;
-	ASYNCIO *m_pTeeHistorianFile;
 	CUuid m_GameUuid;
 	CMapBugs m_MapBugs;
 	CPrng m_Prng;
-
-	static void CommandCallback(int ClientID, int FlagMask, const char *pCmd, IConsole::IResult *pResult, void *pUser);
-	static void TeeHistorianWrite(const void *pData, int DataSize, void *pUser);
 
 	static void ConTuneParam(IConsole::IResult *pResult, void *pUserData);
 	static void ConToggleTuneParam(IConsole::IResult *pResult, void *pUserData);
@@ -171,8 +164,6 @@ public:
 	CTuningParams *Tuning() { return &m_Tuning; }
 	CTuningParams *TuningList() { return &m_aTuningList[0]; }
 	IAntibot *Antibot() { return m_pAntibot; }
-	CTeeHistorian *TeeHistorian() { return &m_TeeHistorian; }
-	bool TeeHistorianActive() const { return m_TeeHistorianActive; }
 
 	CGameContext();
 	~CGameContext();
