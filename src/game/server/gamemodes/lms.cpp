@@ -26,8 +26,6 @@ void CGameControllerLMS::OnCharacterSpawn(CCharacter *pChr)
 	pChr->GiveWeapon(WEAPON_SHOTGUN, WEAPON_TYPE_SHOTGUN, 10);
 	pChr->GiveWeapon(WEAPON_GRENADE, WEAPON_TYPE_GRENADE, 10);
 	pChr->GiveWeapon(WEAPON_LASER, WEAPON_TYPE_LASER, 5);
-
-	pChr->SetWeaponTimerType(WEAPON_TIMER_INDIVIDUAL);
 }
 
 bool CGameControllerLMS::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)

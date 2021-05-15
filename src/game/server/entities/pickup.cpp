@@ -11,14 +11,11 @@
 
 #include "character.h"
 
-CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType, int Value, int WeaponSlot, int WeaponType) :
+CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, vec2(0, 0), PickupPhysSize)
 {
 	m_Type = Type;
 	m_Subtype = SubType;
-	m_Value = Value;
-	m_WeaponType = WeaponType;
-	m_WeaponSlot = WeaponSlot;
 
 	Reset();
 
@@ -71,6 +68,7 @@ void CPickup::Tick()
 	// Check if a player intersected us
 	CCharacter *apEnts[MAX_CLIENTS];
 	int Num = GameWorld()->FindEntities(m_Pos, 20.0f, (CEntity **)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+	bool Destroying = false;
 	for(int i = 0; i < Num; ++i)
 	{
 		CCharacter *pChr = apEnts[i];
@@ -85,71 +83,17 @@ void CPickup::Tick()
 			else if(isNormalInteract)
 				Mask = -1LL;
 
-			// player picked us up, is someone was hooking us, let them go
-			int RespawnTime = -1;
-
-			switch(m_Type)
+			SPickupSound PlaySound;
+			PlaySound.m_Global = false;
+			PlaySound.m_Sound = -1;
+			int RespawnTime = Controller()->OnPickup(this, pChr, &PlaySound);
+			if(PlaySound.m_Sound >= 0)
 			{
-			case POWERUP_HEALTH:
-				if(pChr->IncreaseHealth(m_Value))
-				{
-					GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, Mask);
-					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
-				}
-				break;
-
-			case POWERUP_ARMOR:
-				if(pChr->IncreaseArmor(m_Value))
-				{
-					GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, Mask);
-					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
-				}
-				break;
-
-			case POWERUP_WEAPON:
-				if(m_Subtype >= 0 && m_Subtype < NUM_WEAPONS)
-				{
-					if(pChr->GiveWeapon(m_WeaponSlot, m_WeaponType, m_Value))
-					{
-						RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
-
-						if(m_Subtype == WEAPON_GRENADE)
-							GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE, Mask);
-						else if(m_Subtype == WEAPON_SHOTGUN)
-							GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
-						else if(m_Subtype == WEAPON_LASER)
-							GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, Mask);
-
-						if(pChr->GetPlayer())
-							GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);
-					}
-				}
-				break;
-
-			case POWERUP_NINJA:
-			{
-				// activate ninja on target player
-				pChr->SetPowerUpWeapon(m_WeaponType, m_Value);
-				GameWorld()->CreateSound(pChr->m_Pos, SOUND_PICKUP_NINJA);
-				RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
-
-				// loop through all players, setting their emotes
-				CCharacter *pC = static_cast<CCharacter *>(GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER));
-				for(; pC; pC = (CCharacter *)pC->TypeNext())
-				{
-					if(pC != pChr)
-						pC->SetEmote(EMOTE_SURPRISE, Server()->Tick() + Server()->TickSpeed());
-				}
-
-				pChr->SetEmote(EMOTE_ANGRY, Server()->Tick() + 1200 * Server()->TickSpeed() / 1000);
-				if(pChr->GetPlayer())
-					GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);
-				break;
+				if(PlaySound.m_Global)
+					GameWorld()->CreateSound(pChr->m_Pos, PlaySound.m_Sound);
+				else
+					GameWorld()->CreateSound(pChr->m_Pos, PlaySound.m_Sound, Mask);
 			}
-			default:
-				break;
-			};
-
 			if(RespawnTime >= 0)
 			{
 				char aBuf[256];
@@ -157,15 +101,20 @@ void CPickup::Tick()
 					pChr->GetPlayer()->GetCID(), Server()->ClientName(pChr->GetPlayer()->GetCID()), m_Type, m_Subtype);
 				GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
-				int RespawnTick = Server()->Tick() + Server()->TickSpeed() * RespawnTime;
+				int RespawnTick = Server()->Tick() + RespawnTime;
 
 				if(isSoloInteract)
 					m_SoloSpawnTick[i] = RespawnTick;
 				else if(isNormalInteract)
 					m_SpawnTick = RespawnTick;
 			}
+			else if(RespawnTime == -2)
+				Destroying = true;
 		}
 	}
+
+	if(Destroying)
+		Destroy();
 }
 
 void CPickup::TickPaused()

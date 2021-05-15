@@ -573,9 +573,23 @@ public:
 			Called when a CFlag resets it's position to its stand due to out of bounds
 
 		Arguments:
-			pFlag - The CFlag that was reset.
+			Flag - The CFlag that was reset.
 	*/
 	virtual void OnFlagReset(class CFlag *pFlag){};
+
+	/*
+		Function: OnPickup
+			Called when a CPickup interact with a character
+
+		Arguments:
+			Pickup - The CPickup that was being picked up
+			Char - The character picking it up
+			Sound - Set this variable to a sound enum if you want to play a sound
+
+		Return:
+			int - num of ticks to respawn this pickup, -1 = not disappear, -2 = destory it forever
+	*/
+	virtual int OnPickup(class CPickup *pPickup, class CCharacter *pChar, struct SPickupSound *pSound);
 
 	// =================
 	//   PLAYER STATES

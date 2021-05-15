@@ -64,8 +64,14 @@ public:
 	class IServer *Server() { return m_pGameServer->Server(); }
 	class CGameTeams *Teams() { return m_pGameServer->Teams(); }
 
+	// If the entity exists, the world is still associated with a controller
+	class IGameController *Controller() { return m_pGameServer->GameInstance(m_pGameWorld->Team()).m_pController; }
+
 	/* Getters */
-	CEntity *TypeNext() { return m_pNextTypeEntity; }
+	CEntity *TypeNext()
+	{
+		return m_pNextTypeEntity;
+	}
 	CEntity *TypePrev() { return m_pPrevTypeEntity; }
 	const vec2 &GetPos() const { return m_Pos; }
 	float GetProximityRadius() const { return m_ProximityRadius; }

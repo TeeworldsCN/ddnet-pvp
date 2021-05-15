@@ -840,17 +840,17 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 		}
 
 		// HACK: try disable weapon antiping when the weapon is non-standard or is using quick switch
-		if(m_WeaponTimerType == WEAPON_TIMER_INDIVIDUAL && (!pCurrentWeapon || pCurrentWeapon->GetTypeID() != WEAPON_TYPE_NINJA))
+		if(m_WeaponTimerType == WEAPON_TIMER_INDIVIDUAL && (!pCurrentWeapon || pCurrentWeapon->GetType() != WEAPON_NINJA))
 			AttackTick = AttackTick > Server()->Tick() - 25 ? AttackTick : Server()->Tick() - 12;
 		else if(pCurrentWeapon)
 		{
 			int WeaponType = pCurrentWeapon->GetTypeID();
-			if(WeaponType != WEAPON_TYPE_HAMMER ||
-				WeaponType != WEAPON_TYPE_PISTOL ||
-				WeaponType != WEAPON_TYPE_SHOTGUN ||
-				WeaponType != WEAPON_TYPE_GRENADE ||
-				WeaponType != WEAPON_TYPE_LASER ||
-				WeaponType != WEAPON_TYPE_NINJA)
+			if(WeaponType != WEAPON_TYPE_HAMMER &&
+				WeaponType != WEAPON_TYPE_PISTOL &&
+				WeaponType != WEAPON_TYPE_SHOTGUN &&
+				WeaponType != WEAPON_TYPE_GRENADE &&
+				WeaponType != WEAPON_TYPE_LASER &&
+				pCurrentWeapon->GetType() != WEAPON_NINJA)
 				AttackTick = AttackTick > Server()->Tick() - 25 ? AttackTick : Server()->Tick() - 12;
 		}
 

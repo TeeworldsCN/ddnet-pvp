@@ -7,27 +7,32 @@
 
 const int PickupPhysSize = 14;
 
+struct SPickupSound
+{
+	int m_Sound;
+	bool m_Global;
+};
+
 class CPickup : public CEntity
 {
 public:
-	CPickup(CGameWorld *pGameWorld, int Type, int SubType = 0, int Value = 0, int WeaponSlot = -1, int WeaponType = -1);
+	CPickup(CGameWorld *pGameWorld, int Type, int SubType = 0);
 
 	virtual void Reset();
 	virtual void Tick();
 	virtual void TickPaused();
 	virtual void Snap(int SnappingClient, int OtherMode);
 
+	int GetType() { return m_Type; }
+	int GetSubtype() { return m_Subtype; }
+
 private:
 	int m_Type;
 	int m_Subtype;
 	int m_SpawnTick; // for team
 	int m_SoloSpawnTick[MAX_CLIENTS]; // for solo
-	int m_WeaponType;
-	int m_WeaponSlot;
-	int m_Value;
 
 	// DDRace
-
 	void Move();
 	vec2 m_Core;
 };

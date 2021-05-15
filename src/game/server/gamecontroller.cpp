@@ -5,6 +5,7 @@
 #include <game/server/teams.h>
 
 #include <game/generated/protocol.h>
+#include <game/generated/server_data.h>
 
 #include "entities/character.h"
 #include "entities/pickup.h"
@@ -654,8 +655,6 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 
 	int Type = -1;
 	int SubType = 0;
-	int Value = 0;
-	int WeaponType = -1;
 
 	int x, y;
 	x = (Pos.x - 16.0f) / 32.0f;
@@ -754,40 +753,30 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 	if(Index == ENTITY_ARMOR_1)
 	{
 		Type = POWERUP_ARMOR;
-		Value = 1;
 	}
 	else if(Index == ENTITY_HEALTH_1)
 	{
 		Type = POWERUP_HEALTH;
-		Value = 1;
 	}
 	else if(Index == ENTITY_WEAPON_SHOTGUN)
 	{
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_SHOTGUN;
-		WeaponType = WEAPON_TYPE_SHOTGUN;
-		Value = 10;
 	}
 	else if(Index == ENTITY_WEAPON_GRENADE)
 	{
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_GRENADE;
-		WeaponType = WEAPON_TYPE_GRENADE;
-		Value = 10;
 	}
 	else if(Index == ENTITY_WEAPON_LASER)
 	{
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_LASER;
-		WeaponType = WEAPON_TYPE_LASER;
-		Value = 10;
 	}
 	else if(Index == ENTITY_POWERUP_NINJA)
 	{
 		Type = POWERUP_NINJA;
 		SubType = WEAPON_NINJA;
-		WeaponType = WEAPON_TYPE_NINJA;
-		Value = -1;
 	}
 	else if(Index >= ENTITY_LASER_FAST_CCW && Index <= ENTITY_LASER_FAST_CW)
 	{
@@ -872,7 +861,7 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 
 	if(Type != -1)
 	{
-		CPickup *pPickup = new CPickup(GameWorld(), Type, SubType, Value, SubType, WeaponType);
+		CPickup *pPickup = new CPickup(GameWorld(), Type, SubType);
 		pPickup->m_Pos = Pos;
 	}
 }
@@ -892,6 +881,102 @@ void IGameController::OnKill(CPlayer *pPlayer)
 
 	pPlayer->m_LastKill = Server()->Tick();
 	pPlayer->KillCharacter(WEAPON_SELF);
+}
+
+int IGameController::OnPickup(CPickup *pPickup, CCharacter *pChar, SPickupSound *pSound)
+{
+	int Type = pPickup->GetType();
+	int Subtype = pPickup->GetSubtype();
+	pSound->m_Global = false;
+	switch(pPickup->GetType())
+	{
+	case POWERUP_HEALTH:
+		if(pChar->IncreaseHealth(1))
+		{
+			pSound->m_Sound = SOUND_PICKUP_HEALTH;
+			return g_pData->m_aPickups[Type].m_Respawntime * Server()->TickSpeed();
+		}
+		break;
+
+	case POWERUP_ARMOR:
+		if(pChar->IncreaseArmor(1))
+		{
+			pSound->m_Sound = SOUND_PICKUP_ARMOR;
+			return g_pData->m_aPickups[Type].m_Respawntime * Server()->TickSpeed();
+		}
+
+		break;
+
+	case POWERUP_WEAPON:
+		if(Subtype >= 0 && Subtype < NUM_WEAPON_SLOTS)
+		{
+			int WeaponType = -1;
+			int Ammo = g_pData->m_Weapons.m_aId[Subtype].m_Maxammo;
+			switch(Subtype)
+			{
+			case WEAPON_HAMMER:
+				WeaponType = WEAPON_TYPE_HAMMER;
+				break;
+			case WEAPON_GUN:
+				WeaponType = WEAPON_TYPE_PISTOL;
+				break;
+			case WEAPON_SHOTGUN:
+				WeaponType = WEAPON_TYPE_SHOTGUN;
+				break;
+			case WEAPON_GRENADE:
+				WeaponType = WEAPON_TYPE_GRENADE;
+				break;
+			case WEAPON_LASER:
+				WeaponType = WEAPON_TYPE_LASER;
+				break;
+			}
+			if(WeaponType < 0)
+				return -2;
+
+			if(pChar->GiveWeapon(Subtype, WeaponType, Ammo))
+			{
+				if(Subtype == WEAPON_GRENADE)
+					pSound->m_Sound = SOUND_PICKUP_GRENADE;
+				else if(Subtype == WEAPON_SHOTGUN)
+					pSound->m_Sound = SOUND_PICKUP_SHOTGUN;
+				else if(Subtype == WEAPON_LASER)
+					pSound->m_Sound = SOUND_PICKUP_SHOTGUN;
+
+				if(pChar->GetPlayer())
+					GameServer()->SendWeaponPickup(pChar->GetPlayer()->GetCID(), Subtype);
+
+				return g_pData->m_aPickups[Type].m_Respawntime * Server()->TickSpeed();
+			}
+		}
+		break;
+
+	case POWERUP_NINJA:
+	{
+		// activate ninja on target player
+		pChar->SetPowerUpWeapon(WEAPON_TYPE_NINJA, -1);
+		pSound->m_Sound = SOUND_PICKUP_NINJA;
+		pSound->m_Global = true;
+
+		// loop through all players, setting their emotes
+		CCharacter *pC = static_cast<CCharacter *>(GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER));
+		for(; pC; pC = (CCharacter *)pC->TypeNext())
+		{
+			if(pC != pChar)
+				pC->SetEmote(EMOTE_SURPRISE, Server()->Tick() + Server()->TickSpeed());
+		}
+
+		pChar->SetEmote(EMOTE_ANGRY, Server()->Tick() + 1200 * Server()->TickSpeed() / 1000);
+		if(pChar->GetPlayer())
+			GameServer()->SendWeaponPickup(pChar->GetPlayer()->GetCID(), Subtype);
+
+		return g_pData->m_aPickups[Type].m_Respawntime * Server()->TickSpeed();
+		break;
+	}
+	default:
+		return -2;
+	};
+
+	return -1;
 }
 
 void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bool Creating, bool SendMessage)

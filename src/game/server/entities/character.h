@@ -260,6 +260,9 @@ public:
 	CCharacterCore *Core() { return &m_Core; };
 	bool IsAlive() { return m_Alive; };
 	void SetWeaponTimerType(int Type) { m_WeaponTimerType = Type; }
+	CWeapon *GetWeapon(int Slot) { return m_apWeaponSlots[Slot]; }
+	CWeapon *GetOverrideWeapon(int Slot) { return m_apOverrideWeaponSlots[Slot]; }
+	CWeapon *GetPowerupWeapon() { return m_pPowerupWeapon; }
 
 	int GetLastAction() const
 	{
