@@ -1449,7 +1449,6 @@ void *CGameContext::PreProcessMsg(int *MsgID, CUnpacker *pUnpacker, int ClientID
 		else if(*MsgID == protocol7::NETMSGTYPE_CL_SETSPECTATORMODE)
 		{
 			protocol7::CNetMsg_Cl_SetSpectatorMode *pMsg7 = (protocol7::CNetMsg_Cl_SetSpectatorMode *)pRawMsg;
-			::CNetMsg_Cl_SetSpectatorMode *pMsg = (::CNetMsg_Cl_SetSpectatorMode *)s_aRawMsg;
 
 			pMsg7->m_SpectatorID = clamp(pMsg7->m_SpectatorID, (int)SPEC_FREEVIEW, MAX_CLIENTS - 1);
 

@@ -67,14 +67,14 @@ public:
 				fs_makedir(GetPath(TYPE_SAVE, "assets/entities", aPath, sizeof(aPath)));
 				fs_makedir(GetPath(TYPE_SAVE, "assets/game", aPath, sizeof(aPath)));
 				fs_makedir(GetPath(TYPE_SAVE, "assets/particles", aPath, sizeof(aPath)));
+				fs_makedir(GetPath(TYPE_SAVE, "editor", aPath, sizeof(aPath)));
+				fs_makedir(GetPath(TYPE_SAVE, "demos/auto", aPath, sizeof(aPath)));
+				fs_makedir(GetPath(TYPE_SAVE, "demos/auto/race", aPath, sizeof(aPath)));
+				fs_makedir(GetPath(TYPE_SAVE, "demos/replays", aPath, sizeof(aPath)));
+				fs_makedir(GetPath(TYPE_SAVE, "ghosts", aPath, sizeof(aPath)));
 			}
 			fs_makedir(GetPath(TYPE_SAVE, "dumps", aPath, sizeof(aPath)));
 			fs_makedir(GetPath(TYPE_SAVE, "demos", aPath, sizeof(aPath)));
-			fs_makedir(GetPath(TYPE_SAVE, "demos/auto", aPath, sizeof(aPath)));
-			fs_makedir(GetPath(TYPE_SAVE, "demos/auto/race", aPath, sizeof(aPath)));
-			fs_makedir(GetPath(TYPE_SAVE, "demos/replays", aPath, sizeof(aPath)));
-			fs_makedir(GetPath(TYPE_SAVE, "editor", aPath, sizeof(aPath)));
-			fs_makedir(GetPath(TYPE_SAVE, "ghosts", aPath, sizeof(aPath)));
 			fs_makedir(GetPath(TYPE_SAVE, "teehistorian", aPath, sizeof(aPath)));
 		}
 
@@ -172,7 +172,7 @@ public:
 	void FindDatadir(const char *pArgv0)
 	{
 		// 1) use data-dir in PWD if present
-		if(fs_is_dir("data/mapres"))
+		if(fs_is_dir("data/maps"))
 		{
 			str_copy(m_aDatadir, "data", sizeof(m_aDatadir));
 			return;
@@ -180,7 +180,7 @@ public:
 
 #if defined(DATA_DIR)
 		// 2) use compiled-in data-dir if present
-		if(fs_is_dir(DATA_DIR "/mapres"))
+		if(fs_is_dir(DATA_DIR "/maps"))
 		{
 			str_copy(m_aDatadir, DATA_DIR, sizeof(m_aDatadir));
 			return;
@@ -202,7 +202,7 @@ public:
 				char aBuf[MAX_PATH_LENGTH];
 				char aDir[MAX_PATH_LENGTH];
 				str_copy(aDir, pArgv0, Pos + 1);
-				str_format(aBuf, sizeof(aBuf), "%s/data/mapres", aDir);
+				str_format(aBuf, sizeof(aBuf), "%s/data/maps", aDir);
 				if(fs_is_dir(aBuf))
 				{
 					str_format(m_aDatadir, sizeof(m_aDatadir), "%s/data", aDir);
@@ -231,7 +231,7 @@ public:
 			for(i = 0; i < DirsCount; i++)
 			{
 				char aBuf[128];
-				str_format(aBuf, sizeof(aBuf), "%s/data/mapres", apDirs[i]);
+				str_format(aBuf, sizeof(aBuf), "%s/data/maps", apDirs[i]);
 				if(fs_is_dir(aBuf))
 				{
 					str_format(m_aDatadir, sizeof(m_aDatadir), "%s/data", apDirs[i]);
