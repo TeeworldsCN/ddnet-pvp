@@ -5,6 +5,25 @@
 #include <game/server/entities/character.h>
 #include <game/server/weapons.h>
 
+static void ConchainUpdateLaserJumps(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	pfnCallback(pResult, pCallbackUserData);
+	if(pResult->NumArguments() >= 1)
+	{
+		IGameController *pThis = static_cast<IGameController *>(pUserData);
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			CPlayer *pPlayer = pThis->GetPlayerIfInRoom(i);
+			if(pPlayer && pPlayer->GetCharacter())
+			{
+				CWeapon *pWeapon = pPlayer->GetCharacter()->GetWeapon(WEAPON_LASER);
+				if(pWeapon && pWeapon->GetWeaponID() == WEAPON_ID_EXPLODINGLASER)
+					((CExplodingLaser *)pWeapon)->SetMaxExplosions(pResult->GetInteger(0));
+			}
+		}
+	}
+}
+
 template<class T>
 void CGameControllerInstagib<T>::RegisterConfig()
 {
@@ -15,6 +34,8 @@ void CGameControllerInstagib<T>::RegisterConfig()
 	INSTANCE_CONFIG_INT(&m_WeaponAmmoRegenOnBoost, "ammo_regen_boost", 1, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Whether rocket jump or laser jump gives back ammo");
 	INSTANCE_CONFIG_INT(&m_WeaponEmptyReloadPenalty, "empty_penalty", 1000, 0, 2000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Time to reload after firing the last ammo (in milliseconds)");
 	INSTANCE_CONFIG_INT(&m_LaserJump, "laser_jump", 0, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Whether laser jump is enabled");
+
+	IGameController::InstanceConsole()->Chain("laser_jump", ConchainUpdateLaserJumps, this);
 }
 
 template<class T>
