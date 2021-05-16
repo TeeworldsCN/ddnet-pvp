@@ -1164,6 +1164,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 				// run warmup till there're enough players
 				m_GameState = GameState;
 				m_GameStateTimer = TIMER_INFINITE;
+				m_SuddenDeath = 0;
 
 				// enable respawning in survival when activating warmup
 				if(IsSurvival())
@@ -1218,6 +1219,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 					}
 				}
 				GameWorld()->m_Paused = false;
+				m_SuddenDeath = 0;
 			}
 			else
 			{
