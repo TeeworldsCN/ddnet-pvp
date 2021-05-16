@@ -16,18 +16,59 @@
 #define INSTANCE_CONFIG_INT(Pointer, Command, Default, Min, Max, Flag, Desc) \
 	{ \
 		*Pointer = Default; \
-		CIntVariableData *pInt = new CIntVariableData({InstanceConsole(), Pointer, Min, Max, Default}); \
-		m_IntConfigStore.push_back(pInt); \
-		InstanceConsole()->Register(Command, "?i[value]", Flag, IGameController::IntVariableCommand, pInt, Desc); \
+		CIntVariableData *pInt = new CIntVariableData({IGameController::InstanceConsole(), Pointer, Min, Max, Default}); \
+		IGameController::m_IntConfigStore.push_back(pInt); \
+		IGameController::InstanceConsole()->Register(Command, "?i[value]", Flag, IGameController::IntVariableCommand, pInt, Desc); \
 	}
 
 #define INSTANCE_CONFIG_STR(Pointer, Command, Default, Flag, Desc) \
 	{ \
 		str_copy(Pointer, Default, sizeof(Pointer)); \
-		CStrVariableData *pStr = new CStrVariableData({InstanceConsole(), Pointer, sizeof(Pointer), nullptr}); \
+		CStrVariableData *pStr = new CStrVariableData({IGameController::InstanceConsole(), Pointer, sizeof(Pointer), nullptr}); \
 		m_StrConfigStore.push_back(pStr); \
-		InstanceConsole()->Register(Command, "?r[value]", Flag, IGameController::StrVariableCommand, pStr, Desc); \
+		IGameController::InstanceConsole()->Register(Command, "?r[value]", Flag, IGameController::StrVariableCommand, pStr, Desc); \
 	}
+
+// for OnCharacterDeath
+enum
+{
+	DEATH_NORMAL = 0,
+	DEATH_VICTIM_HAS_FLAG = 1,
+	DEATH_KILLER_HAS_FLAG = 2,
+
+	// Do not increase killers score
+	DEATH_SKIP_SCORE = 4,
+
+	// Do not delay respawn if player killed
+	DEATH_NO_SUICIDE_PANATY = 8,
+
+	// Keep solo states when a character killed, be careful when using this
+	DEATH_KEEP_SOLO = 16
+};
+
+// for OnCharacterTakeDamage
+enum
+{
+	DAMAGE_NORMAL = 0,
+	// Do not take damage
+	DAMAGE_NO_DAMAGE = 1,
+	// Do not send hit sound to attacker
+	DAMAGE_NO_HITSOUND = 2,
+	// Do not send pain sound
+	DAMAGE_NO_PAINSOUND = 4,
+	// Do not change victim's emote
+	DAMAGE_NO_EMOTE = 8,
+	// Do not apply force
+	DAMAGE_NO_KNOCKBACK = 16,
+	// Do not die, even if character's health is 0
+	DAMAGE_NO_DEATH = 32,
+	// Do not send indicator stars
+	DAMAGE_NO_INDICATOR = 64,
+	// Do not do anything
+	DAMAGE_SKIP = 127,
+	// Use this if you still want everything but the character is killed by controller
+	DAMAGE_DIED = DAMAGE_NO_DAMAGE | DAMAGE_NO_EMOTE | DAMAGE_NO_KNOCKBACK | DAMAGE_NO_DEATH,
+};
 
 /*
 	Class: Game Controller
@@ -313,47 +354,6 @@ public:
 	static void ColVariableCommand(IConsole::IResult *pResult, void *pUserData);
 	static void StrVariableCommand(IConsole::IResult *pResult, void *pUserData);
 
-	// for OnCharacterDeath
-	enum
-	{
-		DEATH_NORMAL = 0,
-		DEATH_VICTIM_HAS_FLAG = 1,
-		DEATH_KILLER_HAS_FLAG = 2,
-
-		// Do not increase killers score
-		DEATH_SKIP_SCORE = 4,
-
-		// Do not delay respawn if player killed
-		DEATH_NO_SUICIDE_PANATY = 8,
-
-		// Keep solo states when a character killed, be careful when using this
-		DEATH_KEEP_SOLO = 16
-	};
-
-	// for OnCharacterTakeDamage
-	enum
-	{
-		DAMAGE_NORMAL = 0,
-		// Do not take damage
-		DAMAGE_NO_DAMAGE = 1,
-		// Do not send hit sound to attacker
-		DAMAGE_NO_HITSOUND = 2,
-		// Do not send pain sound
-		DAMAGE_NO_PAINSOUND = 4,
-		// Do not change victim's emote
-		DAMAGE_NO_EMOTE = 8,
-		// Do not apply force
-		DAMAGE_NO_KNOCKBACK = 16,
-		// Do not die, even if character's health is 0
-		DAMAGE_NO_DEATH = 32,
-		// Do not send indicator stars
-		DAMAGE_NO_INDICATOR = 64,
-		// Do not do anything
-		DAMAGE_SKIP = 127,
-		// Use this if you still want everything but the character is killed by controller
-		DAMAGE_DIED = DAMAGE_NO_DAMAGE | DAMAGE_NO_EMOTE | DAMAGE_NO_KNOCKBACK | DAMAGE_NO_DEATH,
-	};
-
 	// GameController Interface
 
 	// =================
@@ -539,7 +539,7 @@ public:
 				weapon when switching team or player suicides.
 
 		Return:
-			A flag (IGameController::DEATH_*) indicating the behaviour of character's death
+			A flag (DEATH_*) indicating the behaviour of character's death
 
 	*/
 	virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon) { return DEATH_NORMAL; };
@@ -569,7 +569,7 @@ public:
 			IsExplosion - Whether the damage is inflicted by explosion
 
 		Result:
-			A flag (IGameController::DAMAGE_*) indicating the behaviour of the damage
+			A flag (DAMAGE_*) indicating the behaviour of the damage
 	*/
 	virtual int OnCharacterTakeDamage(class CCharacter *pChr, vec2 &Force, int &Dmg, int From, int WeaponType, int WeaponID, bool IsExplosion) { return DAMAGE_NORMAL; };
 

@@ -15,6 +15,10 @@ void CExplodingLaser::Fire(vec2 Direction)
 {
 	int ClientID = Character()->GetPlayer()->GetCID();
 
+	SEntityCustomData CustomData;
+	CustomData.m_pData = new int(m_MaxExplosions);
+	CustomData.m_Callback = [](void *pData) { delete(int *)pData; };
+
 	new CLaser(
 		GameWorld(),
 		WEAPON_GUN, //Type
@@ -24,7 +28,7 @@ void CExplodingLaser::Fire(vec2 Direction)
 		Direction, //Dir
 		g_pData->m_Weapons.m_Laser.m_Reach, // StartEnergy
 		CExplodingLaser::LaserHit,
-		new int(m_MaxExplosions));
+		CustomData);
 
 	GameWorld()->CreateSound(Character()->m_Pos, SOUND_LASER_FIRE);
 }

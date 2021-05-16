@@ -19,12 +19,12 @@ public:
 		vec2 Direction,
 		float StartEnergy,
 		FLaserImpactCallback Callback = nullptr,
-		void *CustomData = nullptr);
+		SEntityCustomData CustomData = {nullptr, nullptr});
 
-	virtual void Reset();
-	virtual void Tick();
-	virtual void TickPaused();
-	virtual void Snap(int SnappingClient, int OtherMode);
+	virtual void Reset() override;
+	virtual void Tick() override;
+	virtual void TickPaused() override;
+	virtual void Snap(int SnappingClient, int OtherMode) override;
 	virtual void Destroy() override;
 
 protected:
@@ -41,7 +41,7 @@ private:
 	int m_Owner;
 	int m_WeaponID;
 	FLaserImpactCallback m_Callback;
-	void *m_CustomData;
+	SEntityCustomData m_CustomData;
 
 	// DDRace
 
@@ -61,7 +61,7 @@ public:
 	int GetBounces() { return m_Bounces; }
 	float m_Energy;
 
-	void *GetCustomData() { return m_CustomData; }
+	void *GetCustomData() { return m_CustomData.m_pData; }
 };
 
 #endif

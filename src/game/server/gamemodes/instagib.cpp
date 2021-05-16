@@ -87,6 +87,7 @@ bool CGameControllerInstagib<T>::OnEntity(int Index, vec2 Pos, int Layer, int Fl
 	return false;
 }
 
+template<>
 CGameControllerInstagib<CGameControllerDM>::CGameControllerInstagib() :
 	CGameControllerDM()
 {
@@ -94,6 +95,7 @@ CGameControllerInstagib<CGameControllerDM>::CGameControllerInstagib() :
 	RegisterConfig();
 }
 
+template<>
 CGameControllerInstagib<CGameControllerTDM>::CGameControllerInstagib() :
 	CGameControllerTDM()
 {
@@ -101,6 +103,7 @@ CGameControllerInstagib<CGameControllerTDM>::CGameControllerInstagib() :
 	RegisterConfig();
 }
 
+template<>
 CGameControllerInstagib<CGameControllerCTF>::CGameControllerInstagib() :
 	CGameControllerCTF()
 {

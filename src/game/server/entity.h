@@ -9,6 +9,13 @@
 #include "gamecontext.h"
 #include "gameworld.h"
 
+typedef void (*FCustomDataDestroyCallback)(void *pData);
+struct SEntityCustomData
+{
+	void *m_pData;
+	FCustomDataDestroyCallback m_Callback;
+};
+
 /*
 	Class: Entity
 		Basic entity class.

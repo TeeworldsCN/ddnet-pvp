@@ -63,7 +63,7 @@ int CGameControllerCTF::OnCharacterDeath(CCharacter *pVictim, CPlayer *pKiller, 
 	{
 		CFlag *F = m_apFlags[i];
 		if(F && pKiller && pKiller->GetCharacter() && F->GetCarrier() == pKiller->GetCharacter())
-			HadFlag |= IGameController::DEATH_KILLER_HAS_FLAG;
+			HadFlag |= DEATH_KILLER_HAS_FLAG;
 		if(F && F->GetCarrier() == pVictim)
 		{
 			SendGameMsg(GAMEMSG_CTF_DROP, -1);
@@ -72,7 +72,7 @@ int CGameControllerCTF::OnCharacterDeath(CCharacter *pVictim, CPlayer *pKiller, 
 			if(pKiller && pKiller->GetTeam() != pVictim->GetPlayer()->GetTeam())
 				pKiller->m_Score++;
 
-			HadFlag |= IGameController::DEATH_VICTIM_HAS_FLAG;
+			HadFlag |= DEATH_VICTIM_HAS_FLAG;
 		}
 	}
 
