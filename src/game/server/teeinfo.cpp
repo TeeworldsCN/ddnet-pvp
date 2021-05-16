@@ -136,18 +136,22 @@ void CTeeInfo::ColorToSixup()
 {
 	if(m_UseCustomColor)
 	{
-		int ColorBody = ColorHSLA(m_ColorBody).UnclampLighting().Pack(DARKEST_LGT_7);
-		int ColorFeet = ColorHSLA(m_ColorFeet).UnclampLighting().Pack(DARKEST_LGT_7);
+		ColorRGBA ColorBody = color_cast<ColorRGBA>(ColorHSLA(m_ColorBody).UnclampLighting());
+		ColorRGBA ColorFeet = color_cast<ColorRGBA>(ColorHSLA(m_ColorFeet).UnclampLighting());
+
+		ColorRGBA BodyPartGrey = color_cast<ColorRGBA>(ColorHSLA(m_aUseCustomColors[0] ? m_aSkinPartColors[0] : 255)).Greyscale();
+		ColorRGBA FeetPartGrey = color_cast<ColorRGBA>(ColorHSLA(m_aUseCustomColors[4] ? m_aSkinPartColors[4] : 255)).Greyscale();
+
+		m_aSkinPartColors[0] = color_cast<ColorHSLA>(BodyPartGrey.Blend(ColorBody)).Pack(DARKEST_LGT_7);
+		m_aSkinPartColors[1] = color_cast<ColorHSLA>(color_cast<ColorRGBA>(ColorHSLA(m_aUseCustomColors[1] ? m_aSkinPartColors[1] : 255)).Greyscale(BodyPartGrey.r).Blend(ColorBody)).Pack(DARKEST_LGT_7, true);
+		m_aSkinPartColors[2] = color_cast<ColorHSLA>(color_cast<ColorRGBA>(ColorHSLA(m_aUseCustomColors[2] ? m_aSkinPartColors[2] : 255)).Greyscale(BodyPartGrey.r).Blend(ColorBody)).Pack(DARKEST_LGT_7);
+		m_aSkinPartColors[3] = color_cast<ColorHSLA>(color_cast<ColorRGBA>(ColorHSLA(m_aUseCustomColors[3] ? m_aSkinPartColors[3] : 255)).Greyscale(BodyPartGrey.r).Blend(ColorBody)).Pack(DARKEST_LGT_7);
+		m_aSkinPartColors[4] = color_cast<ColorHSLA>(FeetPartGrey.Blend(ColorFeet)).Pack(DARKEST_LGT_7);
 		m_aUseCustomColors[0] = true;
 		m_aUseCustomColors[1] = true;
 		m_aUseCustomColors[2] = true;
 		m_aUseCustomColors[3] = true;
 		m_aUseCustomColors[4] = true;
-		m_aSkinPartColors[0] = ColorBody;
-		m_aSkinPartColors[1] = 0x22FFFFFF;
-		m_aSkinPartColors[2] = ColorBody;
-		m_aSkinPartColors[3] = ColorBody;
-		m_aSkinPartColors[4] = ColorFeet;
 	}
 }
 

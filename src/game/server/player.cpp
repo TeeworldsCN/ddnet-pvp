@@ -1039,50 +1039,100 @@ bool CPlayer::CanOverrideDefaultEmote() const
 // MYTODO: combine send info across multiple info changes
 void CPlayer::OverrideName(const char *pName)
 {
+	bool Updated = false;
 	if(!pName || !pName[0])
-		m_aOverrideName[0] = 0;
+	{
+		if(m_aOverrideName[0])
+		{
+			m_aOverrideName[0] = 0;
+			Updated = true;
+		}
+	}
 	else
+	{
 		str_copy(m_aOverrideName, pName, sizeof(m_aOverrideName));
-	GameServer()->SendClientInfo(m_ClientID);
+		Updated = true;
+	}
+
+	if(Updated)
+		GameServer()->SendClientInfo(m_ClientID);
 }
 
 void CPlayer::OverrideClan(const char *pClan)
 {
+	bool Updated = false;
 	if(!pClan || !pClan[0])
-		m_aOverrideClan[0] = 0;
+	{
+		if(m_aOverrideClan[0])
+		{
+			m_aOverrideClan[0] = 0;
+			Updated = true;
+		}
+	}
 	else
+	{
 		str_copy(m_aOverrideClan, pClan, sizeof(m_aOverrideClan));
-	GameServer()->SendClientInfo(m_ClientID);
+		Updated = true;
+	}
+
+	if(Updated)
+		GameServer()->SendClientInfo(m_ClientID);
 }
 
 void CPlayer::OverrideSkin(const char *pSkinName)
 {
+	bool Updated = false;
 	if(!pSkinName || !pSkinName[0])
-		m_OverrideTeeInfos.m_SkinName[0] = 0;
-	else
-		str_copy(m_OverrideTeeInfos.m_SkinName, pSkinName, sizeof(m_OverrideTeeInfos.m_SkinName));
-	m_OverrideTeeInfos.ToSixup();
-	GameServer()->SendSkinInfo(m_ClientID);
-}
-
-void CPlayer::OverrideSkinParts(const char *pSkinPartNames[6])
-{
-	for(int p = 0; p < 6; p++)
 	{
-		if(!pSkinPartNames[p] || !pSkinPartNames[p])
-			m_OverrideTeeInfos.m_apSkinPartNames[p][0] = 0;
-		else
-			str_copy(m_OverrideTeeInfos.m_apSkinPartNames[p], pSkinPartNames[p], sizeof(m_OverrideTeeInfos.m_apSkinPartNames[p]));
-	}
-	m_OverrideTeeInfos.FromSixup();
-	GameServer()->SendSkinInfo(m_ClientID);
-}
-
-void CPlayer::OverrideSkinColor(ColorHSLA Color, bool Sixup)
-{
-	if(Sixup)
-	{
+		if(m_OverrideTeeInfos.m_SkinName[0])
+		{
+			m_OverrideTeeInfos.m_SkinName[0] = 0;
+			for(int p = 0; p < 6; p++)
+				m_OverrideTeeInfos.m_apSkinPartNames[p][0] = 0;
+			Updated = true;
 		}
+	}
+	else
+	{
+		str_copy(m_OverrideTeeInfos.m_SkinName, pSkinName, sizeof(m_OverrideTeeInfos.m_SkinName));
+		m_OverrideTeeInfos.SkinToSixup();
+		Updated = true;
+	}
+
+	if(Updated)
+		GameServer()->SendSkinInfo(m_ClientID);
+}
+
+void CPlayer::OverrideSkinColor(bool Custom, ColorHSLA Color)
+{
+	bool Updated = false;
+	if(Custom)
+	{
+		for(int p = 0; p < 6; p++)
+		{
+			m_OverrideTeeInfos.m_aUseCustomColors[p] = m_TeeInfos.m_aUseCustomColors[p];
+			m_OverrideTeeInfos.m_aSkinPartColors[p] = m_TeeInfos.m_aSkinPartColors[p];
+		}
+		m_OverrideTeeInfos.m_UseCustomColor = true;
+		m_OverrideTeeInfos.m_ColorBody = Color.Pack(ColorHSLA::DARKEST_LGT);
+		m_OverrideTeeInfos.m_ColorFeet = Color.Pack(ColorHSLA::DARKEST_LGT);
+		m_OverrideTeeInfos.ColorToSixup();
+		Updated = true;
+	}
+	else
+	{
+		if(m_OverrideTeeInfos.m_UseCustomColor)
+		{
+			m_OverrideTeeInfos.m_UseCustomColor = false;
+			for(int p = 0; p < 6; p++)
+				m_OverrideTeeInfos.m_aUseCustomColors[p] = false;
+			m_OverrideTeeInfos.m_ColorBody = m_TeeInfos.m_ColorBody;
+			m_OverrideTeeInfos.m_ColorFeet = m_TeeInfos.m_ColorFeet;
+			Updated = true;
+		}
+	}
+	if(Updated)
+		GameServer()->SendSkinInfo(m_ClientID);
 }
 
 void CPlayer::ProcessPause()

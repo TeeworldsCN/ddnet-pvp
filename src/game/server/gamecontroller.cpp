@@ -988,6 +988,12 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	pPlayer->m_Vote = 0;
 	pPlayer->m_VotePos = 0;
 
+	// reset name clan skin override
+	pPlayer->OverrideName(0);
+	pPlayer->OverrideClan(0);
+	pPlayer->OverrideSkin(0);
+	pPlayer->OverrideSkinColor(false);
+
 	// clear vote options for joining player
 	CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;
 	Server()->SendPackMsg(&VoteClearOptionsMsg, MSGFLAG_VITAL, pPlayer->GetCID());

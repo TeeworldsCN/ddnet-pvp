@@ -241,7 +241,7 @@ public:
 	void OverrideSkin(const char *pSkinName);
 	// sixup
 	void OverrideSkinParts(const char *pSkinPartNames[6]);
-	void OverrideSkinColor(ColorHSLA Color, bool Sixup);
+	void OverrideSkinColor(bool Custom, ColorHSLA Color = {255});
 
 	bool m_FirstPacket;
 	bool m_NotEligibleForFinish;

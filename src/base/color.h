@@ -2,6 +2,7 @@
 #ifndef BASE_COLOR_H
 #define BASE_COLOR_H
 
+#include "float.h"
 #include "math.h"
 #include "vmath.h"
 
@@ -142,17 +143,10 @@ public:
 	ColorHSLA Blend(ColorHSLA Other)
 	{
 		ColorHSLA This = *this;
-		float x1 = cosf(This.h / 180 * pi) * This.s * (1.0f - Other.a);
-		float x2 = cosf(Other.h / 180 * pi) * Other.s * Other.a;
-		float y1 = sinf(This.h / 180 * pi) * This.s * (1.0f - Other.a);
-		float y2 = sinf(Other.h / 180 * pi) * Other.s * Other.a;
-		float z1 = This.l * (1.0f - Other.a);
-		float z2 = Other.l * Other.a;
-		float x = x1 + x2;
-		float y = y1 + y2;
-		This.h = atan2f(x, y) * 180 / pi;
-		This.s = sqrtf(x * x + y * y);
-		This.z = z1 + z2;
+		This.h = Other.h;
+		This.s = Other.s;
+		This.l = This.l * (1.0f - Other.a) + Other.l * Other.a;
+		return This;
 	}
 };
 
@@ -168,6 +162,43 @@ class ColorRGBA : public color4_base<ColorRGBA>
 public:
 	using color4_base::color4_base;
 	ColorRGBA(){};
+
+	ColorRGBA Blend(ColorRGBA Other)
+	{
+		ColorRGBA This = *this;
+		This.r = This.r * Other.r;
+		This.g = This.g * Other.g;
+		This.b = This.b * Other.b;
+		return This;
+	}
+
+	ColorRGBA Greyscale()
+	{
+		ColorRGBA This = *this;
+		float Value = (This.r + This.g + This.b) / 3.0f;
+		This.r = Value;
+		This.g = Value;
+		This.b = Value;
+		return This;
+	}
+
+	ColorRGBA Greyscale(float Weight)
+	{
+		ColorRGBA This = *this;
+		float Value = (This.r + This.g + This.b) / 3.0f;
+		if(Value <= Weight && absolute(Weight - 0.0f) < FLT_EPSILON)
+			Value = 0;
+		else if(Value <= Weight)
+			Value = ((Value / (float)Weight) * 0.25f);
+		else if(absolute(Weight - 1.0f) < FLT_EPSILON)
+			Value = 0.25f;
+		else
+			Value = ((Value - Weight) / (1 - Weight)) * 0.75f + 0.25f;
+		This.r = Value;
+		This.g = Value;
+		This.b = Value;
+		return This;
+	}
 };
 
 template<typename T, typename F>
