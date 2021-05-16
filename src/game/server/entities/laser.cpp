@@ -19,7 +19,7 @@ CLaser::CLaser(
 	vec2 Direction,
 	float StartEnergy,
 	FLaserImpactCallback Callback,
-	void *CustomData) :
+	SEntityCustomData CustomData) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
 {
 	m_Pos = Pos;
@@ -242,7 +242,7 @@ void CLaser::Snap(int SnappingClient, int OtherMode)
 
 void CLaser::Destroy()
 {
-	if(m_CustomData)
-		delete m_CustomData;
+	if(m_CustomData.m_Callback)
+		m_CustomData.m_Callback(m_CustomData.m_pData);
 	CEntity::Destroy();
 }

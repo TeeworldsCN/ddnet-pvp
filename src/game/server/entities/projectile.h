@@ -6,6 +6,7 @@
 #include <game/server/entity.h>
 
 typedef bool (*FProjectileImpactCallback)(class CProjectile *pProj, vec2 Pos, CCharacter *pHit, bool EndOfLife);
+
 class CProjectile : public CEntity
 {
 public:
@@ -19,7 +20,7 @@ public:
 		float HitRadius,
 		int LifeSpan,
 		FProjectileImpactCallback Callback = nullptr,
-		void *CustomData = nullptr,
+		SEntityCustomData CustomData = {nullptr, nullptr},
 		int Layer = 0,
 		int Number = 0);
 
@@ -27,10 +28,10 @@ public:
 	vec2 GetPos(float Time);
 	void FillInfo(CNetObj_Projectile *pProj);
 
-	virtual void Reset();
-	virtual void Tick();
-	virtual void TickPaused();
-	virtual void Snap(int SnappingClient, int OtherMode);
+	virtual void Reset() override;
+	virtual void Tick() override;
+	virtual void TickPaused() override;
+	virtual void Snap(int SnappingClient, int OtherMode) override;
 	virtual void Destroy() override;
 
 private:
@@ -49,7 +50,7 @@ private:
 	int m_OwnerIsSafe;
 	int m_NumHits;
 
-	void *m_CustomData;
+	SEntityCustomData m_CustomData;
 
 public:
 	int m_Type;
@@ -65,7 +66,7 @@ public:
 	void SetBouncing(int Value);
 	bool FillExtraInfo(CNetObj_DDNetProjectile *pProj);
 
-	void *GetCustomData() { return m_CustomData; }
+	void *GetCustomData() { return m_CustomData.m_pData; }
 };
 
 #endif

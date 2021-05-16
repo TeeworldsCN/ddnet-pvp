@@ -21,7 +21,7 @@ CProjectile::CProjectile(
 	float Radius,
 	int Span,
 	FProjectileImpactCallback Callback,
-	void *CustomData,
+	SEntityCustomData CustomData,
 	int Layer,
 	int Number) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PROJECTILE)
@@ -353,7 +353,7 @@ bool CProjectile::FillExtraInfo(CNetObj_DDNetProjectile *pProj)
 
 void CProjectile::Destroy()
 {
-	if(m_CustomData)
-		delete m_CustomData;
+	if(m_CustomData.m_Callback)
+		m_CustomData.m_Callback(m_CustomData.m_pData);
 	CEntity::Destroy();
 }

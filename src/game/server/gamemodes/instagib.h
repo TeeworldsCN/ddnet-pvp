@@ -23,7 +23,6 @@ private:
 
 public:
 	CGameControllerInstagib();
-
 	void RegisterConfig();
 
 	// event

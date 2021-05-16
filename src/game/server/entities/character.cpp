@@ -649,10 +649,10 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int Weapo
 
 	int DamageFlag = Controller()->OnCharacterTakeDamage(this, Force, Dmg, From, Weapon, WeaponID, IsExplosion);
 
-	if((DamageFlag & IGameController::DAMAGE_SKIP) == IGameController::DAMAGE_SKIP)
+	if((DamageFlag & DAMAGE_SKIP) == DAMAGE_SKIP)
 		return true;
 
-	if(!(DamageFlag & IGameController::DAMAGE_NO_KNOCKBACK))
+	if(!(DamageFlag & DAMAGE_NO_KNOCKBACK))
 	{
 		vec2 Temp = m_Core.m_Vel + Force;
 		m_Core.m_Vel = ClampVel(m_MoveRestrictions, Temp);
@@ -661,7 +661,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int Weapo
 	if(Dmg == 0)
 		return false;
 
-	if(!(DamageFlag & IGameController::DAMAGE_NO_INDICATOR))
+	if(!(DamageFlag & DAMAGE_NO_INDICATOR))
 	{
 		m_DamageTaken++;
 
@@ -678,7 +678,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int Weapo
 		}
 	}
 
-	if(!(DamageFlag & IGameController::DAMAGE_NO_DAMAGE))
+	if(!(DamageFlag & DAMAGE_NO_DAMAGE))
 	{
 		if(Dmg > 0)
 		{
@@ -713,7 +713,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int Weapo
 		m_DamageTakenTick = Server()->Tick();
 	}
 
-	if(!(DamageFlag & IGameController::DAMAGE_NO_HITSOUND))
+	if(!(DamageFlag & DAMAGE_NO_HITSOUND))
 	{
 		// do damage Hit sound
 		if(From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
@@ -728,7 +728,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int Weapo
 		}
 	}
 
-	if(!(DamageFlag & IGameController::DAMAGE_NO_DEATH))
+	if(!(DamageFlag & DAMAGE_NO_DEATH))
 	{
 		// check for death
 		if(m_Health <= 0)
@@ -750,7 +750,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int Weapo
 		}
 	}
 
-	if(!(DamageFlag & IGameController::DAMAGE_NO_PAINSOUND))
+	if(!(DamageFlag & DAMAGE_NO_PAINSOUND))
 	{
 		if(Dmg > 2)
 			GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG);
@@ -760,7 +760,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int Weapo
 			GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH);
 	}
 
-	if(!(DamageFlag & IGameController::DAMAGE_NO_EMOTE))
+	if(!(DamageFlag & DAMAGE_NO_EMOTE))
 	{
 		if(Dmg)
 		{
