@@ -12,6 +12,7 @@ CNinja::CNinja(CCharacter *pOwnerChar) :
 	m_CurrentMoveTime = -1;
 	m_ActivationDir = vec2(0, 0);
 	m_NumObjectsHit = 0;
+	m_Duration = g_pData->m_Weapons.m_Ninja.m_Duration;
 }
 
 void CNinja::Fire(vec2 Direction)
@@ -29,7 +30,8 @@ void CNinja::Tick()
 {
 	CWeapon::Tick();
 
-	m_CurrentMoveTime--;
+	if(m_CurrentMoveTime >= 0)
+		m_CurrentMoveTime--;
 
 	if(m_CurrentMoveTime == 0)
 	{
@@ -85,13 +87,29 @@ void CNinja::Tick()
 	}
 }
 
+float CNinja::PowerupProgress()
+{
+	return clamp((Server()->Tick() - m_WeaponAquiredTick) / (float)(m_Duration * Server()->TickSpeed() / 1000), 0.0f, 1.0f);
+}
+
 bool CNinja::IsPowerupOver()
 {
-	return Server()->Tick() - m_WeaponAquiredTick > g_pData->m_Weapons.m_Ninja.m_Duration * Server()->TickSpeed() / 1000;
+	return Server()->Tick() - m_WeaponAquiredTick > m_Duration * Server()->TickSpeed() / 1000;
 }
 
 void CNinja::OnUnequip()
 {
 	if(m_CurrentMoveTime > 0)
 		Character()->Core()->m_Vel = m_ActivationDir * m_OldVelAmount;
+}
+
+void CNinja::OnGiven(bool IsAmmoFillUp)
+{
+	// refresh timer on pickup
+	m_WeaponAquiredTick = Server()->Tick();
+}
+
+bool CNinja::IgnoreHookDrag()
+{
+	return m_CurrentMoveTime >= 0;
 }

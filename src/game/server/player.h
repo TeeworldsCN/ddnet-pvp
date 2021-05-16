@@ -208,7 +208,6 @@ public:
 	int ShowOthersMode() { return m_DeadSpecMode ? 0 : m_ShowOthers; }
 	vec2 m_ShowDistance;
 	bool m_SpecTeam;
-	bool m_NinjaJetpack;
 	bool m_Afk;
 
 	int m_ChatScore;

@@ -2305,7 +2305,7 @@ int IGameController::GetPlayerTeam(int ClientID) const
 
 CPlayer *IGameController::GetPlayerIfInRoom(int ClientID) const
 {
-	if(GameServer()->IsPlayerValid(ClientID) && GameServer()->GetPlayerDDRTeam(ClientID) == GameWorld()->Team())
+	if(GameServer()->PlayerExists(ClientID) && GameServer()->GetPlayerDDRTeam(ClientID) == GameWorld()->Team())
 		return GameServer()->m_apPlayers[ClientID];
 	return nullptr;
 }

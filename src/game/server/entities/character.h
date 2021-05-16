@@ -144,15 +144,6 @@ private:
 	int m_Health;
 	int m_Armor;
 
-	// ninja
-	struct
-	{
-		vec2 m_ActivationDir;
-		int m_ActivationTick;
-		int m_CurrentMoveTime;
-		int m_OldVelAmount;
-	} m_Ninja;
-
 	// the player core for the physics
 	CCharacterCore m_Core;
 
@@ -201,6 +192,7 @@ public:
 	bool m_DeepFreeze;
 	bool m_EndlessHook;
 	int m_IsFiring;
+	bool m_IsShowingNinjaProgress;
 
 	enum
 	{

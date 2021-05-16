@@ -3255,11 +3255,6 @@ void CGameContext::OnPostSnap()
 	Teams()->OnPostSnap();
 }
 
-bool CGameContext::IsPlayerValid(int ClientID) const
-{
-	return m_apPlayers[ClientID];
-}
-
 bool CGameContext::IsClientReadyToEnter(int ClientID) const
 {
 	return m_apPlayers[ClientID] && m_apPlayers[ClientID]->m_IsReadyToEnter ? true : false;

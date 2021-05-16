@@ -142,7 +142,7 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], false, m_aTeamInstances[Team].m_Creator == ClientID, true);
 
 		for(int LoopClientID = 0; LoopClientID < MAX_CLIENTS; ++LoopClientID)
-			if(GameServer()->IsPlayerValid(LoopClientID))
+			if(GameServer()->PlayerExists(LoopClientID))
 				SendTeamsState(LoopClientID);
 	}
 
@@ -298,7 +298,7 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "team", aBuf);
 
 	for(int i = 0; i < MAX_CLIENTS; i++)
-		if(GameServer()->IsPlayerValid(i) && m_Core.Team(i) == Team)
+		if(GameServer()->PlayerExists(i) && m_Core.Team(i) == Team)
 			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[i], false, false, false);
 
 	UpdateGameTypeName();
@@ -345,7 +345,7 @@ void CGameTeams::DestroyGameInstance(int Team)
 		return;
 
 	for(int i = 0; i < MAX_CLIENTS; i++)
-		if(GameServer()->IsPlayerValid(i) && m_Core.Team(i) == Team)
+		if(GameServer()->PlayerExists(i) && m_Core.Team(i) == Team)
 			GameServer()->m_apPlayers[i]->KillCharacter();
 
 	delete m_aTeamInstances[Team].m_pController;
@@ -428,7 +428,7 @@ void CGameTeams::OnTick()
 				m_aTeamReload[i] = RELOAD_TYPE_NO;
 
 				for(int p = 0; p < MAX_CLIENTS; p++)
-					if(GameServer()->IsPlayerValid(p) && m_Core.Team(p) == i)
+					if(GameServer()->PlayerExists(p) && m_Core.Team(p) == i)
 						GameServer()->m_apPlayers[p]->KillCharacter();
 
 				delete m_aTeamInstances[i].m_pWorld;
@@ -637,23 +637,28 @@ void CGameTeams::UpdateVotes()
 		return;
 	}
 
+	int PlayerCount = 0;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+		PlayerCount += GameServer()->PlayerExists(i) ? 1 : 0;
+	int RemainingSlots = g_Config.m_SvMaxClients - g_Config.m_SvReservedSlots - PlayerCount;
+
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		int RoomSize = m_Core.Count(i);
+		int NumPlayersInRoom = m_Core.Count(i);
 		IGameController *pController = m_aTeamInstances[i].m_pController;
 
-		if(!pController || (RoomSize == 0 && !(g_Config.m_SvRoom == 1 && i == 0)))
+		if(!pController || (NumPlayersInRoom == 0 && !(g_Config.m_SvRoom == 1 && i == 0)))
 			continue;
 
 		if(m_aTeamInstances[i].m_Creator < 0)
 		{
-			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "☉ Room %d: ♙%d [%s]", i, m_Core.Count(i), pController->GetGameType());
-			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "☉ Room %d: ♙%d [%s] ◁◁◁", i, m_Core.Count(i), pController->GetGameType());
+			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "☉ Room %d: ♙%d/%d [%s]", i, NumPlayersInRoom, minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom + 1), pController->GetGameType());
+			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "☉ Room %d: ♙%d/%d [%s] ◁◁◁", i, NumPlayersInRoom, minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom), pController->GetGameType());
 		}
 		else
 		{
-			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "☉ Room %d: ♙%d [%s] ♔%s", i, m_Core.Count(i), pController->GetGameType(), GameServer()->Server()->ClientName(m_aTeamInstances[i].m_Creator));
-			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "☉ Room %d: ♙%d [%s] ♔%s ◁◁◁", i, m_Core.Count(i), pController->GetGameType(), GameServer()->Server()->ClientName(m_aTeamInstances[i].m_Creator));
+			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "☉ Room %d: ♙%d/%d [%s] ♔%s", i, NumPlayersInRoom, minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom + 1), pController->GetGameType(), GameServer()->Server()->ClientName(m_aTeamInstances[i].m_Creator));
+			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "☉ Room %d: ♙%d/%d [%s] ♔%s ◁◁◁", i, NumPlayersInRoom, minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom), pController->GetGameType(), GameServer()->Server()->ClientName(m_aTeamInstances[i].m_Creator));
 		}
 		m_RoomNumbers[m_NumRooms] = i;
 		m_NumRooms++;

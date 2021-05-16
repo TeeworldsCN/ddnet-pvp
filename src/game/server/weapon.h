@@ -84,6 +84,8 @@ public:
 	virtual void OnEquip(){};
 	// called when unequip, you can free snap ids here, but you should also free them in destructor
 	virtual void OnUnequip(){};
+	// called when the weapon is given to a character (after ammo has been set)
+	virtual void OnGiven(bool IsAmmoFillUp){};
 	// how many ammo are shown to the client
 	virtual int NumAmmoIcons() { return clamp(m_Ammo, 0, 10); }
 	// whether the powerup has ended, normal weapons as power up will end instantly by default
@@ -92,6 +94,10 @@ public:
 	virtual void Snap(int SnappingClient, int OtherMode){};
 	// weapon type shown to the client
 	virtual int GetType() { return WEAPON_HAMMER; }
+	// whether this weapon makes character ignore hook drag force
+	virtual bool IgnoreHookDrag() { return false; }
+	// powerup progress (0~1, 0 being just started, 1 being finished)
+	virtual float PowerupProgress() { return 0.0f; }
 };
 
 #endif // GAME_SERVER_WEAPON_H

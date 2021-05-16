@@ -25,6 +25,7 @@ CCharacter::CCharacter(CGameWorld *pWorld) :
 	m_Health = 0;
 	m_Armor = 0;
 	m_WeaponTimerType = WEAPON_TIMER_GLOBAL;
+	m_IsShowingNinjaProgress = false;
 
 	// never intilize both to zero
 	m_Input.m_TargetX = 0;
@@ -465,7 +466,8 @@ void CCharacter::TickDefered()
 
 	// apply drag velocity when the player is not firing ninja
 	// and set it back to 0 for the next tick
-	if(m_ActiveWeaponSlot != WEAPON_NINJA || m_Ninja.m_CurrentMoveTime < 0)
+	CWeapon *pCurrentWeapon = CurrentWeapon();
+	if(pCurrentWeapon && !pCurrentWeapon->IgnoreHookDrag())
 		m_Core.AddDragVelocity();
 	m_Core.ResetDragVelocity();
 
@@ -559,7 +561,6 @@ void CCharacter::TickDefered()
 void CCharacter::TickPaused()
 {
 	++m_DamageTakenTick;
-	++m_Ninja.m_ActivationTick;
 	++m_ReckoningTick;
 	if(m_LastAction != -1)
 		++m_LastAction;
@@ -823,15 +824,6 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 		}
 	}
 
-	// change eyes, use ninja graphic and set ammo count if player has ninjajetpack
-	if(m_pPlayer->m_NinjaJetpack && m_Jetpack && m_ActiveWeaponSlot == WEAPON_GUN && !m_DeepFreeze && !(m_FreezeTime > 0 || m_FreezeTime == -1) && !m_Core.m_HasTelegunGun)
-	{
-		if(Emote == EMOTE_NORMAL)
-			Emote = EMOTE_HAPPY;
-		Weapon = WEAPON_NINJA;
-		AmmoCount = 10;
-	}
-
 	if(m_pPlayer->GetCID() == SnappingClient || SnappingClient == -1 ||
 		(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCID() == GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID))
 	{
@@ -854,6 +846,24 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 		if(250 - ((Server()->Tick() - m_LastAction) % (250)) < 5)
 			Emote = EMOTE_BLINK;
 	}
+
+	float NinjaProgress = 1.0f;
+	bool ShowNinjaProgress = true;
+	if(m_FreezeTime > 0)
+		NinjaProgress = 1.0f - (m_FreezeTime / (float)(m_FreezeTime + (Server()->Tick() - m_FreezeTick)));
+	else if(m_FreezeTime == -1 || m_DeepFreeze)
+		NinjaProgress = 1.0f;
+	else if(Weapon == WEAPON_NINJA)
+	{
+		if(pCurrentWeapon)
+			NinjaProgress = (1.0f - pCurrentWeapon->PowerupProgress());
+		else
+			NinjaProgress = 0.0f; // always full
+	}
+	else
+		ShowNinjaProgress = false;
+
+	NinjaProgress = clamp(NinjaProgress, 0.0f, 1.0f);
 
 	if(!Server()->IsSixup(SnappingClient))
 	{
@@ -902,6 +912,12 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 			pCharacter->m_VelY = 0;
 			pCharacter->m_AttackTick = 0;
 		}
+
+		// note: not used, 0.6 doesn't have a progress bar
+		int NinjaDuration = g_pData->m_Weapons.m_Ninja.m_Duration * Server()->TickSpeed() / 1000;
+
+		if(ShowNinjaProgress)
+			pCharacter->m_AmmoCount = Server()->Tick() + (int)(NinjaDuration * NinjaProgress);
 	}
 	else
 	{
@@ -918,10 +934,10 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 		pCharacter->m_Weapon = Weapon;
 		pCharacter->m_AmmoCount = AmmoCount;
 
-		if(m_FreezeTime > 0 || m_FreezeTime == -1 || m_DeepFreeze)
-			pCharacter->m_AmmoCount = m_FreezeTick + g_Config.m_SvFreezeDelay * Server()->TickSpeed();
-		else if(Weapon == WEAPON_NINJA)
-			pCharacter->m_AmmoCount = m_Ninja.m_ActivationTick + g_pData->m_Weapons.m_Ninja.m_Duration * Server()->TickSpeed() / 1000;
+		int NinjaDuration = g_pData->m_Weapons.m_Ninja.m_Duration * Server()->TickSpeed() / 1000;
+
+		if(ShowNinjaProgress)
+			pCharacter->m_AmmoCount = Server()->Tick() + (int)(NinjaDuration * NinjaProgress);
 
 		pCharacter->m_Health = Health;
 		pCharacter->m_Armor = Armor;
@@ -990,8 +1006,8 @@ void CCharacter::Snap(int SnappingClient, int OtherMode)
 	if(m_pPowerupWeapon && m_pPowerupWeapon->GetWeaponID() == WEAPON_ID_NINJA)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
 
-	pDDNetCharacter->m_FreezeEnd = m_DeepFreeze ? -1 : m_FreezeTime == 0 ? 0 :
-                                                                               Server()->Tick() + m_FreezeTime;
+	pDDNetCharacter->m_FreezeEnd = (m_DeepFreeze || m_FreezeTime == -1) ? -1 : m_FreezeTime == 0 ? 0 :
+                                                                                                       Server()->Tick() + m_FreezeTime;
 	pDDNetCharacter->m_Jumps = m_Core.m_Jumps;
 	pDDNetCharacter->m_TeleCheckpoint = m_TeleCheckpoint;
 	pDDNetCharacter->m_StrongWeakID = SnappingClient == m_pPlayer->GetCID() ? 1 : 0;
@@ -1722,8 +1738,7 @@ void CCharacter::DDRaceTick()
 		}
 		if(m_FreezeTime > 0)
 			m_FreezeTime--;
-		else
-			m_Ninja.m_ActivationTick = Server()->Tick();
+
 		m_Input.m_Direction = 0;
 		m_Input.m_Jump = 0;
 		m_Input.m_Hook = 0;
@@ -1873,6 +1888,7 @@ bool CCharacter::GiveWeapon(int Slot, int Type, int Ammo)
 #define REGISTER_WEAPON(WEAPTYPE, CLASS) \
 	else if(Type == WEAPTYPE) \
 	{ \
+		bool IsCreatingWeapon = false; \
 		if(m_apWeaponSlots[Slot]) \
 		{ \
 			if(m_apWeaponSlots[Slot]->GetWeaponID() != Type || m_apWeaponSlots[Slot]->GetAmmo() >= Ammo) \
@@ -1882,8 +1898,10 @@ bool CCharacter::GiveWeapon(int Slot, int Type, int Ammo)
 		{ \
 			m_apWeaponSlots[Slot] = new CLASS(this); \
 			m_apWeaponSlots[Slot]->SetTypeID(WEAPTYPE); \
+			IsCreatingWeapon = true; \
 		} \
 		m_apWeaponSlots[Slot]->SetAmmo(Ammo); \
+		m_apWeaponSlots[Slot]->OnGiven(!IsCreatingWeapon); \
 		if(m_ActiveWeaponSlot < 0 || m_ActiveWeaponSlot >= NUM_WEAPON_SLOTS) \
 			SetWeaponSlot(Slot, false); \
 	}
@@ -1900,6 +1918,7 @@ void CCharacter::ForceSetWeapon(int Slot, int Type, int Ammo)
 #define REGISTER_WEAPON(WEAPTYPE, CLASS) \
 	else if(Type == WEAPTYPE) \
 	{ \
+		bool IsCreatingWeapon = false; \
 		if(m_apWeaponSlots[Slot] && m_apWeaponSlots[Slot]->GetWeaponID() != Type) \
 		{ \
 			if(m_ActiveWeaponSlot == Slot) \
@@ -1911,8 +1930,10 @@ void CCharacter::ForceSetWeapon(int Slot, int Type, int Ammo)
 		{ \
 			m_apWeaponSlots[Slot] = new CLASS(this); \
 			m_apWeaponSlots[Slot]->SetTypeID(WEAPTYPE); \
+			IsCreatingWeapon = true; \
 		} \
 		m_apWeaponSlots[Slot]->SetAmmo(Ammo); \
+		m_apWeaponSlots[Slot]->OnGiven(!IsCreatingWeapon); \
 		if(m_ActiveWeaponSlot < 0 || m_ActiveWeaponSlot >= NUM_WEAPON_SLOTS) \
 			SetWeaponSlot(Slot, false); \
 	}
@@ -1938,6 +1959,7 @@ void CCharacter::SetOverrideWeapon(int Slot, int Type, int Ammo)
 #define REGISTER_WEAPON(WEAPTYPE, CLASS) \
 	else if(Type == WEAPTYPE) \
 	{ \
+		bool IsCreatingWeapon = false; \
 		if(m_apOverrideWeaponSlots[Slot] && m_apOverrideWeaponSlots[Slot]->GetWeaponID() != Type) \
 		{ \
 			if(m_ActiveWeaponSlot == Slot) \
@@ -1949,8 +1971,10 @@ void CCharacter::SetOverrideWeapon(int Slot, int Type, int Ammo)
 		{ \
 			m_apOverrideWeaponSlots[Slot] = new CLASS(this); \
 			m_apOverrideWeaponSlots[Slot]->SetTypeID(WEAPTYPE); \
+			IsCreatingWeapon = true; \
 		} \
 		m_apOverrideWeaponSlots[Slot]->SetAmmo(Ammo); \
+		m_apOverrideWeaponSlots[Slot]->OnGiven(!IsCreatingWeapon); \
 		if(m_ActiveWeaponSlot < 0 || m_ActiveWeaponSlot >= NUM_WEAPON_SLOTS) \
 			SetWeaponSlot(Slot, false); \
 	}
@@ -1972,6 +1996,7 @@ void CCharacter::SetPowerUpWeapon(int Type, int Ammo)
 #define REGISTER_WEAPON(WEAPTYPE, CLASS) \
 	else if(Type == WEAPTYPE) \
 	{ \
+		bool IsCreatingWeapon = false; \
 		if(m_pPowerupWeapon && m_pPowerupWeapon->GetWeaponID() != Type) \
 		{ \
 			delete m_pPowerupWeapon; \
@@ -1981,9 +2006,11 @@ void CCharacter::SetPowerUpWeapon(int Type, int Ammo)
 		{ \
 			m_pPowerupWeapon = new CLASS(this); \
 			m_pPowerupWeapon->SetTypeID(WEAPTYPE); \
+			IsCreatingWeapon = true; \
 			m_pPowerupWeapon->OnEquip(); \
 		} \
 		m_pPowerupWeapon->SetAmmo(Ammo); \
+		m_pPowerupWeapon->OnGiven(!IsCreatingWeapon); \
 	}
 #include <game/server/weapons.h>
 #undef REGISTER_WEAPON

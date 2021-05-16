@@ -259,7 +259,6 @@ public:
 	virtual void OnClientEngineJoin(int ClientID, bool Sixup);
 	virtual void OnClientEngineDrop(int ClientID, const char *pReason);
 
-	virtual bool IsPlayerValid(int ClientID) const;
 	virtual bool IsClientReadyToEnter(int ClientID) const;
 	virtual bool IsClientReadyToPlay(int ClientID) const;
 	virtual bool IsClientPlayer(int ClientID) const;

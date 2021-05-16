@@ -107,7 +107,6 @@ void CPlayer::Reset()
 	m_ShowOthers = g_Config.m_SvShowOthersDefault;
 	m_ShowDistance = vec2(SHOW_DISTANCE_DEFAULT_X, SHOW_DISTANCE_DEFAULT_Y);
 	m_SpecTeam = 1; // PvP: default to spec only team
-	m_NinjaJetpack = false;
 
 	m_Paused = false;
 	m_DND = false;
@@ -820,7 +819,7 @@ void CPlayer::SetTeam(int Team)
 	// Update team info for sixup
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(!Server()->IsSixup(i) || !GameServer()->IsPlayerValid(i) || !Server()->ClientIngame(i))
+		if(!Server()->IsSixup(i) || !GameServer()->PlayerExists(i) || !Server()->ClientIngame(i))
 			continue;
 
 		CPlayer *pTargetPlayer = GameServer()->m_apPlayers[i];
@@ -851,7 +850,7 @@ void CPlayer::SendCurrentTeamInfo()
 	// Update team info for sixup
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(i == m_ClientID || !GameServer()->IsPlayerValid(i) || !Server()->ClientIngame(i))
+		if(i == m_ClientID || !GameServer()->PlayerExists(i) || !Server()->ClientIngame(i))
 			continue;
 
 		CPlayer *pPlayer = GameServer()->m_apPlayers[i];
