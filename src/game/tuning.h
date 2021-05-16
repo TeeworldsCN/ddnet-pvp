@@ -38,7 +38,7 @@ MACRO_TUNING_PARAM(GrenadeLifetime, grenade_lifetime, 2.0f, "Grenade lifetime")
 
 MACRO_TUNING_PARAM(LaserReach, laser_reach, 800.0f, "How long the laser can reach")
 MACRO_TUNING_PARAM(LaserBounceDelay, laser_bounce_delay, 150, "When bouncing, stop the laser this long")
-MACRO_TUNING_PARAM(LaserBounceNum, laser_bounce_num, 1000, "How many times the laser can bounce")
+MACRO_TUNING_PARAM(LaserBounceNum, laser_bounce_num, 1, "How many times the laser can bounce")
 MACRO_TUNING_PARAM(LaserBounceCost, laser_bounce_cost, 0, "Remove this much from reach when laser is bouncing")
 MACRO_TUNING_PARAM(LaserDamage, laser_damage, 5, "(UNUSED) Laser damage")
 
