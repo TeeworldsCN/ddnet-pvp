@@ -17,7 +17,7 @@ bool CPistol::BulletCollide(CProjectile *pProj, vec2 Pos, CCharacter *pHit, bool
 		if(pHit->GetPlayer()->GetCID() == pProj->GetOwner())
 			return false;
 
-		pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_Gun.m_pBase->m_Damage, pProj->GetOwner(), WEAPON_GUN);
+		pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_aId[WEAPON_GUN].m_Damage, pProj->GetOwner(), WEAPON_GUN, pProj->GetWeaponID(), false);
 	}
 
 	return true;
@@ -33,6 +33,7 @@ void CPistol::Fire(vec2 Direction)
 	CProjectile *pProj = new CProjectile(
 		GameWorld(),
 		WEAPON_GUN, //Type
+		GetWeaponID(), //WeaponID
 		ClientID, //Owner
 		ProjStartPos, //Pos
 		Direction, //Dir

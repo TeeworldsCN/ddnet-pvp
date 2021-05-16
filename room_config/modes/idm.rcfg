@@ -1,0 +1,11 @@
+# idm room config
+
+# inherit vanilla config
+exec "room_config/modes/dm.rcfg"
+
+# instagib settings
+add_vote "Setting: Laser jump ON" "laser_jump 1"
+add_vote "Setting: Laser jump OFF" "laser_jump 0"
+
+grenade 0
+laser_jump 1

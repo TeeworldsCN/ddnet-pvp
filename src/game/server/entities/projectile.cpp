@@ -13,18 +13,20 @@
 
 CProjectile::CProjectile(
 	CGameWorld *pGameWorld,
-	int Type,
+	int WeaponType,
+	int WeaponID,
 	int Owner,
 	vec2 Pos,
 	vec2 Dir,
 	float Radius,
 	int Span,
 	FProjectileImpactCallback Callback,
+	void *CustomData,
 	int Layer,
 	int Number) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PROJECTILE)
 {
-	m_Type = Type;
+	m_Type = WeaponType;
 	m_Pos = Pos;
 	m_Direction = Dir;
 	m_LifeSpan = Span;
@@ -36,6 +38,7 @@ CProjectile::CProjectile(
 	m_StartTick = Server()->Tick();
 	m_OwnerIsSafe = false;
 	m_Hit = 0;
+	m_WeaponID = WeaponID;
 	if(m_Owner >= 0)
 	{
 		CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
@@ -346,4 +349,11 @@ bool CProjectile::FillExtraInfo(CNetObj_DDNetProjectile *pProj)
 	pProj->m_StartTick = m_StartTick;
 	pProj->m_Type = m_Type;
 	return true;
+}
+
+void CProjectile::Destroy()
+{
+	if(m_CustomData)
+		delete m_CustomData;
+	CEntity::Destroy();
 }

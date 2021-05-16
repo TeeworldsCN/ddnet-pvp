@@ -985,6 +985,8 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   gamemodes/ctf.h
   gamemodes/dm.cpp
   gamemodes/dm.h
+  gamemodes/instagib.cpp
+  gamemodes/instagib.h
   gamemodes/lms.cpp
   gamemodes/lms.h
   gamemodes/lts.cpp
@@ -1002,6 +1004,8 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   weapon.cpp
   weapon.h
   weapons.h
+  weapons/explodinglaser.cpp
+  weapons/explodinglaser.h
   weapons/grenade.cpp
   weapons/grenade.h
   weapons/hammer.cpp

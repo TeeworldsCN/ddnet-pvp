@@ -21,11 +21,11 @@ void CGameControllerLMS::OnCharacterSpawn(CCharacter *pChr)
 	pChr->IncreaseHealth(10);
 
 	// give start equipment
-	pChr->GiveWeapon(WEAPON_GUN, WEAPON_TYPE_PISTOL, 10);
-	pChr->GiveWeapon(WEAPON_HAMMER, WEAPON_TYPE_HAMMER, -1);
-	pChr->GiveWeapon(WEAPON_SHOTGUN, WEAPON_TYPE_SHOTGUN, 10);
-	pChr->GiveWeapon(WEAPON_GRENADE, WEAPON_TYPE_GRENADE, 10);
-	pChr->GiveWeapon(WEAPON_LASER, WEAPON_TYPE_LASER, 5);
+	pChr->GiveWeapon(WEAPON_GUN, WEAPON_ID_PISTOL, 10);
+	pChr->GiveWeapon(WEAPON_HAMMER, WEAPON_ID_HAMMER, -1);
+	pChr->GiveWeapon(WEAPON_SHOTGUN, WEAPON_ID_SHOTGUN, 10);
+	pChr->GiveWeapon(WEAPON_GRENADE, WEAPON_ID_GRENADE, 10);
+	pChr->GiveWeapon(WEAPON_LASER, WEAPON_ID_LASER, 5);
 }
 
 bool CGameControllerLMS::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Number)

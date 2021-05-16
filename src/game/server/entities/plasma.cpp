@@ -6,6 +6,7 @@
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
+#include <game/server/weapons.h>
 
 #include "character.h"
 
@@ -33,7 +34,7 @@ bool CPlasma::HitCharacter()
 
 	m_Freeze ? Hit->Freeze() : Hit->UnFreeze();
 	if(m_Explosive)
-		GameWorld()->CreateExplosion(m_Pos, -1, WEAPON_GRENADE, 0, true);
+		GameWorld()->CreateExplosion(m_Pos, -1, WEAPON_GRENADE, WEAPON_ID_DDRACE, 0, true);
 	GameWorld()->DestroyEntity(this);
 	return true;
 }
@@ -70,6 +71,7 @@ void CPlasma::Tick()
 				m_Pos,
 				-1,
 				WEAPON_GRENADE,
+				WEAPON_ID_DDRACE,
 				0,
 				true,
 				-1LL);

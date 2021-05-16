@@ -1,0 +1,15 @@
+# gtdm room config
+
+# inherit vanilla config
+exec "room_config/modes/tdm.rcfg"
+
+# instagib settings
+add_vote "Setting: Free rocket jump ON" "ammo_regen_boost 1"
+add_vote "Setting: Free rocket jump OFF" "ammo_regen_boost 0"
+
+grenade 1
+laser_jump 1
+max_ammo 6
+ammo_regen_time 250
+empty_penalty 750
+ammo_regen_boost 1

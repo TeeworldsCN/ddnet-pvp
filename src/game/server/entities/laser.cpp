@@ -13,11 +13,13 @@
 CLaser::CLaser(
 	CGameWorld *pGameWorld,
 	int WeaponType,
+	int WeaponID,
 	int Owner,
 	vec2 Pos,
 	vec2 Direction,
 	float StartEnergy,
-	FLaserImpactCallback Callback) :
+	FLaserImpactCallback Callback,
+	void *CustomData) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
 {
 	m_Pos = Pos;
@@ -29,10 +31,13 @@ CLaser::CLaser(
 	m_TelePos = vec2(0, 0);
 	m_WasTele = false;
 	m_Type = WeaponType;
+	m_WeaponID = WeaponID;
 	m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
 	m_Hit = 0;
 	m_IsSolo = false;
 	m_Callback = Callback;
+	m_CustomData = CustomData;
+
 	if(m_Owner >= 0)
 	{
 		CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
@@ -233,4 +238,11 @@ void CLaser::Snap(int SnappingClient, int OtherMode)
 	pObj->m_FromX = (int)m_From.x;
 	pObj->m_FromY = (int)m_From.y;
 	pObj->m_StartTick = OtherMode ? m_EvalTick - 4 : m_EvalTick; // HACK: Send thin laser for other team.
+}
+
+void CLaser::Destroy()
+{
+	if(m_CustomData)
+		delete m_CustomData;
+	CEntity::Destroy();
 }

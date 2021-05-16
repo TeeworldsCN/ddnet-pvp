@@ -1,0 +1,18 @@
+# room config (map votes)
+
+add_vote "Change Map: dm1" "map dm1"
+add_vote "Change Map: dm2" "map dm2"
+add_vote "Change Map: dm3" "map dm3"
+add_vote "Change Map: dm6" "map dm6"
+add_vote "Change Map: dm7" "map dm7"
+add_vote "Change Map: dm8" "map dm8"
+add_vote "Change Map: dm9" "map dm9"
+add_vote "Change Map: ctf1" "map ctf1"
+add_vote "Change Map: ctf2" "map ctf2"
+add_vote "Change Map: ctf3" "map ctf3"
+add_vote "Change Map: ctf4" "map ctf4"
+add_vote "Change Map: ctf5" "map ctf5"
+add_vote "Change Map: ctf6" "map ctf6"
+add_vote "Change Map: ctf7" "map ctf7"
+add_vote "Change Map: ctf8" "map ctf8"
+add_vote "Change Map: lms1" "map lms1"

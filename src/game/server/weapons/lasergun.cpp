@@ -18,7 +18,7 @@ bool CLaserGun::LaserHit(CLaser *pLaser, vec2 HitPoint, CCharacter *pHit, bool O
 		if(pHit->GetPlayer()->GetCID() == pLaser->GetOwner())
 			return false;
 
-		pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Damage, pLaser->GetOwner(), WEAPON_LASER);
+		pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Damage, pLaser->GetOwner(), WEAPON_LASER, pLaser->GetWeaponID(), false);
 		return true;
 	}
 
@@ -29,10 +29,10 @@ void CLaserGun::Fire(vec2 Direction)
 {
 	int ClientID = Character()->GetPlayer()->GetCID();
 
-	// MYTODO: more laser properties
 	new CLaser(
 		GameWorld(),
 		WEAPON_GUN, //Type
+		GetWeaponID(), //WeaponID
 		ClientID, //Owner
 		Pos(), //Pos
 		Direction, //Dir

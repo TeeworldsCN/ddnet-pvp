@@ -1,0 +1,4 @@
+# lobby override config
+
+# no warmup for room 0
+warmup 0

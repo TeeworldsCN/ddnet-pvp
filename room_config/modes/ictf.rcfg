@@ -1,0 +1,11 @@
+# ictf room config
+
+# inherit vanilla config
+exec "room_config/modes/ctf.rcfg"
+
+# instagib settings
+add_vote "Setting: Laser Jump ON" "laser_jump 1"
+add_vote "Setting: Laser Jump OFF" "laser_jump 0"
+
+grenade 0
+laser_jump 1

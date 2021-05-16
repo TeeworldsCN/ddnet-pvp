@@ -3,6 +3,7 @@
 
 #include "gamemodes/ctf.h"
 #include "gamemodes/dm.h"
+#include "gamemodes/instagib.h"
 #include "gamemodes/lms.h"
 #include "gamemodes/lts.h"
 #include "gamemodes/tdm.h"
@@ -15,4 +16,7 @@ REGISTER_GAME_TYPE(tdm, CGameControllerTDM)
 REGISTER_GAME_TYPE(ctf, CGameControllerCTF)
 REGISTER_GAME_TYPE(lms, CGameControllerLMS)
 REGISTER_GAME_TYPE(lts, CGameControllerLTS)
+REGISTER_GAME_TYPE(idm, CGameControllerInstagib<CGameControllerDM>)
+REGISTER_GAME_TYPE(itdm, CGameControllerInstagib<CGameControllerTDM>)
+REGISTER_GAME_TYPE(ictf, CGameControllerInstagib<CGameControllerCTF>)
 #endif

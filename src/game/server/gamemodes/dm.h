@@ -13,4 +13,4 @@ public:
 	virtual void OnCharacterSpawn(class CCharacter *pChr) override;
 };
 
-#endif
+#endif // GAME_SERVER_GAMEMODES_DM_H

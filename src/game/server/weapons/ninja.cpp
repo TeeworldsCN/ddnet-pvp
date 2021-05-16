@@ -79,8 +79,7 @@ void CNinja::Tick()
 				// set his velocity to fast upward (for now)
 				if(m_NumObjectsHit < 10)
 					m_apHitObjects[m_NumObjectsHit++] = aEnts[i];
-
-				aEnts[i]->TakeDamage(vec2(0, -10.0f), g_pData->m_Weapons.m_Ninja.m_pBase->m_Damage, Character()->GetPlayer()->GetCID(), WEAPON_NINJA);
+				aEnts[i]->TakeDamage(vec2(0, -10.0f), g_pData->m_Weapons.m_Ninja.m_pBase->m_Damage, Character()->GetPlayer()->GetCID(), WEAPON_NINJA, GetWeaponID(), false);
 			}
 		}
 	}

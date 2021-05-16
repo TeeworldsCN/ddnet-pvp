@@ -1,0 +1,23 @@
+# dm room config
+
+# game settings
+map dm1
+scorelimit 20
+timelimit 10
+warmup 10
+powerups 1
+
+# room votes
+add_vote " " "info"
+add_vote "=== ROOM SETTINGS ===" "info"
+
+# add mode switch votes
+exec "room_config/modes.rcfg"
+
+# rulesets
+add_vote "Rule: 10min 20points" "scorelimit 20;timelimit 10"
+add_vote "Rule: 15min 50points" "scorelimit 50;timelimit 15"
+add_vote "Rule: 20min 75points" "scorelimit 75;timelimit 20"
+
+# add map votes
+exec "room_config/maps/dm.rcfg"

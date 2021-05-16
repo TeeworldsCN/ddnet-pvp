@@ -360,7 +360,7 @@ void CGameWorld::CreateHammerHit(vec2 Pos, int64 Mask)
 	}
 }
 
-void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage, bool NoKnockback, int64 Mask)
+void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int WeaponID, int MaxDamage, bool NoKnockback, int64 Mask)
 {
 	// create the event
 	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), Mask);
@@ -395,7 +395,7 @@ void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage,
 		if(int(Knockback) == 0 && int(Dmg) == 0)
 			continue;
 
-		apEnts[i]->TakeDamage(ForceDir * Knockback * 2, (int)Dmg, Owner, Weapon);
+		apEnts[i]->TakeDamage(ForceDir * Knockback * 2, (int)Dmg, Owner, Weapon, WeaponID, true);
 	}
 }
 

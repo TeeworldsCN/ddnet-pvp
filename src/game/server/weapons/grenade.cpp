@@ -16,7 +16,7 @@ bool CGrenade::GrenadeCollide(CProjectile *pProj, vec2 Pos, CCharacter *pHit, bo
 	if(pHit && pHit->GetPlayer()->GetCID() == pProj->GetOwner())
 		return false;
 
-	pProj->GameWorld()->CreateExplosion(Pos, pProj->GetOwner(), WEAPON_GRENADE, g_pData->m_Weapons.m_aId[WEAPON_GRENADE].m_Damage, pProj->GetOwner() < 0);
+	pProj->GameWorld()->CreateExplosion(Pos, pProj->GetOwner(), WEAPON_GRENADE, pProj->GetWeaponID(), g_pData->m_Weapons.m_aId[WEAPON_GRENADE].m_Damage, pProj->GetOwner() < 0);
 	pProj->GameWorld()->CreateSound(Pos, SOUND_GRENADE_EXPLODE);
 
 	return true;
@@ -32,6 +32,7 @@ void CGrenade::Fire(vec2 Direction)
 	CProjectile *pProj = new CProjectile(
 		GameWorld(),
 		WEAPON_GRENADE, //Type
+		GetWeaponID(), //WeaponID
 		ClientID, //Owner
 		ProjStartPos, //Pos
 		Direction, //Dir

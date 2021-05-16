@@ -11,6 +11,7 @@ CWeapon::CWeapon(CCharacter *pOwnerChar)
 	m_FullAuto = false;
 	m_AmmoRegenTime = 0;
 	m_AmmoRegenStart = 0;
+	m_EmptyReloadPenalty = 0;
 	m_ReloadTimer = 0;
 	m_AttackTick = 0;
 	m_LastNoAmmoSound = 0;
@@ -62,9 +63,22 @@ void CWeapon::HandleFire(vec2 Direction)
 
 	if(m_Ammo == 0)
 	{
-		m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
-		if(m_LastNoAmmoSound + Server()->TickSpeed() <= Server()->Tick())
+		if(!IsFullAuto())
+			m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
+
+		int NoAmmoSoundInterval = Server()->TickSpeed();
+
+		// use no ammo sound to indicate penalty, if the penalty is reasonable
+		if(m_EmptyReloadPenalty && m_AmmoRegenTime)
+			NoAmmoSoundInterval = (m_EmptyReloadPenalty + m_AmmoRegenTime) * Server()->TickSpeed() / 1000 + 1;
+
+		if(m_LastNoAmmoSound + NoAmmoSoundInterval <= Server()->Tick())
 		{
+			if(m_ReloadTimer == 0 && m_EmptyReloadPenalty && m_AmmoRegenTime)
+			{
+				m_ReloadTimer = m_EmptyReloadPenalty * Server()->TickSpeed() / 1000;
+				m_AmmoRegenStart = Server()->Tick();
+			}
 			GameWorld()->CreateSound(Pos(), SOUND_WEAPON_NOAMMO);
 			m_LastNoAmmoSound = Server()->Tick();
 		}

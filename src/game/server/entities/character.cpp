@@ -98,7 +98,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	GameWorld()->InsertEntity(this);
 	m_Alive = true;
 
-	GameServer()->GameInstance(Team()).m_pController->OnInternalCharacterSpawn(this);
+	Controller()->OnInternalCharacterSpawn(this);
 
 	DDRaceInit();
 
@@ -279,7 +279,7 @@ void CCharacter::FireWeapon()
 		m_IsFiring = false;
 	}
 
-	if(pCurrentWeapon->IsFullAuto() && m_IsFiring && pCurrentWeapon->GetAmmo())
+	if(pCurrentWeapon->IsFullAuto() && m_IsFiring)
 		WillFire = true;
 
 	if(!WillFire)
@@ -316,7 +316,7 @@ void CCharacter::HandleWeapons()
 
 	if(pCurrentWeapon == m_pPowerupWeapon && m_pPowerupWeapon->IsPowerupOver())
 	{
-		SetPowerUpWeapon(WEAPON_TYPE_NONE);
+		SetPowerUpWeapon(WEAPON_ID_NONE);
 		pCurrentWeapon = CurrentWeapon();
 		if(!pCurrentWeapon)
 			return;
@@ -612,9 +612,8 @@ void CCharacter::Die(int Killer, int Weapon)
 	GameWorld()->RemoveEntity(this);
 	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 	GameWorld()->CreateDeath(m_Pos, m_pPlayer->GetCID());
-	// Teams()->OnCharacterDeath(GetPlayer()->GetCID(), Weapon);
 
-	int ModeSpecial = GameServer()->GameInstance(Team()).m_pController->OnInternalCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
+	int ModeSpecial = Controller()->OnInternalCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
 
 	// send the kill message
 	CNetMsg_Sv_KillMsg Msg;
@@ -636,104 +635,138 @@ void CCharacter::Die(int Killer, int Weapon)
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 }
 
-bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
+bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int WeaponID, bool IsExplosion)
 {
-	vec2 Temp = m_Core.m_Vel + Force;
-	m_Core.m_Vel = ClampVel(m_MoveRestrictions, Temp);
-
-	IGameController *pController = GameServer()->GameInstance(Team()).m_pController;
-
-	if(From >= 0)
-	{
-		if(pController->IsFriendlyFire(m_pPlayer->GetCID(), From))
-			return false;
-	}
-
 	// m_pPlayer only inflicts half damage on self
 	if(From == m_pPlayer->GetCID())
 		Dmg = maximum(1, Dmg / 2);
 
-	m_DamageTaken++;
-
-	// create healthmod indicator
-	if(Server()->Tick() < m_DamageTakenTick + 25)
+	if(From >= 0)
 	{
-		// make sure that the damage indicators doesn't group together
-		GameWorld()->CreateDamageInd(m_Pos, m_DamageTaken * 0.25f, Dmg);
-	}
-	else
-	{
-		m_DamageTaken = 0;
-		GameWorld()->CreateDamageInd(m_Pos, 0, Dmg);
+		if(Controller()->IsFriendlyFire(m_pPlayer->GetCID(), From))
+			Dmg = 0;
 	}
 
-	if(Dmg)
+	int DamageFlag = Controller()->OnCharacterTakeDamage(this, Force, Dmg, From, Weapon, WeaponID, IsExplosion);
+
+	if((DamageFlag & IGameController::DAMAGE_SKIP) == IGameController::DAMAGE_SKIP)
+		return true;
+
+	if(!(DamageFlag & IGameController::DAMAGE_NO_KNOCKBACK))
 	{
-		if(m_Armor)
+		vec2 Temp = m_Core.m_Vel + Force;
+		m_Core.m_Vel = ClampVel(m_MoveRestrictions, Temp);
+	}
+
+	if(Dmg == 0)
+		return false;
+
+	if(!(DamageFlag & IGameController::DAMAGE_NO_INDICATOR))
+	{
+		m_DamageTaken++;
+
+		// create healthmod indicator
+		if(Server()->Tick() < m_DamageTakenTick + 25)
 		{
-			if(Dmg > 1)
+			// make sure that the damage indicators doesn't group together
+			GameWorld()->CreateDamageInd(m_Pos, m_DamageTaken * 0.25f, Dmg);
+		}
+		else
+		{
+			m_DamageTaken = 0;
+			GameWorld()->CreateDamageInd(m_Pos, 0, Dmg);
+		}
+	}
+
+	if(!(DamageFlag & IGameController::DAMAGE_NO_DAMAGE))
+	{
+		if(Dmg > 0)
+		{
+			if(m_Armor)
 			{
-				m_Health--;
-				Dmg--;
+				if(Dmg > 1)
+				{
+					m_Health--;
+					Dmg--;
+				}
+
+				if(Dmg > m_Armor)
+				{
+					Dmg -= m_Armor;
+					m_Armor = 0;
+				}
+				else
+				{
+					m_Armor -= Dmg;
+					Dmg = 0;
+				}
 			}
 
-			if(Dmg > m_Armor)
-			{
-				Dmg -= m_Armor;
-				m_Armor = 0;
-			}
-			else
-			{
-				m_Armor -= Dmg;
-				Dmg = 0;
-			}
+			m_Health -= Dmg;
 		}
 
-		m_Health -= Dmg;
-	}
-
-	m_DamageTakenTick = Server()->Tick();
-
-	// do damage Hit sound
-	if(From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
-	{
-		int64 Mask = CmaskOne(From);
-		for(int i = 0; i < MAX_CLIENTS; i++)
+		if(Dmg < 0)
 		{
-			if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->IsSpectating() && GameServer()->m_apPlayers[i]->m_SpectatorID == From)
-				Mask |= CmaskOne(i);
+			m_Health = clamp(m_Health - Dmg, 0, 10);
 		}
-		GameWorld()->CreateSound(GameServer()->m_apPlayers[From]->m_ViewPos, SOUND_HIT, Mask);
+
+		m_DamageTakenTick = Server()->Tick();
 	}
 
-	// check for death
-	if(m_Health <= 0)
+	if(!(DamageFlag & IGameController::DAMAGE_NO_HITSOUND))
 	{
-		Die(From, Weapon);
-
-		// set attacker's face to happy (taunt!)
+		// do damage Hit sound
 		if(From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
 		{
-			CCharacter *pChr = GameServer()->m_apPlayers[From]->GetCharacter();
-			if(pChr)
+			int64 Mask = CmaskOne(From);
+			for(int i = 0; i < MAX_CLIENTS; i++)
 			{
-				pChr->m_EmoteType = EMOTE_HAPPY;
-				pChr->m_EmoteStop = Server()->Tick() + Server()->TickSpeed();
+				if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->IsSpectating() && GameServer()->m_apPlayers[i]->m_SpectatorID == From)
+					Mask |= CmaskOne(i);
 			}
+			GameWorld()->CreateSound(GameServer()->m_apPlayers[From]->m_ViewPos, SOUND_HIT, Mask);
 		}
-
-		return false;
 	}
 
-	if(Dmg > 2)
-		GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG);
-	else if(Dmg > 0)
-		GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT);
-
-	if(Dmg)
+	if(!(DamageFlag & IGameController::DAMAGE_NO_DEATH))
 	{
-		m_EmoteType = EMOTE_PAIN;
-		m_EmoteStop = Server()->Tick() + 500 * Server()->TickSpeed() / 1000;
+		// check for death
+		if(m_Health <= 0)
+		{
+			Die(From, Weapon);
+
+			// set attacker's face to happy (taunt!)
+			if(From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
+			{
+				CCharacter *pChr = GameServer()->m_apPlayers[From]->GetCharacter();
+				if(pChr)
+				{
+					pChr->m_EmoteType = EMOTE_HAPPY;
+					pChr->m_EmoteStop = Server()->Tick() + Server()->TickSpeed();
+				}
+			}
+
+			return false;
+		}
+	}
+
+	if(!(DamageFlag & IGameController::DAMAGE_NO_PAINSOUND))
+	{
+		if(Dmg > 2)
+			GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG);
+		else if(Dmg > 0)
+			GameWorld()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT);
+		else if(Dmg < 0)
+			GameWorld()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH);
+	}
+
+	if(!(DamageFlag & IGameController::DAMAGE_NO_EMOTE))
+	{
+		if(Dmg)
+		{
+			m_EmoteType = Dmg > 0 ? EMOTE_PAIN : EMOTE_HAPPY;
+			m_EmoteStop = Server()->Tick() + 500 * Server()->TickSpeed() / 1000;
+		}
 	}
 
 	return true;
@@ -844,12 +877,12 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 			AttackTick = AttackTick > Server()->Tick() - 25 ? AttackTick : Server()->Tick() - 12;
 		else if(pCurrentWeapon)
 		{
-			int WeaponType = pCurrentWeapon->GetTypeID();
-			if(WeaponType != WEAPON_TYPE_HAMMER &&
-				WeaponType != WEAPON_TYPE_PISTOL &&
-				WeaponType != WEAPON_TYPE_SHOTGUN &&
-				WeaponType != WEAPON_TYPE_GRENADE &&
-				WeaponType != WEAPON_TYPE_LASER &&
+			int WeaponID = pCurrentWeapon->GetWeaponID();
+			if(WeaponID != WEAPON_ID_HAMMER &&
+				WeaponID != WEAPON_ID_PISTOL &&
+				WeaponID != WEAPON_ID_SHOTGUN &&
+				WeaponID != WEAPON_ID_GRENADE &&
+				WeaponID != WEAPON_ID_LASER &&
 				pCurrentWeapon->GetType() != WEAPON_NINJA)
 				AttackTick = AttackTick > Server()->Tick() - 25 ? AttackTick : Server()->Tick() - 12;
 		}
@@ -954,7 +987,7 @@ void CCharacter::Snap(int SnappingClient, int OtherMode)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GRENADE;
 	if(m_apWeaponSlots[WEAPON_LASER])
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_LASER;
-	if(m_pPowerupWeapon && m_pPowerupWeapon->GetTypeID() == WEAPON_TYPE_NINJA)
+	if(m_pPowerupWeapon && m_pPowerupWeapon->GetWeaponID() == WEAPON_ID_NINJA)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
 
 	pDDNetCharacter->m_FreezeEnd = m_DeepFreeze ? -1 : m_FreezeTime == 0 ? 0 :
@@ -1134,7 +1167,7 @@ void CCharacter::HandleTiles(int Index)
 	if(tcp)
 		m_TeleCheckpoint = tcp;
 
-	GameServer()->GameInstance(Team()).m_pController->OnInternalCharacterTile(this, Index);
+	Controller()->OnInternalCharacterTile(this, Index);
 	// freeze
 	if(((m_TileIndex == TILE_FREEZE) || (m_TileFIndex == TILE_FREEZE)) && !m_Super && !m_DeepFreeze)
 	{
@@ -1569,7 +1602,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		// if no checkpointout have been found (or if there no recorded checkpoint), teleport to start
 		vec2 SpawnPos;
-		if(GameServer()->GameInstance(Team()).m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos))
+		if(Controller()->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos))
 		{
 			m_Core.m_Pos = SpawnPos;
 			m_Core.m_Vel = vec2(0, 0);
@@ -1603,7 +1636,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		// if no checkpointout have been found (or if there no recorded checkpoint), teleport to start
 		vec2 SpawnPos;
-		if(GameServer()->GameInstance(Team()).m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos))
+		if(Controller()->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos))
 		{
 			m_Core.m_Pos = SpawnPos;
 
@@ -1835,14 +1868,14 @@ bool CCharacter::RemoveWeapon(int Slot)
 
 bool CCharacter::GiveWeapon(int Slot, int Type, int Ammo)
 {
-	if(Type == WEAPON_TYPE_NONE)
+	if(Type == WEAPON_ID_NONE)
 		return RemoveWeapon(Slot);
 #define REGISTER_WEAPON(WEAPTYPE, CLASS) \
 	else if(Type == WEAPTYPE) \
 	{ \
 		if(m_apWeaponSlots[Slot]) \
 		{ \
-			if(m_apWeaponSlots[Slot]->GetTypeID() != Type || m_apWeaponSlots[Slot]->GetAmmo() >= Ammo) \
+			if(m_apWeaponSlots[Slot]->GetWeaponID() != Type || m_apWeaponSlots[Slot]->GetAmmo() >= Ammo) \
 				return false; \
 		} \
 		else \
@@ -1862,12 +1895,12 @@ bool CCharacter::GiveWeapon(int Slot, int Type, int Ammo)
 
 void CCharacter::ForceSetWeapon(int Slot, int Type, int Ammo)
 {
-	if(Type == WEAPON_TYPE_NONE)
+	if(Type == WEAPON_ID_NONE)
 		RemoveWeapon(Slot);
 #define REGISTER_WEAPON(WEAPTYPE, CLASS) \
 	else if(Type == WEAPTYPE) \
 	{ \
-		if(m_apWeaponSlots[Slot] && m_apWeaponSlots[Slot]->GetTypeID() != Type) \
+		if(m_apWeaponSlots[Slot] && m_apWeaponSlots[Slot]->GetWeaponID() != Type) \
 		{ \
 			if(m_ActiveWeaponSlot == Slot) \
 				SetWeaponSlot(WEAPON_GAME, false); \
@@ -1889,7 +1922,7 @@ void CCharacter::ForceSetWeapon(int Slot, int Type, int Ammo)
 
 void CCharacter::SetOverrideWeapon(int Slot, int Type, int Ammo)
 {
-	if(Type == WEAPON_TYPE_NONE)
+	if(Type == WEAPON_ID_NONE)
 	{
 		bool IsActive = m_ActiveWeaponSlot == Slot;
 		if(IsActive)
@@ -1905,7 +1938,7 @@ void CCharacter::SetOverrideWeapon(int Slot, int Type, int Ammo)
 #define REGISTER_WEAPON(WEAPTYPE, CLASS) \
 	else if(Type == WEAPTYPE) \
 	{ \
-		if(m_apOverrideWeaponSlots[Slot] && m_apOverrideWeaponSlots[Slot]->GetTypeID() != Type) \
+		if(m_apOverrideWeaponSlots[Slot] && m_apOverrideWeaponSlots[Slot]->GetWeaponID() != Type) \
 		{ \
 			if(m_ActiveWeaponSlot == Slot) \
 				SetWeaponSlot(WEAPON_GAME, false); \
@@ -1927,7 +1960,7 @@ void CCharacter::SetOverrideWeapon(int Slot, int Type, int Ammo)
 
 void CCharacter::SetPowerUpWeapon(int Type, int Ammo)
 {
-	if(Type == WEAPON_TYPE_NONE)
+	if(Type == WEAPON_ID_NONE)
 	{
 		if(m_pPowerupWeapon)
 		{
@@ -1939,7 +1972,7 @@ void CCharacter::SetPowerUpWeapon(int Type, int Ammo)
 #define REGISTER_WEAPON(WEAPTYPE, CLASS) \
 	else if(Type == WEAPTYPE) \
 	{ \
-		if(m_pPowerupWeapon && m_pPowerupWeapon->GetTypeID() != Type) \
+		if(m_pPowerupWeapon && m_pPowerupWeapon->GetWeaponID() != Type) \
 		{ \
 			delete m_pPowerupWeapon; \
 			m_pPowerupWeapon = nullptr; \

@@ -910,30 +910,30 @@ int IGameController::OnPickup(CPickup *pPickup, CCharacter *pChar, SPickupSound 
 	case POWERUP_WEAPON:
 		if(Subtype >= 0 && Subtype < NUM_WEAPON_SLOTS)
 		{
-			int WeaponType = -1;
+			int WeaponID = -1;
 			int Ammo = g_pData->m_Weapons.m_aId[Subtype].m_Maxammo;
 			switch(Subtype)
 			{
 			case WEAPON_HAMMER:
-				WeaponType = WEAPON_TYPE_HAMMER;
+				WeaponID = WEAPON_ID_HAMMER;
 				break;
 			case WEAPON_GUN:
-				WeaponType = WEAPON_TYPE_PISTOL;
+				WeaponID = WEAPON_ID_PISTOL;
 				break;
 			case WEAPON_SHOTGUN:
-				WeaponType = WEAPON_TYPE_SHOTGUN;
+				WeaponID = WEAPON_ID_SHOTGUN;
 				break;
 			case WEAPON_GRENADE:
-				WeaponType = WEAPON_TYPE_GRENADE;
+				WeaponID = WEAPON_ID_GRENADE;
 				break;
 			case WEAPON_LASER:
-				WeaponType = WEAPON_TYPE_LASER;
+				WeaponID = WEAPON_ID_LASER;
 				break;
 			}
-			if(WeaponType < 0)
+			if(WeaponID < 0)
 				return -2;
 
-			if(pChar->GiveWeapon(Subtype, WeaponType, Ammo))
+			if(pChar->GiveWeapon(Subtype, WeaponID, Ammo))
 			{
 				if(Subtype == WEAPON_GRENADE)
 					pSound->m_Sound = SOUND_PICKUP_GRENADE;
@@ -953,7 +953,7 @@ int IGameController::OnPickup(CPickup *pPickup, CCharacter *pChar, SPickupSound 
 	case POWERUP_NINJA:
 	{
 		// activate ninja on target player
-		pChar->SetPowerUpWeapon(WEAPON_TYPE_NINJA, -1);
+		pChar->SetPowerUpWeapon(WEAPON_ID_NINJA, -1);
 		pSound->m_Sound = SOUND_PICKUP_NINJA;
 		pSound->m_Global = true;
 

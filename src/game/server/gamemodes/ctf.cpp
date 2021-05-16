@@ -29,8 +29,8 @@ void CGameControllerCTF::OnCharacterSpawn(CCharacter *pChr)
 {
 	pChr->IncreaseHealth(10);
 
-	pChr->GiveWeapon(WEAPON_GUN, WEAPON_TYPE_PISTOL, 10);
-	pChr->GiveWeapon(WEAPON_HAMMER, WEAPON_TYPE_HAMMER, -1);
+	pChr->GiveWeapon(WEAPON_GUN, WEAPON_ID_PISTOL, 10);
+	pChr->GiveWeapon(WEAPON_HAMMER, WEAPON_ID_HAMMER, -1);
 }
 
 // balancing
@@ -56,14 +56,14 @@ bool CGameControllerCTF::CanBeMovedOnBalance(int ClientID) const
 // event
 int CGameControllerCTF::OnCharacterDeath(CCharacter *pVictim, CPlayer *pKiller, int WeaponID)
 {
-	int HadFlag = 0;
+	int HadFlag = DEATH_NORMAL;
 
 	// drop flags
 	for(int i = 0; i < 2; i++)
 	{
 		CFlag *F = m_apFlags[i];
 		if(F && pKiller && pKiller->GetCharacter() && F->GetCarrier() == pKiller->GetCharacter())
-			HadFlag |= DEATH_KILLER_HAS_FLAG;
+			HadFlag |= IGameController::DEATH_KILLER_HAS_FLAG;
 		if(F && F->GetCarrier() == pVictim)
 		{
 			SendGameMsg(GAMEMSG_CTF_DROP, -1);
@@ -72,7 +72,7 @@ int CGameControllerCTF::OnCharacterDeath(CCharacter *pVictim, CPlayer *pKiller, 
 			if(pKiller && pKiller->GetTeam() != pVictim->GetPlayer()->GetTeam())
 				pKiller->m_Score++;
 
-			HadFlag |= DEATH_VICTIM_HAS_FLAG;
+			HadFlag |= IGameController::DEATH_VICTIM_HAS_FLAG;
 		}
 	}
 

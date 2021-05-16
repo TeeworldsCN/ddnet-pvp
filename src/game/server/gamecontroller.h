@@ -151,22 +151,6 @@ protected:
 	int m_SuddenDeath;
 	int m_aTeamscore[2];
 
-	enum
-	{
-		DEATH_NORMAL = 0,
-		DEATH_VICTIM_HAS_FLAG = 1,
-		DEATH_KILLER_HAS_FLAG = 2,
-
-		// Do not increase killers score
-		DEATH_SKIP_SCORE = 4,
-
-		// Do not delay respawn if player killed
-		DEATH_NO_SUICIDE_PANATY = 8,
-
-		// Keep solo states when a character killed, be careful when using this
-		DEATH_KEEP_SOLO = 16
-	};
-
 	// internal game flag
 	enum
 	{
@@ -329,6 +313,47 @@ public:
 	static void ColVariableCommand(IConsole::IResult *pResult, void *pUserData);
 	static void StrVariableCommand(IConsole::IResult *pResult, void *pUserData);
 
+	// for OnCharacterDeath
+	enum
+	{
+		DEATH_NORMAL = 0,
+		DEATH_VICTIM_HAS_FLAG = 1,
+		DEATH_KILLER_HAS_FLAG = 2,
+
+		// Do not increase killers score
+		DEATH_SKIP_SCORE = 4,
+
+		// Do not delay respawn if player killed
+		DEATH_NO_SUICIDE_PANATY = 8,
+
+		// Keep solo states when a character killed, be careful when using this
+		DEATH_KEEP_SOLO = 16
+	};
+
+	// for OnCharacterTakeDamage
+	enum
+	{
+		DAMAGE_NORMAL = 0,
+		// Do not take damage
+		DAMAGE_NO_DAMAGE = 1,
+		// Do not send hit sound to attacker
+		DAMAGE_NO_HITSOUND = 2,
+		// Do not send pain sound
+		DAMAGE_NO_PAINSOUND = 4,
+		// Do not change victim's emote
+		DAMAGE_NO_EMOTE = 8,
+		// Do not apply force
+		DAMAGE_NO_KNOCKBACK = 16,
+		// Do not die, even if character's health is 0
+		DAMAGE_NO_DEATH = 32,
+		// Do not send indicator stars
+		DAMAGE_NO_INDICATOR = 64,
+		// Do not do anything
+		DAMAGE_SKIP = 127,
+		// Use this if you still want everything but the character is killed by controller
+		DAMAGE_DIED = DAMAGE_NO_DAMAGE | DAMAGE_NO_EMOTE | DAMAGE_NO_KNOCKBACK | DAMAGE_NO_DEATH,
+	};
+
 	// GameController Interface
 
 	// =================
@@ -479,7 +504,9 @@ public:
 	/*
 		Function: OnControllerStart()
 			Called when the controller and its world are fully prepared.
-			When this is called, the controllers gamestate is properly set.
+			When this is called:
+				the controllers gamestate is properly set,
+				and the config file is already executed.
 	*/
 	virtual void OnControllerStart(){};
 	/*
@@ -512,10 +539,11 @@ public:
 				weapon when switching team or player suicides.
 
 		Return:
-			A flag indicating the behaviour of character's death
+			A flag (IGameController::DEATH_*) indicating the behaviour of character's death
 
 	*/
 	virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon) { return DEATH_NORMAL; };
+
 	/*
 		Function: OnCharacterSpawn
 			Called when a CCharacter spawns into the game world.
@@ -524,6 +552,26 @@ public:
 			pChr - The CCharacter that was spawned.
 	*/
 	virtual void OnCharacterSpawn(class CCharacter *pChr){};
+
+	/*
+		Function: OnCharacterTakeDamage
+			Called when a CCharacter takes damage, including 0 damage friendly fire and self damage.
+
+		Arguments:
+			pChr - The CCharacter that was being damaged
+			Force - Knockback force
+					Force is a reference so you can change it. 
+			Dmg - Raw damage (will be already halved for self damage, and will be 0 for friendly fire)
+					Dmg is a reference so you can change it. 
+			From - Attacker's ClientID
+			WeaponType - Weapon's appearence
+			WeaponID - Weapon class identifier
+			IsExplosion - Whether the damage is inflicted by explosion
+
+		Result:
+			A flag (IGameController::DAMAGE_*) indicating the behaviour of the damage
+	*/
+	virtual int OnCharacterTakeDamage(class CCharacter *pChr, vec2 &Force, int &Dmg, int From, int WeaponType, int WeaponID, bool IsExplosion) { return DAMAGE_NORMAL; };
 
 	/*
 		Function: OnCharacterTile

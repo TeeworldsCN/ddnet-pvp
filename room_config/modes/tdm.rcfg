@@ -1,0 +1,37 @@
+# tdm room config
+
+# game settings
+map ctf1
+scorelimit 20
+timelimit 10
+warmup 10
+teamdamage 0
+powerups 1
+teambalance_time 1
+
+# room votes
+add_vote " " "info"
+add_vote "=== ROOM SETTINGS ===" "info"
+add_vote "Change Gamemode: Deathmatch" "gametype dm"
+add_vote "Change Gamemode: Capture the flag" "gametype ctf"
+add_vote "Change Gamemode: Last man standing" "gametype lms"
+add_vote "Change Gamemode: Last team standing" "gametype lts"
+add_vote "Rule: 10min 20points" "scorelimit 20;timelimit 10"
+add_vote "Rule: 15min 50points" "scorelimit 50;timelimit 15"
+add_vote "Rule: 20min 75points" "scorelimit 75;timelimit 20"
+add_vote "Change Map: dm1" "map dm1"
+add_vote "Change Map: dm2" "map dm2"
+add_vote "Change Map: dm3" "map dm3"
+add_vote "Change Map: dm6" "map dm6"
+add_vote "Change Map: dm7" "map dm7"
+add_vote "Change Map: dm8" "map dm8"
+add_vote "Change Map: dm9" "map dm9"
+add_vote "Change Map: ctf1" "map ctf1"
+add_vote "Change Map: ctf2" "map ctf2"
+add_vote "Change Map: ctf3" "map ctf3"
+add_vote "Change Map: ctf4" "map ctf4"
+add_vote "Change Map: ctf5" "map ctf5"
+add_vote "Change Map: ctf6" "map ctf6"
+add_vote "Change Map: ctf7" "map ctf7"
+add_vote "Change Map: ctf8" "map ctf8"
+add_vote "Change Map: lms1" "map lms1"

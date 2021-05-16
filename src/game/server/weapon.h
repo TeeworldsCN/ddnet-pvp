@@ -19,6 +19,8 @@ protected:
 	int m_FireDelay;
 	int m_AmmoRegenStart;
 	int m_AmmoRegenTime;
+	int m_EmptyReloadPenalty;
+
 	bool m_FullAuto;
 	int m_AttackTick;
 	int m_LastNoAmmoSound;
@@ -43,16 +45,40 @@ public:
 	vec2 Pos();
 	float GetProximityRadius();
 
-	bool IsFullAuto() { return m_FullAuto; }
-	void SetAmmo(int Ammo) { m_Ammo = Ammo; }
 	int GetAmmo() { return m_Ammo; }
+	void SetAmmo(int Ammo)
+	{
+		m_Ammo = clamp(Ammo, -1, m_MaxAmmo);
+	}
+	void GiveAmmo(int Ammo)
+	{
+		if(m_Ammo > 0 && m_MaxAmmo > 0)
+			m_Ammo = clamp(m_Ammo + Ammo, 0, m_MaxAmmo);
+	}
+	void TakeAmmo(int Ammo)
+	{
+		if(m_Ammo > 0 && m_MaxAmmo > 0)
+			m_Ammo = clamp(m_Ammo - Ammo, 0, m_MaxAmmo);
+	}
 	int GetMaxAmmo() { return m_MaxAmmo; }
+	void SetMaxAmmo(int MaxAmmo)
+	{
+		m_MaxAmmo = MaxAmmo;
+		m_Ammo = MaxAmmo < 0 ? -1 : m_Ammo;
+	}
+	bool IsFullAuto() { return m_FullAuto; }
+	void SetFullAuto(int FullAuto) { m_FullAuto = FullAuto; }
+	int GetAmmoRegenTime() { return m_AmmoRegenTime; }
+	void SetAmmoRegenTime(int AmmoRegenTime) { m_AmmoRegenTime = AmmoRegenTime; }
+	int GetEmptyReloadPenalty() { return m_EmptyReloadPenalty; }
+	void SetEmptyReloadPenalty(int Penalty) { m_EmptyReloadPenalty = Penalty; }
+
 	int GetAttackTick() { return m_AttackTick; }
 	bool IsReloading() { return m_ReloadTimer != 0; };
 	void Reload() { m_ReloadTimer = 0; };
 
 	void SetTypeID(int Type) { m_WeaponTypeID = Type; }
-	int GetTypeID() { return m_WeaponTypeID; }
+	int GetWeaponID() { return m_WeaponTypeID; }
 
 	// called when equip, you can allocate snap ids here
 	virtual void OnEquip(){};

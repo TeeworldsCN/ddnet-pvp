@@ -12,12 +12,14 @@ public:
 	CProjectile(
 		CGameWorld *pGameWorld,
 		int WeaponType,
+		int WeaponID,
 		int Owner,
 		vec2 Pos,
 		vec2 Direction,
 		float HitRadius,
 		int LifeSpan,
 		FProjectileImpactCallback Callback = nullptr,
+		void *CustomData = nullptr,
 		int Layer = 0,
 		int Number = 0);
 
@@ -29,12 +31,14 @@ public:
 	virtual void Tick();
 	virtual void TickPaused();
 	virtual void Snap(int SnappingClient, int OtherMode);
+	virtual void Destroy() override;
 
 private:
 	vec2 m_Direction;
 	int m_TotalLifeSpan;
 	int m_Owner;
 	int m_StartTick;
+	int m_WeaponID;
 	FProjectileImpactCallback m_Callback;
 
 	// DDRace
@@ -44,6 +48,8 @@ private:
 	int64 m_HitMask;
 	int m_OwnerIsSafe;
 	int m_NumHits;
+
+	void *m_CustomData;
 
 public:
 	int m_Type;
@@ -55,8 +61,11 @@ public:
 	bool m_IsSolo;
 	int m_Bouncing;
 	int GetOwner() { return m_Owner; }
+	int GetWeaponID() { return m_WeaponID; }
 	void SetBouncing(int Value);
 	bool FillExtraInfo(CNetObj_DDNetProjectile *pProj);
+
+	void *GetCustomData() { return m_CustomData; }
 };
 
 #endif

@@ -18,7 +18,7 @@ bool CShotgun::BulletCollide(CProjectile *pProj, vec2 Pos, CCharacter *pHit, boo
 		if(pHit->GetPlayer()->GetCID() == pProj->GetOwner())
 			return false;
 
-		pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_Shotgun.m_pBase->m_Damage, pProj->GetOwner(), WEAPON_SHOTGUN);
+		pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_Shotgun.m_pBase->m_Damage, pProj->GetOwner(), WEAPON_SHOTGUN, pProj->GetWeaponID(), false);
 	}
 
 	return true;
@@ -45,6 +45,7 @@ void CShotgun::Fire(vec2 Direction)
 		CProjectile *pProj = new CProjectile(
 			GameWorld(),
 			WEAPON_SHOTGUN, //Type
+			GetWeaponID(), //WeaponID
 			ClientID, //Owner
 			ProjStartPos, //Pos
 			vec2(cosf(a), sinf(a)) * Speed, //Dir

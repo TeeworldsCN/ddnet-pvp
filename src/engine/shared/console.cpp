@@ -900,10 +900,10 @@ CConsole::CConsole(int FlagMask)
 	m_pStorage = 0;
 
 	// register some basic commands
-	Register("echo", "r[text]", CFGFLAG_SERVER, Con_Echo, this, "Echo the text");
-	Register("exec", "r[file]", CFGFLAG_SERVER | CFGFLAG_CLIENT, Con_Exec, this, "Execute the specified file");
+	Register("echo", "r[text]", CFGFLAG_SERVER | CFGFLAG_INSTANCE, Con_Echo, this, "Echo the text");
+	Register("exec", "r[file]", CFGFLAG_SERVER | CFGFLAG_CLIENT | CFGFLAG_INSTANCE, Con_Exec, this, "Execute the specified file");
 
-	Register("toggle", "s[config-option] i[value 1] i[value 2]", CFGFLAG_SERVER | CFGFLAG_CLIENT, ConToggle, this, "Toggle config value");
+	Register("toggle", "s[config-option] i[value 1] i[value 2]", CFGFLAG_SERVER | CFGFLAG_CLIENT | CFGFLAG_INSTANCE, ConToggle, this, "Toggle config value");
 	Register("+toggle", "s[config-option] i[value 1] i[value 2]", CFGFLAG_CLIENT, ConToggleStroke, this, "Toggle config value via keypress");
 
 	Register("access_level", "s[command] ?i[accesslevel]", CFGFLAG_SERVER, ConCommandAccess, this, "Specify command accessibility (admin = 0, moderator = 1, helper = 2, all = 3)");

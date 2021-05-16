@@ -54,7 +54,7 @@ void CHammer::Fire(vec2 Direction)
 		Temp -= pTarget->Core()->m_Vel;
 
 		pTarget->TakeDamage((vec2(0.f, -1.0f) + Temp) * Strength, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
-			ClientID, WEAPON_HAMMER);
+			ClientID, WEAPON_HAMMER, GetWeaponID(), false);
 
 		GameServer()->Antibot()->OnHammerHit(ClientID);
 

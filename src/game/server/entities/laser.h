@@ -13,16 +13,19 @@ public:
 	CLaser(
 		CGameWorld *pGameWorld,
 		int WeaponType,
+		int WeaponID,
 		int Owner,
 		vec2 Pos,
 		vec2 Direction,
 		float StartEnergy,
-		FLaserImpactCallback Callback = nullptr);
+		FLaserImpactCallback Callback = nullptr,
+		void *CustomData = nullptr);
 
 	virtual void Reset();
 	virtual void Tick();
 	virtual void TickPaused();
 	virtual void Snap(int SnappingClient, int OtherMode);
+	virtual void Destroy() override;
 
 protected:
 	bool HitCharacter(vec2 From, vec2 To);
@@ -36,7 +39,9 @@ private:
 	int m_Bounces;
 	int m_EvalTick;
 	int m_Owner;
+	int m_WeaponID;
 	FLaserImpactCallback m_Callback;
+	void *m_CustomData;
 
 	// DDRace
 
@@ -52,7 +57,11 @@ private:
 
 public:
 	int GetOwner() { return m_Owner; }
+	int GetWeaponID() { return m_WeaponID; }
+	int GetBounces() { return m_Bounces; }
 	float m_Energy;
+
+	void *GetCustomData() { return m_CustomData; }
 };
 
 #endif

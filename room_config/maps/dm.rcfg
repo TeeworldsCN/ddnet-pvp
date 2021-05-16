@@ -1,0 +1,10 @@
+# room config (map votes)
+
+add_vote "Change Map: dm1" "map dm1"
+add_vote "Change Map: dm2" "map dm2"
+add_vote "Change Map: dm3" "map dm3"
+add_vote "Change Map: dm6" "map dm6"
+add_vote "Change Map: dm7" "map dm7"
+add_vote "Change Map: dm8" "map dm8"
+add_vote "Change Map: dm9" "map dm9"
+add_vote "Change Map: lms1" "map lms1"
