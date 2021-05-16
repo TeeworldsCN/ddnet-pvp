@@ -107,6 +107,9 @@ public:
 	int m_SendVoteIndex;
 
 	CTeeInfo m_TeeInfos;
+	CTeeInfo m_OverrideTeeInfos;
+	char m_aOverrideName[16];
+	char m_aOverrideClan[12];
 
 	int m_RespawnTick;
 	int m_DieTick;
@@ -231,6 +234,14 @@ public:
 	int GetDefaultEmote() const;
 	void OverrideDefaultEmote(int Emote, int Tick);
 	bool CanOverrideDefaultEmote() const;
+
+	void OverrideName(const char *pName);
+	void OverrideClan(const char *pClan);
+	// six
+	void OverrideSkin(const char *pSkinName);
+	// sixup
+	void OverrideSkinParts(const char *pSkinPartNames[6]);
+	void OverrideSkinColor(ColorHSLA Color, bool Sixup);
 
 	bool m_FirstPacket;
 	bool m_NotEligibleForFinish;

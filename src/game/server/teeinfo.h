@@ -25,5 +25,9 @@ public:
 
 	void FromSixup();
 	void ToSixup();
+	void SkinFromSixup();
+	void SkinToSixup();
+	void ColorFromSixup();
+	void ColorToSixup();
 };
 #endif //GAME_SERVER_TEEINFO_H

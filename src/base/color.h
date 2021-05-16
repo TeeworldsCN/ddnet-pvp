@@ -138,6 +138,22 @@ public:
 		col.l = clamp(col.l, 0.0f, 1.0f);
 		return col.Pack(Alpha);
 	}
+
+	ColorHSLA Blend(ColorHSLA Other)
+	{
+		ColorHSLA This = *this;
+		float x1 = cosf(This.h / 180 * pi) * This.s * (1.0f - Other.a);
+		float x2 = cosf(Other.h / 180 * pi) * Other.s * Other.a;
+		float y1 = sinf(This.h / 180 * pi) * This.s * (1.0f - Other.a);
+		float y2 = sinf(Other.h / 180 * pi) * Other.s * Other.a;
+		float z1 = This.l * (1.0f - Other.a);
+		float z2 = Other.l * Other.a;
+		float x = x1 + x2;
+		float y = y1 + y2;
+		This.h = atan2f(x, y) * 180 / pi;
+		This.s = sqrtf(x * x + y * y);
+		This.z = z1 + z2;
+	}
 };
 
 class ColorHSVA : public color4_base<ColorHSVA>

@@ -49,6 +49,18 @@ CTeeInfo::CTeeInfo(const char *pSkinPartNames[6], int *pUseCustomColors, int *pS
 
 void CTeeInfo::ToSixup()
 {
+	SkinToSixup();
+	ColorToSixup();
+}
+
+void CTeeInfo::FromSixup()
+{
+	SkinFromSixup();
+	ColorFromSixup();
+}
+
+void CTeeInfo::SkinToSixup()
+{
 	// reset to default skin
 	for(int p = 0; p < 6; p++)
 	{
@@ -71,25 +83,9 @@ void CTeeInfo::ToSixup()
 			break;
 		}
 	}
-
-	if(m_UseCustomColor)
-	{
-		int ColorBody = ColorHSLA(m_ColorBody).UnclampLighting().Pack(DARKEST_LGT_7);
-		int ColorFeet = ColorHSLA(m_ColorFeet).UnclampLighting().Pack(DARKEST_LGT_7);
-		m_aUseCustomColors[0] = true;
-		m_aUseCustomColors[1] = true;
-		m_aUseCustomColors[2] = true;
-		m_aUseCustomColors[3] = true;
-		m_aUseCustomColors[4] = true;
-		m_aSkinPartColors[0] = ColorBody;
-		m_aSkinPartColors[1] = 0x22FFFFFF;
-		m_aSkinPartColors[2] = ColorBody;
-		m_aSkinPartColors[3] = ColorBody;
-		m_aSkinPartColors[4] = ColorFeet;
-	}
 }
 
-void CTeeInfo::FromSixup()
+void CTeeInfo::SkinFromSixup()
 {
 	// reset to default skin
 	str_copy(m_SkinName, "default", sizeof(m_SkinName));
@@ -134,6 +130,29 @@ void CTeeInfo::FromSixup()
 	}
 
 	str_copy(m_SkinName, g_StdSkins[best_skin].m_SkinName, sizeof(m_SkinName));
+}
+
+void CTeeInfo::ColorToSixup()
+{
+	if(m_UseCustomColor)
+	{
+		int ColorBody = ColorHSLA(m_ColorBody).UnclampLighting().Pack(DARKEST_LGT_7);
+		int ColorFeet = ColorHSLA(m_ColorFeet).UnclampLighting().Pack(DARKEST_LGT_7);
+		m_aUseCustomColors[0] = true;
+		m_aUseCustomColors[1] = true;
+		m_aUseCustomColors[2] = true;
+		m_aUseCustomColors[3] = true;
+		m_aUseCustomColors[4] = true;
+		m_aSkinPartColors[0] = ColorBody;
+		m_aSkinPartColors[1] = 0x22FFFFFF;
+		m_aSkinPartColors[2] = ColorBody;
+		m_aSkinPartColors[3] = ColorBody;
+		m_aSkinPartColors[4] = ColorFeet;
+	}
+}
+
+void CTeeInfo::ColorFromSixup()
+{
 	m_UseCustomColor = true;
 	m_ColorBody = ColorHSLA(m_aUseCustomColors[0] ? m_aSkinPartColors[0] : 255).UnclampLighting(DARKEST_LGT_7).Pack(ColorHSLA::DARKEST_LGT);
 	m_ColorFeet = ColorHSLA(m_aUseCustomColors[4] ? m_aSkinPartColors[4] : 255).UnclampLighting(DARKEST_LGT_7).Pack(ColorHSLA::DARKEST_LGT);

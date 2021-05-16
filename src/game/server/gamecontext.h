@@ -301,6 +301,9 @@ public:
 	void UpdatePlayerMaps();
 	void DoActivityCheck();
 
+	void SendClientInfo(int ClientID);
+	void SendSkinInfo(int ClientID);
+
 private:
 	bool m_VoteWillPass;
 

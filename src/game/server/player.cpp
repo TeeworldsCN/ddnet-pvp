@@ -34,6 +34,9 @@ CPlayer::~CPlayer()
 
 void CPlayer::Reset()
 {
+	m_aOverrideName[0] = 0;
+	m_aOverrideClan[0] = 0;
+
 	GameReset();
 
 	m_JoinTick = Server()->Tick();
@@ -428,13 +431,37 @@ void CPlayer::Snap(int SnappingClient)
 	if(!pClientInfo)
 		return;
 
-	StrToInts(&pClientInfo->m_Name0, 4, Server()->ClientName(m_ClientID));
-	StrToInts(&pClientInfo->m_Clan0, 3, Server()->ClientClan(m_ClientID));
+	// MYTODO: check override names
+	if(m_aOverrideName[0])
+		StrToInts(&pClientInfo->m_Name0, 4, m_aOverrideName);
+	else
+		StrToInts(&pClientInfo->m_Name0, 4, Server()->ClientName(m_ClientID));
+
+	if(m_aOverrideClan[0])
+		StrToInts(&pClientInfo->m_Name0, 4, m_aOverrideClan);
+	else
+		StrToInts(&pClientInfo->m_Clan0, 3, Server()->ClientClan(m_ClientID));
+
 	pClientInfo->m_Country = Server()->ClientCountry(m_ClientID);
-	StrToInts(&pClientInfo->m_Skin0, 6, m_TeeInfos.m_SkinName);
-	pClientInfo->m_UseCustomColor = m_TeeInfos.m_UseCustomColor;
-	pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
-	pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
+
+	// check override skins
+	if(m_OverrideTeeInfos.m_SkinName[0])
+		StrToInts(&pClientInfo->m_Skin0, 6, m_OverrideTeeInfos.m_SkinName);
+	else
+		StrToInts(&pClientInfo->m_Skin0, 6, m_TeeInfos.m_SkinName);
+
+	if(m_OverrideTeeInfos.m_UseCustomColor)
+	{
+		pClientInfo->m_UseCustomColor = m_OverrideTeeInfos.m_UseCustomColor;
+		pClientInfo->m_ColorBody = m_OverrideTeeInfos.m_ColorBody;
+		pClientInfo->m_ColorFeet = m_OverrideTeeInfos.m_ColorFeet;
+	}
+	else
+	{
+		pClientInfo->m_UseCustomColor = m_TeeInfos.m_UseCustomColor;
+		pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
+		pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
+	}
 
 	int ClientVersion = GetClientVersion();
 	int Latency = SnappingClient == -1 ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aActLatency[m_ClientID];
@@ -1007,6 +1034,55 @@ void CPlayer::OverrideDefaultEmote(int Emote, int Tick)
 bool CPlayer::CanOverrideDefaultEmote() const
 {
 	return m_LastEyeEmote == 0 || m_LastEyeEmote + (int64)g_Config.m_SvEyeEmoteChangeDelay * Server()->TickSpeed() < Server()->Tick();
+}
+
+// MYTODO: combine send info across multiple info changes
+void CPlayer::OverrideName(const char *pName)
+{
+	if(!pName || !pName[0])
+		m_aOverrideName[0] = 0;
+	else
+		str_copy(m_aOverrideName, pName, sizeof(m_aOverrideName));
+	GameServer()->SendClientInfo(m_ClientID);
+}
+
+void CPlayer::OverrideClan(const char *pClan)
+{
+	if(!pClan || !pClan[0])
+		m_aOverrideClan[0] = 0;
+	else
+		str_copy(m_aOverrideClan, pClan, sizeof(m_aOverrideClan));
+	GameServer()->SendClientInfo(m_ClientID);
+}
+
+void CPlayer::OverrideSkin(const char *pSkinName)
+{
+	if(!pSkinName || !pSkinName[0])
+		m_OverrideTeeInfos.m_SkinName[0] = 0;
+	else
+		str_copy(m_OverrideTeeInfos.m_SkinName, pSkinName, sizeof(m_OverrideTeeInfos.m_SkinName));
+	m_OverrideTeeInfos.ToSixup();
+	GameServer()->SendSkinInfo(m_ClientID);
+}
+
+void CPlayer::OverrideSkinParts(const char *pSkinPartNames[6])
+{
+	for(int p = 0; p < 6; p++)
+	{
+		if(!pSkinPartNames[p] || !pSkinPartNames[p])
+			m_OverrideTeeInfos.m_apSkinPartNames[p][0] = 0;
+		else
+			str_copy(m_OverrideTeeInfos.m_apSkinPartNames[p], pSkinPartNames[p], sizeof(m_OverrideTeeInfos.m_apSkinPartNames[p]));
+	}
+	m_OverrideTeeInfos.FromSixup();
+	GameServer()->SendSkinInfo(m_ClientID);
+}
+
+void CPlayer::OverrideSkinColor(ColorHSLA Color, bool Sixup)
+{
+	if(Sixup)
+	{
+		}
 }
 
 void CPlayer::ProcessPause()
