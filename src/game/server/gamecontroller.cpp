@@ -1310,22 +1310,28 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 
 void IGameController::StartMatch()
 {
-	// start countdown if there're enough players, otherwise do warmup till there're
+	// If we passed warmup and still not enough player, do infinite timer
+	if(IsWarmup() && !HasEnoughPlayers())
+	{
+		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
+		return;
+	}
+
+	ResetGame();
+	CheckGameInfo(false);
+
+	m_GameStartTick = Server()->Tick();
+	m_RoundCount = 0;
+	m_SuddenDeath = 0;
+	m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+		UpdateGameInfo(i);
+
+	m_aTeamscore[TEAM_RED] = 0;
+	m_aTeamscore[TEAM_BLUE] = 0;
+
 	if(HasEnoughPlayers())
 	{
-		ResetGame();
-		CheckGameInfo(false);
-
-		m_GameStartTick = Server()->Tick();
-		m_RoundCount = 0;
-		m_SuddenDeath = 0;
-		m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
-		for(int i = 0; i < MAX_CLIENTS; ++i)
-			UpdateGameInfo(i);
-
-		m_aTeamscore[TEAM_RED] = 0;
-		m_aTeamscore[TEAM_BLUE] = 0;
-
 		SetGameState(IGS_START_COUNTDOWN);
 		OnGameStart(false);
 
@@ -1333,39 +1339,37 @@ void IGameController::StartMatch()
 		str_format(aBuf, sizeof(aBuf), "start match type='%s' teamplay='%d' ddrteam='%d'", m_pGameType, m_GameFlags & IGF_TEAMS, GameWorld()->Team());
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 	}
-	else
-	{
-		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
-	}
 }
 
 void IGameController::StartRound()
 {
-	// start countdown if there're enough players, otherwise abort to warmup
+	// If we passed warmup and still not enough player, do infinite timer
+	if(IsWarmup() && !HasEnoughPlayers())
+	{
+		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
+		return;
+	}
+
+	ResetGame();
+	CheckGameInfo(false);
+
+	if(IsRoundTimer())
+		m_GameStartTick = Server()->Tick();
+
+	++m_RoundCount;
+	m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
+
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+		UpdateGameInfo(i);
+
 	if(HasEnoughPlayers())
 	{
-		ResetGame();
-		CheckGameInfo(false);
-
-		if(IsRoundTimer())
-			m_GameStartTick = Server()->Tick();
-
-		++m_RoundCount;
-		m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
-
-		for(int i = 0; i < MAX_CLIENTS; ++i)
-			UpdateGameInfo(i);
-
 		SetGameState(IGS_START_COUNTDOWN);
 		OnGameStart(true);
 
 		char aBuf[256];
 		str_format(aBuf, sizeof(aBuf), "start round type='%s' teamplay='%d' ddrteam='%d'", m_pGameType, m_GameFlags & IGF_TEAMS, GameWorld()->Team());
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
-	}
-	else
-	{
-		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
 	}
 }
 
