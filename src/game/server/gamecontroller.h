@@ -298,7 +298,7 @@ public:
 	bool IsTeamplay() const { return m_GameFlags & IGF_TEAMS; }
 	bool IsSurvival() const { return m_GameFlags & IGF_SURVIVAL; }
 	bool IsRoundBased() const { return m_GameFlags & (IGF_ROUND_TIMER_ROUND | IGF_MATCH_TIMER_ROUND); }
-	bool IsRoundMatchTimer() const { return m_GameFlags & IGF_MATCH_TIMER_ROUND; }
+	bool IsRoundTimer() const { return m_GameFlags & IGF_ROUND_TIMER_ROUND; }
 	void SendGameMsg(int GameMsgID, int ClientID, int *i1 = nullptr, int *i2 = nullptr, int *i3 = nullptr);
 
 	const char *GetGameType() const { return m_pGameType; }
