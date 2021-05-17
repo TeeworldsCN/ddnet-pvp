@@ -288,7 +288,7 @@ public:
 	void UpdateGameInfo(int ClientID);
 
 	// info
-	void CheckGameInfo();
+	void CheckGameInfo(bool SendInfo = true);
 	bool IsFriendlyFire(int ClientID1, int ClientID2) const;
 	bool IsFriendlyTeamFire(int Team1, int Team2) const;
 	bool IsGamePaused() const { return m_GameState == IGS_GAME_PAUSED || m_GameState == IGS_START_COUNTDOWN; }

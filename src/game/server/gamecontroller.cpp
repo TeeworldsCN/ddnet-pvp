@@ -414,11 +414,18 @@ void IGameController::StartController()
 	m_RoundCount = 0;
 	m_SuddenDeath = 0;
 
+	m_GameStartTick = Server()->Tick();
 	m_GameInfo.m_ScoreLimit = m_Scorelimit;
 	m_GameInfo.m_TimeLimit = m_Timelimit;
 	m_GameInfo.m_MatchNum = m_Roundlimit;
+	m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+		UpdateGameInfo(i);
 
-	StartMatch();
+	if(m_Warmup)
+		SetGameState(IGS_WARMUP_USER, m_Warmup);
+	else
+		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
 
 	OnControllerStart();
 }
@@ -1009,7 +1016,7 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 
 	m_aFakeClientBroadcast[ClientID].m_LastGameState = -1;
 	m_aFakeClientBroadcast[ClientID].m_LastTimer = -1;
-	m_aFakeClientBroadcast[ClientID].m_NextBroadcastTick = -1;
+	m_aFakeClientBroadcast[ClientID].m_NextBroadcastTick = Server()->Tick() + Server()->TickSpeed() / 2;
 
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "ddrteam_join player='%d:%s' team=%d ddrteam='%d'", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam(), GameWorld()->Team());
@@ -1046,6 +1053,12 @@ void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer, bool ServerLeave)
 		--m_aTeamSize[pPlayer->GetTeam()];
 		dbg_msg("game", "team size decreased to %d, team='%d', ddrteam='%d'", m_aTeamSize[pPlayer->GetTeam()], pPlayer->GetTeam(), GameWorld()->Team());
 		m_UnbalancedTick = TBALANCE_CHECK;
+		// if player left, stop the game and go back to warmup
+		if(!HasEnoughPlayers())
+		{
+			EndMatch();
+			return;
+		}
 	}
 
 	CheckReadyStates(ClientID);
@@ -1297,57 +1310,63 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 
 void IGameController::StartMatch()
 {
-	ResetGame();
-	CheckGameInfo();
-
-	m_GameStartTick = Server()->Tick();
-	m_RoundCount = 0;
-	m_SuddenDeath = 0;
-	m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-		UpdateGameInfo(i);
-
-	m_aTeamscore[TEAM_RED] = 0;
-	m_aTeamscore[TEAM_BLUE] = 0;
-
 	// start countdown if there're enough players, otherwise do warmup till there're
 	if(HasEnoughPlayers())
+	{
+		ResetGame();
+		CheckGameInfo(false);
+
+		m_GameStartTick = Server()->Tick();
+		m_RoundCount = 0;
+		m_SuddenDeath = 0;
+		m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
+		for(int i = 0; i < MAX_CLIENTS; ++i)
+			UpdateGameInfo(i);
+
+		m_aTeamscore[TEAM_RED] = 0;
+		m_aTeamscore[TEAM_BLUE] = 0;
+
 		SetGameState(IGS_START_COUNTDOWN);
+		OnGameStart(false);
+
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "start match type='%s' teamplay='%d' ddrteam='%d'", m_pGameType, m_GameFlags & IGF_TEAMS, GameWorld()->Team());
+		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+	}
 	else
+	{
 		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
-
-	OnGameStart(false);
-
-	// MYTODO: fix demo
-	// Server()->DemoRecorder_HandleAutoStart();
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "start match type='%s' teamplay='%d' ddrteam='%d'", m_pGameType, m_GameFlags & IGF_TEAMS, GameWorld()->Team());
-	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+	}
 }
 
 void IGameController::StartRound()
 {
-	ResetGame();
-
-	if(IsRoundTimer())
-		m_GameStartTick = Server()->Tick();
-
-	++m_RoundCount;
-	m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-		UpdateGameInfo(i);
-
 	// start countdown if there're enough players, otherwise abort to warmup
 	if(HasEnoughPlayers())
+	{
+		ResetGame();
+		CheckGameInfo(false);
+
+		if(IsRoundTimer())
+			m_GameStartTick = Server()->Tick();
+
+		++m_RoundCount;
+		m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
+
+		for(int i = 0; i < MAX_CLIENTS; ++i)
+			UpdateGameInfo(i);
+
 		SetGameState(IGS_START_COUNTDOWN);
+		OnGameStart(true);
+
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "start round type='%s' teamplay='%d' ddrteam='%d'", m_pGameType, m_GameFlags & IGF_TEAMS, GameWorld()->Team());
+		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+	}
 	else
+	{
 		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
-
-	OnGameStart(true);
-
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "start round type='%s' teamplay='%d' ddrteam='%d'", m_pGameType, m_GameFlags & IGF_TEAMS, GameWorld()->Team());
-	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+	}
 }
 
 void IGameController::SwapTeamscore()
@@ -1862,7 +1881,7 @@ void IGameController::Tick()
 }
 
 // info
-void IGameController::CheckGameInfo()
+void IGameController::CheckGameInfo(bool SendInfo)
 {
 	bool GameInfoChanged = (m_GameInfo.m_MatchNum != m_Roundlimit) ||
 			       (m_GameInfo.m_ScoreLimit != m_Scorelimit) ||
@@ -1870,7 +1889,7 @@ void IGameController::CheckGameInfo()
 	m_GameInfo.m_MatchNum = m_Roundlimit;
 	m_GameInfo.m_ScoreLimit = m_Scorelimit;
 	m_GameInfo.m_TimeLimit = m_Timelimit;
-	if(GameInfoChanged)
+	if(GameInfoChanged && SendInfo)
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 			UpdateGameInfo(i);
 }
@@ -2335,10 +2354,7 @@ void IGameController::InitController(class CGameContext *pGameServer, class CGam
 	m_GameStartTick = m_pServer->Tick();
 	m_pInstanceConsole->InitNoConfig(m_pGameServer->Storage());
 
-	// Init before StartController to be safe
 	// game
-	m_RoundCount = 0;
-	m_SuddenDeath = 0;
 	m_aTeamscore[TEAM_RED] = 0;
 	m_aTeamscore[TEAM_BLUE] = 0;
 
@@ -2346,16 +2362,6 @@ void IGameController::InitController(class CGameContext *pGameServer, class CGam
 	m_aNumSpawnPoints[0] = 0;
 	m_aNumSpawnPoints[1] = 0;
 	m_aNumSpawnPoints[2] = 0;
-
-	if(m_Warmup)
-		SetGameState(IGS_WARMUP_USER, m_Warmup);
-	else
-		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
-	m_GameInfo.m_ScoreLimit = m_Scorelimit;
-	m_GameInfo.m_TimeLimit = m_Timelimit;
-	m_GameInfo.m_MatchNum = m_Roundlimit;
-	m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
-
 	OnInit();
 }
 
