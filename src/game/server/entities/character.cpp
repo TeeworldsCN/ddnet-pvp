@@ -25,7 +25,6 @@ CCharacter::CCharacter(CGameWorld *pWorld) :
 	m_Health = 0;
 	m_Armor = 0;
 	m_WeaponTimerType = WEAPON_TIMER_GLOBAL;
-	m_IsShowingNinjaProgress = false;
 
 	// never intilize both to zero
 	m_Input.m_TargetX = 0;
@@ -993,6 +992,11 @@ void CCharacter::Snap(int SnappingClient, int OtherMode)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_GRENADE;
 	if(m_Core.m_HasTelegunLaser)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_LASER;
+
+	// we need this to make ninja behave normally
+	CWeapon *pWeapon = CurrentWeapon();
+	if(pWeapon && pWeapon->GetType() == WEAPON_NINJA)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
 
 	pDDNetCharacter->m_FreezeEnd = (m_DeepFreeze || m_FreezeTime == -1) ? -1 : m_FreezeTime == 0 ? 0 :
                                                                                                        Server()->Tick() + m_FreezeTime;

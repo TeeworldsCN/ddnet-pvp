@@ -115,6 +115,7 @@ void CPlayer::Reset()
 
 	// Variable initialized:
 	m_LastRoomChange = 0;
+	m_LastRoomCreation = 0;
 
 	int64 Now = Server()->Tick();
 	int64 TickSpeed = Server()->TickSpeed();
@@ -840,7 +841,7 @@ void CPlayer::SetTeam(int Team)
 	Msg.m_ClientID = m_ClientID;
 	Msg.m_Team = m_Team;
 	Msg.m_Silent = true; // change team is always silent for sixup since we have custom message for that.
-	Msg.m_CooldownTick = m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay;
+	Msg.m_CooldownTick = m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay;
 
 	// Update team info for sixup
 	for(int i = 0; i < MAX_CLIENTS; i++)
@@ -885,7 +886,7 @@ void CPlayer::SendCurrentTeamInfo()
 		Msg.m_ClientID = pPlayer->m_ClientID;
 		Msg.m_Team = pPlayer->m_Team;
 		Msg.m_Silent = true;
-		Msg.m_CooldownTick = pPlayer->m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay;
+		Msg.m_CooldownTick = pPlayer->m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay;
 		if(GameServer()->GetDDRaceTeam(i) != GameServer()->GetDDRaceTeam(m_ClientID) && !ShowOthersMode())
 			Msg.m_Team = TEAM_SPECTATORS;
 

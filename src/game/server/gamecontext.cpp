@@ -1622,7 +1622,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			{
 				int Authed = Server()->GetAuthedState(ClientID);
 
-				if(str_startswith(pMsg->m_Value, "☉"))
+				if(str_startswith(pMsg->m_Value, "⨀"))
 				{
 					// is room vote
 					char aBuf[32];
@@ -1632,7 +1632,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 						return;
 
 					*pColon = 0;
-					int Room = str_toint(aBuf + 9); // 9 = len of "☉ Room "
+					int Room = str_toint(aBuf + 9); // 9 = len of "⨀ Room "
 					str_format(aCmd, sizeof(aCmd), "join %d", Room);
 					IsInstanceVote = false;
 					IsNoConsent = true;
@@ -1735,22 +1735,22 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			else if(str_comp_nocase(pMsg->m_Type, "kick") == 0)
 			{
 				int Authed = Server()->GetAuthedState(ClientID);
-				if(!Authed && time_get() < m_apPlayers[ClientID]->m_Last_KickVote + (time_freq() * 5))
+				if(!Authed && time_get() < m_apPlayers[ClientID]->m_LastKickVote + (time_freq() * 5))
 					return;
-				else if(!Authed && time_get() < m_apPlayers[ClientID]->m_Last_KickVote + (time_freq() * g_Config.m_SvVoteKickDelay))
+				else if(!Authed && time_get() < m_apPlayers[ClientID]->m_LastKickVote + (time_freq() * g_Config.m_SvVoteKickDelay))
 				{
 					str_format(aChatmsg, sizeof(aChatmsg), "There's a %d second wait time between kick votes for each player please wait %d second(s)",
 						g_Config.m_SvVoteKickDelay,
-						(int)(((m_apPlayers[ClientID]->m_Last_KickVote + (m_apPlayers[ClientID]->m_Last_KickVote * time_freq())) / time_freq()) - (time_get() / time_freq())));
+						(int)(((m_apPlayers[ClientID]->m_LastKickVote + (m_apPlayers[ClientID]->m_LastKickVote * time_freq())) / time_freq()) - (time_get() / time_freq())));
 					SendChatTarget(ClientID, aChatmsg);
-					m_apPlayers[ClientID]->m_Last_KickVote = time_get();
+					m_apPlayers[ClientID]->m_LastKickVote = time_get();
 					return;
 				}
 				//else if(!g_Config.m_SvVoteKick)
 				else if(!g_Config.m_SvVoteKick && !Authed && !GetDDRaceTeam(ClientID)) // allow admins to call kick votes even if they are forbidden
 				{
 					SendChatTarget(ClientID, "Server does not allow voting to kick players");
-					m_apPlayers[ClientID]->m_Last_KickVote = time_get();
+					m_apPlayers[ClientID]->m_LastKickVote = time_get();
 					return;
 				}
 
@@ -1812,7 +1812,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				if(KickedAuthed > Authed)
 				{
 					SendChatTarget(ClientID, "You can't kick authorized players");
-					m_apPlayers[ClientID]->m_Last_KickVote = time_get();
+					m_apPlayers[ClientID]->m_LastKickVote = time_get();
 					char aBufKick[128];
 					str_format(aBufKick, sizeof(aBufKick), "'%s' called for vote to kick you", Server()->ClientName(ClientID));
 					SendChatTarget(KickID, aBufKick);
@@ -1823,7 +1823,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				if(!GetPlayerChar(ClientID) || !GetPlayerChar(KickID) || GetDDRaceTeam(ClientID) != GetDDRaceTeam(KickID))
 				{
 					SendChatTarget(ClientID, "You can only kick players in your room");
-					m_apPlayers[ClientID]->m_Last_KickVote = time_get();
+					m_apPlayers[ClientID]->m_LastKickVote = time_get();
 					return;
 				}
 
@@ -1843,7 +1843,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					str_format(aDesc, sizeof(aDesc), "Ban '%s'", Server()->ClientName(KickID));
 				}
 				IsInstanceVote = true;
-				m_apPlayers[ClientID]->m_Last_KickVote = time_get();
+				m_apPlayers[ClientID]->m_LastKickVote = time_get();
 				m_VoteType = VOTE_TYPE_KICK;
 				m_VoteVictim = KickID;
 			}
@@ -1917,7 +1917,10 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				else if(str_comp(aCmd, "info") != 0)
 				{
 					if(IsNoConsent)
+					{
+						m_ChatResponseTargetID = ClientID;
 						Console()->ExecuteLine(aCmd, ClientID);
+					}
 					else
 						CallVote(ClientID, aDesc, aCmd, aReason, aChatmsg, aSixupDesc[0] ? aSixupDesc : 0);
 				}
@@ -1953,7 +1956,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		{
 			CNetMsg_Cl_SetTeam *pMsg = (CNetMsg_Cl_SetTeam *)pRawMsg;
 
-			if(pPlayer->GetTeam() == pMsg->m_Team || (g_Config.m_SvSpamprotection && pPlayer->m_LastSetTeam && pPlayer->m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay > Server()->Tick()))
+			if(pPlayer->GetTeam() == pMsg->m_Team || (g_Config.m_SvSpamprotection && pPlayer->m_LastSetTeam && pPlayer->m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > Server()->Tick()))
 				return;
 
 			if(pPlayer->m_TeamChangeTick > Server()->Tick())
@@ -2480,9 +2483,9 @@ void CGameContext::AddVote(const char *pDescription, const char *pCommand)
 		return;
 	}
 
-	if(str_startswith(pDescription, "☉"))
+	if(str_startswith(pDescription, "⨀") || str_startswith(pDescription, "⨂"))
 	{
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "vote description cannot starts with the reserved icon 'U+2609' for room list");
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "vote description cannot starts with the reserved icon 'U+2A00' and 'U+2A02' for room list");
 		return;
 	}
 

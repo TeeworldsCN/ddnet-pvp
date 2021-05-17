@@ -203,8 +203,10 @@ public:
 	bool IsPaused();
 
 	bool IsPlaying();
-	int64 m_Last_KickVote;
+	int64 m_LastKickVote;
 	int64 m_LastRoomChange;
+	int64 m_LastRoomCreation;
+	int64 m_LastRoomInfoChange;
 	int m_ShowOthers;
 	int ShowOthersMode() { return m_DeadSpecMode ? 0 : m_ShowOthers; }
 	vec2 m_ShowDistance;

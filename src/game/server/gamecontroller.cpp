@@ -24,6 +24,16 @@
 
 #include <engine/server/server.h>
 
+static void ConchainVoteUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	pfnCallback(pResult, pCallbackUserData);
+	if(pResult->NumArguments() >= 1)
+	{
+		IGameController *pThis = static_cast<IGameController *>(pUserData);
+		pThis->GameServer()->Teams()->UpdateVotes();
+	}
+}
+
 static void ConchainGameInfoUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
 {
 	pfnCallback(pResult, pCallbackUserData);
@@ -380,6 +390,7 @@ IGameController::IGameController()
 	m_pInstanceConsole->Chain("scorelimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("timelimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("roundlimit", ConchainGameInfoUpdate, this);
+	m_pInstanceConsole->Chain("player_slots", ConchainVoteUpdate, this);
 
 	m_pInstanceConsole->Chain("cmdlist", ConchainReplyOnly, this);
 
@@ -1029,7 +1040,10 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 		else
 			str_format(aBuf, sizeof(aBuf), "'%s' joined the %s in %s%s room %d", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()), Creating ? "a new " : "", m_pGameType, GameWorld()->Team());
 
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1);
+		if(Creating || ServerJoin)
+			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1);
+		else
+			SendChatTarget(-1, aBuf);
 	}
 
 	OnPlayerJoin(pPlayer);
@@ -2598,7 +2612,6 @@ void IGameController::SendBroadcast(const char *pText, int ClientID, bool IsImpo
 void IGameController::InstanceConsolePrint(const char *pStr, void *pUser, ColorRGBA PrintColor)
 {
 	IGameController *pController = (IGameController *)pUser;
-
 	const char *pLineOrig = pStr;
 
 	if(pStr[0] == '[')

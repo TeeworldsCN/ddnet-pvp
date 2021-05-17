@@ -16,7 +16,7 @@ struct SGameInstance
 	unsigned int m_Entities;
 	class IGameController *m_pController;
 	class CGameWorld *m_pWorld;
-	int m_Creator;
+	char m_Creator[16];
 };
 
 struct SGameType

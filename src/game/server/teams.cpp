@@ -99,12 +99,14 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 		return false;
 
 	int OldTeam = m_Core.Team(ClientID);
+	bool CreatingRoom = false;
 
 	if(OldTeam != Team && !m_aTeamInstances[Team].m_IsCreated)
 	{
 		if(!pGameType && State != TEAM_REASON_FORCE && m_GameTypes.size() > 1)
 			return false;
 
+		CreatingRoom = true;
 		if(!CreateGameInstance(Team, pGameType, ClientID))
 			return false;
 	}
@@ -139,7 +141,7 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 	if(OldTeam != Team)
 	{
 		if(State != TEAM_REASON_DISCONNECT)
-			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], false, m_aTeamInstances[Team].m_Creator == ClientID, true);
+			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], false, CreatingRoom, true);
 
 		for(int LoopClientID = 0; LoopClientID < MAX_CLIENTS; ++LoopClientID)
 			if(GameServer()->PlayerExists(LoopClientID))
@@ -186,7 +188,13 @@ void CGameTeams::SendTeamsState(int ClientID)
 void CGameTeams::SetTeamLock(int Team, bool Lock)
 {
 	if(Team > TEAM_FLOCK && Team < TEAM_SUPER)
-		m_aTeamLocked[Team] = Lock;
+	{
+		if(m_aTeamLocked[Team] != Lock)
+		{
+			m_aTeamLocked[Team] = Lock;
+			UpdateVotes();
+		}
+	}
 }
 
 void CGameTeams::ResetInvited(int Team)
@@ -281,8 +289,15 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 	m_aTeamInstances[Team].m_IsCreated = true;
 	m_aTeamInstances[Team].m_Init = false;
 	m_aTeamInstances[Team].m_Entities = 0;
-	m_aTeamInstances[Team].m_Creator = Asker;
 
+	// -2 means reload, if reload, don't update creator's name
+	if(Asker == -1)
+		m_aTeamInstances[Team].m_Creator[0] = 0;
+	else if(Asker >= 0)
+		str_copy(m_aTeamInstances[Team].m_Creator, GameServer()->Server()->ClientName(Asker), sizeof(m_aTeamInstances[Team].m_Creator));
+
+	// surpress room creation reply
+	m_aTeamInstances[Team].m_pController->m_ChatResponseTargetID = -2;
 	m_aTeamInstances[Team].m_pController->InstanceConsole()->SetFlagMask(CFGFLAG_INSTANCE);
 
 	if(Type.pSettings && Type.pSettings[0])
@@ -392,7 +407,9 @@ void CGameTeams::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)
 	bool WasModerator = pPlayer->m_Moderating && GameServer()->Server()->ClientIngame(ClientID);
 
 	if(m_aTeamInstances[m_Core.Team(ClientID)].m_IsCreated)
+	{
 		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerLeave(pPlayer, true);
+	}
 
 	pPlayer->OnDisconnect();
 	if(GameServer()->Server()->ClientIngame(ClientID))
@@ -424,7 +441,7 @@ void CGameTeams::OnTick()
 			if(m_aTeamReload[i] == RELOAD_TYPE_HARD)
 			{
 				m_aTeamReload[i] = RELOAD_TYPE_NO;
-				CreateGameInstance(i, m_apWantedGameType[i], m_aTeamInstances[i].m_Creator);
+				CreateGameInstance(i, m_apWantedGameType[i], -2);
 			}
 			else if(m_aTeamReload[i] == RELOAD_TYPE_SOFT)
 			{
@@ -653,15 +670,15 @@ void CGameTeams::UpdateVotes()
 		if(!pController || (NumPlayersInRoom == 0 && !(g_Config.m_SvRoom == 1 && i == 0)))
 			continue;
 
-		if(m_aTeamInstances[i].m_Creator < 0)
+		if(m_aTeamInstances[i].m_Creator[0])
 		{
-			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "☉ Room %d: ♙%d/%d [%s]", i, NumPlayersInRoom, minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom + 1), pController->GetGameType());
-			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "☉ Room %d: ♙%d/%d [%s] ◁◁◁", i, NumPlayersInRoom, minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom), pController->GetGameType());
+			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "%s Room %d: ♙%d/%d [%s] ♔%s", TeamLocked(i) ? "⨂" : "⨀", i, NumPlayersInRoom, TeamLocked(i) ? NumPlayersInRoom : minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom + 1), pController->GetGameType(), m_aTeamInstances[i].m_Creator);
+			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "%s Room %d: ♙%d/%d [%s] ♔%s ⬅", TeamLocked(i) ? "⨂" : "⨀", i, NumPlayersInRoom, TeamLocked(i) ? NumPlayersInRoom : minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom), pController->GetGameType(), m_aTeamInstances[i].m_Creator);
 		}
 		else
 		{
-			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "☉ Room %d: ♙%d/%d [%s] ♔%s", i, NumPlayersInRoom, minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom + 1), pController->GetGameType(), GameServer()->Server()->ClientName(m_aTeamInstances[i].m_Creator));
-			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "☉ Room %d: ♙%d/%d [%s] ♔%s ◁◁◁", i, NumPlayersInRoom, minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom), pController->GetGameType(), GameServer()->Server()->ClientName(m_aTeamInstances[i].m_Creator));
+			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "%s Room %d: ♙%d/%d [%s]", TeamLocked(i) ? "⨂" : "⨀", i, NumPlayersInRoom, TeamLocked(i) ? NumPlayersInRoom : minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom + 1), pController->GetGameType());
+			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "%s Room %d: ♙%d/%d [%s] ⬅", TeamLocked(i) ? "⨂" : "⨀", i, NumPlayersInRoom, TeamLocked(i) ? NumPlayersInRoom : minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom), pController->GetGameType());
 		}
 		m_RoomNumbers[m_NumRooms] = i;
 		m_NumRooms++;

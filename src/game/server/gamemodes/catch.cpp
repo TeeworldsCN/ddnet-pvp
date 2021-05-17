@@ -69,8 +69,8 @@ void CGameControllerCatch::OnCharacterSpawn(CCharacter *pChr)
 	// standard dm equipments
 	pChr->IncreaseHealth(10);
 
-	pChr->GiveWeapon(WEAPON_HAMMER, WEAPON_ID_HAMMER, -1);
 	pChr->GiveWeapon(WEAPON_GUN, WEAPON_ID_PISTOL, 10);
+	pChr->GiveWeapon(WEAPON_HAMMER, WEAPON_ID_HAMMER, -1);
 }
 
 int CGameControllerCatch::OnCharacterDeath(CCharacter *pVictim, CPlayer *pKiller, int Weapon)

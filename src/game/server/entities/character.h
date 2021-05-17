@@ -192,7 +192,6 @@ public:
 	bool m_DeepFreeze;
 	bool m_EndlessHook;
 	int m_IsFiring;
-	bool m_IsShowingNinjaProgress;
 
 	enum
 	{

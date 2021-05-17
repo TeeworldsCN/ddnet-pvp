@@ -61,7 +61,7 @@ void CGameControllerInstagib<T>::OnCharacterSpawn(CCharacter *pChr)
 		pChr->GiveWeapon(WEAPON_LASER, WEAPON_ID_NINJA, -1);
 		break;
 	default:
-		pChr->GiveWeapon(WEAPON_LASER, WEAPON_ID_LASER);
+		pChr->GiveWeapon(WEAPON_LASER, WEAPON_ID_EXPLODINGLASER, -1);
 		break;
 	}
 
