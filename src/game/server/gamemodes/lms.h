@@ -6,6 +6,9 @@
 
 class CGameControllerLMS : public IGameController
 {
+private:
+	int m_SpawnArmor;
+
 public:
 	CGameControllerLMS();
 

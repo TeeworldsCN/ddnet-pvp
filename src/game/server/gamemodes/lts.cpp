@@ -13,12 +13,15 @@ CGameControllerLTS::CGameControllerLTS() :
 {
 	m_pGameType = "LTS";
 	m_GameFlags = IGF_TEAMS | IGF_SURVIVAL | IGF_ROUND_TIMER_ROUND;
+
+	INSTANCE_CONFIG_INT(&m_SpawnArmor, "spawn_armor", 5, 0, 10, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Maximum room size (from 2 to 64)")
 }
 
 // event
 void CGameControllerLTS::OnCharacterSpawn(class CCharacter *pChr)
 {
 	pChr->IncreaseHealth(10);
+	pChr->IncreaseArmor(m_SpawnArmor);
 
 	// give start equipment
 	pChr->GiveWeapon(WEAPON_GUN, WEAPON_ID_PISTOL, 10);

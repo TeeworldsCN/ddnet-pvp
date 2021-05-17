@@ -2242,7 +2242,13 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 		dbg_msg("game", "team size increased to %d, team='%d', ddrteam='%d'", m_aTeamSize[Team], Team, GameWorld()->Team());
 		m_UnbalancedTick = TBALANCE_CHECK;
 		if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
-			SetGameState(IGS_WARMUP_GAME, 0);
+		{
+			// we got enough player, redo warmup if we have one, otherwise start the game
+			if(m_Warmup)
+				SetGameState(IGS_WARMUP_USER, m_Warmup);
+			else
+				SetGameState(IGS_WARMUP_GAME, 0);
+		}
 		pPlayer->m_IsReadyToPlay = !IsPlayerReadyMode();
 		if(IsSurvival())
 			pPlayer->m_RespawnDisabled = GetStartRespawnState();
@@ -2277,7 +2283,13 @@ int IGameController::GetStartTeam()
 		dbg_msg("game", "team size increased to %d, team='%d', ddrteam='%d'", m_aTeamSize[Team], Team, GameWorld()->Team());
 		m_UnbalancedTick = TBALANCE_CHECK;
 		if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
-			SetGameState(IGS_WARMUP_GAME, 0);
+		{
+			// we got enough player, redo warmup if we have one, otherwise start the game
+			if(m_Warmup)
+				SetGameState(IGS_WARMUP_USER, m_Warmup);
+			else
+				SetGameState(IGS_WARMUP_GAME, 0);
+		}
 		return Team;
 	}
 	return TEAM_SPECTATORS;

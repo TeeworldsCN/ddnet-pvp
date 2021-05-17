@@ -993,18 +993,6 @@ void CCharacter::Snap(int SnappingClient, int OtherMode)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_GRENADE;
 	if(m_Core.m_HasTelegunLaser)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_LASER;
-	if(m_apWeaponSlots[WEAPON_HAMMER])
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_HAMMER;
-	if(m_apWeaponSlots[WEAPON_GUN])
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GUN;
-	if(m_apWeaponSlots[WEAPON_SHOTGUN])
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_SHOTGUN;
-	if(m_apWeaponSlots[WEAPON_GRENADE])
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GRENADE;
-	if(m_apWeaponSlots[WEAPON_LASER])
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_LASER;
-	if(m_pPowerupWeapon && m_pPowerupWeapon->GetWeaponID() == WEAPON_ID_NINJA)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
 
 	pDDNetCharacter->m_FreezeEnd = (m_DeepFreeze || m_FreezeTime == -1) ? -1 : m_FreezeTime == 0 ? 0 :
                                                                                                        Server()->Tick() + m_FreezeTime;
