@@ -302,7 +302,7 @@ function(set_extra_dirs_lib VARIABLE NAME)
     set(TYPE PATHS)
   endif()
   if(TARGET_BITS AND TARGET_OS)
-    set(DIR "ddnet-libs/${NAME}/${TARGET_OS}/lib${TARGET_BITS}")
+    set(DIR "libs/${NAME}/${TARGET_OS}/lib${TARGET_BITS}")
     set("${TYPE}_${VARIABLE}_LIBDIR" "${DIR}" PARENT_SCOPE)
     set("EXTRA_${VARIABLE}_LIBDIR" "${DIR}" PARENT_SCOPE)
   endif()
@@ -313,7 +313,7 @@ function(set_extra_dirs_include VARIABLE NAME LIBRARY)
   set("HINTS_${VARIABLE}_INCLUDEDIR" PARENT_SCOPE)
   is_bundled(IS_BUNDLED "${LIBRARY}")
   if(IS_BUNDLED)
-    set("HINTS_${VARIABLE}_INCLUDEDIR" "ddnet-libs/${NAME}/include" "ddnet-libs/${NAME}/include/${TARGET_OS}" PARENT_SCOPE)
+    set("HINTS_${VARIABLE}_INCLUDEDIR" "libs/${NAME}/include" "libs/${NAME}/include/${TARGET_OS}" PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -1324,7 +1324,7 @@ set(CPACK_SOURCE_FILES
   cmake/
   data/
   datasrc/
-  ddnet-libs/
+  libs/
   license.txt
   other/
   scripts/
