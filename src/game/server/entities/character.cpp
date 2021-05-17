@@ -829,8 +829,8 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 	{
 		Health = m_Health;
 		Armor = m_Armor;
-		if(pCurrentWeapon && pCurrentWeapon->GetAmmo() > 0)
-			AmmoCount = (!m_FreezeTime) ? pCurrentWeapon->GetAmmo() : 0;
+		if(pCurrentWeapon && pCurrentWeapon->NumAmmoIcons() > 0)
+			AmmoCount = (!m_FreezeTime) ? pCurrentWeapon->NumAmmoIcons() : 0;
 	}
 
 	if(GetPlayer()->m_Afk || GetPlayer()->IsPaused())

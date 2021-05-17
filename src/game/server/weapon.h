@@ -96,7 +96,7 @@ public:
 	virtual int GetType() { return WEAPON_HAMMER; }
 	// whether this weapon makes character ignore hook drag force
 	virtual bool IgnoreHookDrag() { return false; }
-	// powerup progress (0~1, 0 being just started, 1 being finished)
+	// powerup progress, only used for progress indicator (0~1, 0 being just started, 1 being finished)
 	virtual float PowerupProgress() { return 0.0f; }
 };
 
