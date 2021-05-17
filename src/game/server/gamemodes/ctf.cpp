@@ -15,7 +15,7 @@ CGameControllerCTF::CGameControllerCTF() :
 	IGameController()
 {
 	m_pGameType = "CTF";
-	m_GameFlags = IGF_TEAMS | IGF_FLAGS;
+	m_GameFlags = IGF_TEAMS | IGF_FLAGS | IGF_SUDDENDEATH;
 }
 
 void CGameControllerCTF::OnInit()

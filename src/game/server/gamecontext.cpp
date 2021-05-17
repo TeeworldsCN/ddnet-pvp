@@ -422,10 +422,10 @@ void CGameContext::SendCurrentGameInfo(int ClientID, bool IsJoin)
 			ClientInfoMsg.m_ClientID = i;
 			ClientInfoMsg.m_Local = 0;
 			ClientInfoMsg.m_Team = pPlayer->GetTeam();
-			ClientInfoMsg.m_pName = pPlayer->m_aOverrideName[0] ? pPlayer->m_aOverrideName : Server()->ClientName(ClientID);
-			ClientInfoMsg.m_pClan = pPlayer->m_aOverrideClan[0] ? pPlayer->m_aOverrideClan : Server()->ClientClan(ClientID);
+			ClientInfoMsg.m_pName = pPlayer->m_aOverrideName[0] ? pPlayer->m_aOverrideName : Server()->ClientName(i);
+			ClientInfoMsg.m_pClan = pPlayer->m_aOverrideClan[0] ? pPlayer->m_aOverrideClan : Server()->ClientClan(i);
 			ClientInfoMsg.m_Country = Server()->ClientCountry(i);
-			ClientInfoMsg.m_Silent = 0;
+			ClientInfoMsg.m_Silent = true;
 
 			if(GetDDRaceTeam(i) != GetDDRaceTeam(ClientID) && !pPlayer->ShowOthersMode())
 				ClientInfoMsg.m_Team = TEAM_SPECTATORS;

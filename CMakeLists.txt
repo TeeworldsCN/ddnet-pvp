@@ -981,6 +981,8 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   gamecontroller.cpp
   gamecontroller.h
   gamemodes.h
+  gamemodes/catch.cpp
+  gamemodes/catch.h
   gamemodes/ctf.cpp
   gamemodes/ctf.h
   gamemodes/dm.cpp

@@ -29,6 +29,11 @@
 		IGameController::InstanceConsole()->Register(Command, "?r[value]", Flag, IGameController::StrVariableCommand, pStr, Desc); \
 	}
 
+#define INSTANCE_COMMAND_REMOVE(Command) \
+	{ \
+		IGameController::InstanceConsole()->Register(Command, "", 0, IGameController::EmptyCommand, nullptr, "This command has been removed"); \
+	}
+
 // for OnCharacterDeath
 enum
 {
@@ -99,6 +104,8 @@ class IGameController
 	void FakeClientBroadcast(int SnappingClient);
 
 protected:
+	bool m_Started;
+
 	// balancing
 	enum
 	{
@@ -210,6 +217,15 @@ protected:
 		// timer will not be reset after each round
 		// and will be used for win check by default
 		IGF_MATCH_TIMER_ROUND = 32,
+
+		// whether the game mode uses suddendeath
+		// applies to default win check
+		IGF_SUDDENDEATH = 64,
+
+		// mark the game as survival even if it isn't
+		// ideal for controlling your own gameplay
+		// while letting clients show player count
+		IGF_MARK_SURVIVAL = 128,
 	};
 	int m_GameFlags;
 	const char *m_pGameType;
@@ -299,12 +315,14 @@ public:
 	bool IsSurvival() const { return m_GameFlags & IGF_SURVIVAL; }
 	bool IsRoundBased() const { return m_GameFlags & (IGF_ROUND_TIMER_ROUND | IGF_MATCH_TIMER_ROUND); }
 	bool IsRoundTimer() const { return m_GameFlags & IGF_ROUND_TIMER_ROUND; }
+	bool UseSuddenDeath() const { return m_GameFlags & IGF_SUDDENDEATH; }
+
 	void SendGameMsg(int GameMsgID, int ClientID, int *i1 = nullptr, int *i2 = nullptr, int *i3 = nullptr);
 
 	const char *GetGameType() const { return m_pGameType; }
 	int IsEndRound() const { return m_GameState == IGS_END_ROUND; }
 	int IsEndMatch() const { return m_GameState == IGS_END_MATCH; }
-	int IsWarmup() const { return m_GameState == IGS_WARMUP_GAME || m_GameState == IGS_WARMUP_USER; }
+	int IsWarmup() const { return !m_Started || m_GameState == IGS_WARMUP_GAME || m_GameState == IGS_WARMUP_USER; }
 	int IsCountdown() const { return m_GameState == IGS_START_COUNTDOWN; }
 	int IsRunning() const { return m_GameState == IGS_GAME_RUNNING; }
 
@@ -364,6 +382,7 @@ public:
 	static void IntVariableCommand(IConsole::IResult *pResult, void *pUserData);
 	static void ColVariableCommand(IConsole::IResult *pResult, void *pUserData);
 	static void StrVariableCommand(IConsole::IResult *pResult, void *pUserData);
+	static void EmptyCommand(IConsole::IResult *pResult, void *pUserData){};
 
 	// GameController Interface
 
@@ -477,6 +496,21 @@ public:
 			float - a score represents the dangerousness, 0 being no danger at all.
 	*/
 	virtual float SpawnPosDangerScore(vec2 Pos, int SpawningTeam, class CCharacter *pChar) const;
+
+	/*
+		Function: CanDeadPlayerFollow
+			Whether a dead spec player is allowed to spectate a client
+
+		Arguments:
+			Spec - the spectating player
+			Target - the target player that is being spectated
+				This player is guaranteed to be in the room
+		
+		Return:
+			bool - true if can spectate
+
+	*/
+	virtual bool CanDeadPlayerFollow(const class CPlayer *pSpectator, const class CPlayer *pTarget);
 
 	// =============
 	//   GAME CORE
@@ -684,7 +718,7 @@ public:
 			ClientID = player's cid
 		
 		return:
-			bool - player can't switch room if set to true
+			bool - player can't switch room or join spectator if set to true
 				also, disconnected players' characters will not be
 				killed until this check returns false.
 	*/

@@ -1,0 +1,11 @@
+# catch room config
+
+# inherit catch config
+exec "room_config/modes/catch.rcfg"
+
+# set genade
+weapon 3
+max_ammo 6
+ammo_regen_time 250
+empty_penalty 750
+ammo_regen_boost 1

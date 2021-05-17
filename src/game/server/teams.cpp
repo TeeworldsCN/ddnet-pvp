@@ -562,7 +562,7 @@ bool CGameTeams::IsInvited(int Team, int ClientID)
 int CGameTeams::CanSwitchTeam(int ClientID)
 {
 	SGameInstance Instance = GetPlayerGameInstance(ClientID);
-	return Instance.m_Init && !Instance.m_pController->IsEndMatch();
+	return Instance.m_Init;
 }
 
 int CGameTeams::FindAEmptyTeam()

@@ -226,8 +226,18 @@ bool CPlayer::SetSpectatorID(int SpecMode, int SpectatorID)
 
 bool CPlayer::DeadCanFollow(CPlayer *pPlayer) const
 {
-	// check if wanted player is in the same team and alive
-	return (!pPlayer->m_RespawnDisabled || (pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive())) && pPlayer->GetTeam() == m_Team && GameServer()->Teams()->m_Core.SameTeam(m_ClientID, pPlayer->GetCID());
+	// can only follow same team
+	if(!GameServer()->Teams()->m_Core.SameTeam(m_ClientID, pPlayer->GetCID()))
+		return false;
+
+	// can't follow dead player
+	if(pPlayer->m_RespawnDisabled && (!pPlayer->GetCharacter() || !pPlayer->GetCharacter()->IsAlive()))
+		return false;
+
+	if(!Controller())
+		return true;
+
+	return Controller()->CanDeadPlayerFollow(this, pPlayer);
 }
 
 void CPlayer::UpdateDeadSpecMode()
@@ -778,6 +788,7 @@ void CPlayer::Respawn()
 {
 	if(m_RespawnDisabled && m_Team != TEAM_SPECTATORS)
 	{
+		// MYTODO: move IsReadyToPlay to somewhere else?
 		// enable spectate mode for dead players
 		m_DeadSpecMode = true;
 		m_IsReadyToPlay = true;
@@ -808,6 +819,7 @@ void CPlayer::CancelSpawn()
 
 CCharacter *CPlayer::ForceSpawn(vec2 Pos)
 {
+	m_DeadSpecMode = false;
 	m_Spawning = false;
 	m_pCharacter = new(m_ClientID) CCharacter(GameWorld());
 	m_pCharacter->Spawn(this, Pos);

@@ -1,5 +1,3 @@
-/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
-/* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "instagib.h"
 
 #include <game/server/entities/character.h>
@@ -27,8 +25,8 @@ static void ConchainUpdateLaserJumps(IConsole::IResult *pResult, void *pUserData
 template<class T>
 void CGameControllerInstagib<T>::RegisterConfig()
 {
-	INSTANCE_CONFIG_INT(&m_KillDamage, "kill_damage", 4, 1, 6, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Minimum damage required for a kill");
-	INSTANCE_CONFIG_INT(&m_StartWeapon, "grenade", 0, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Start weapon (0 = laser, 1 = grenade)");
+	INSTANCE_CONFIG_INT(&m_KillDamage, "kill_damage", 4, 1, 6, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Minimum damage required for a grenade kill");
+	INSTANCE_CONFIG_INT(&m_StartWeapon, "weapon", 4, 0, 5, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Start weapon (0=hammer,1=gun,2=shotgun,3=genrade,4=laser,5=ninja)");
 	INSTANCE_CONFIG_INT(&m_WeaponMaxAmmo, "max_ammo", -1, -1, 10, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Maximum amount of ammo (-1 = infinite and no regen)");
 	INSTANCE_CONFIG_INT(&m_WeaponAmmoRegenTime, "ammo_regen_time", 128, 1, 2000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Ammo regen interval (in milliseconds)");
 	INSTANCE_CONFIG_INT(&m_WeaponAmmoRegenOnBoost, "ammo_regen_boost", 1, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Whether rocket jump or laser jump gives back ammo");
@@ -45,10 +43,27 @@ void CGameControllerInstagib<T>::OnCharacterSpawn(CCharacter *pChr)
 
 	CWeapon *pStartingWeapon = nullptr;
 
-	if(m_StartWeapon)
+	switch(m_StartWeapon)
+	{
+	case WEAPON_HAMMER:
+		pChr->GiveWeapon(WEAPON_LASER, WEAPON_ID_HAMMER, -1);
+		break;
+	case WEAPON_GUN:
+		pChr->GiveWeapon(WEAPON_LASER, WEAPON_ID_PISTOL, -1);
+		break;
+	case WEAPON_SHOTGUN:
+		pChr->GiveWeapon(WEAPON_LASER, WEAPON_ID_SHOTGUN, -1);
+		break;
+	case WEAPON_GRENADE:
 		pChr->GiveWeapon(WEAPON_LASER, WEAPON_ID_GRENADE, -1);
-	else
-		pChr->GiveWeapon(WEAPON_LASER, WEAPON_ID_EXPLODINGLASER, -1);
+		break;
+	case WEAPON_NINJA:
+		pChr->GiveWeapon(WEAPON_LASER, WEAPON_ID_NINJA, -1);
+		break;
+	default:
+		pChr->GiveWeapon(WEAPON_LASER, WEAPON_ID_LASER);
+		break;
+	}
 
 	pStartingWeapon = pChr->GetWeapon(WEAPON_LASER);
 	if(pStartingWeapon && m_WeaponMaxAmmo > -1)
@@ -83,17 +98,16 @@ int CGameControllerInstagib<T>::OnCharacterTakeDamage(CCharacter *pChr, vec2 &Fo
 		return DAMAGE_NO_DAMAGE | DAMAGE_NO_INDICATOR;
 	}
 
-	if((WeaponType == WEAPON_ID_EXPLODINGLASER && !IsExplosion) || (WeaponType == WEAPON_ID_GRENADE && Dmg >= m_KillDamage))
-	{
-		pChr->Die(From, Weapon);
-		return DAMAGE_DIED | DAMAGE_NO_INDICATOR | DAMAGE_NO_PAINSOUND;
-	}
-
 	// laser jump should only affect owner
 	if(WeaponType == WEAPON_ID_EXPLODINGLASER && IsExplosion)
 		return DAMAGE_SKIP;
 
-	return DAMAGE_NO_DAMAGE | DAMAGE_NO_INDICATOR | DAMAGE_NO_HITSOUND;
+	// keep force but no kill
+	if(WeaponType == WEAPON_ID_GRENADE && Dmg < m_KillDamage)
+		return DAMAGE_NO_DAMAGE | DAMAGE_NO_INDICATOR | DAMAGE_NO_HITSOUND;
+
+	pChr->Die(From, Weapon);
+	return DAMAGE_DIED | DAMAGE_NO_INDICATOR | DAMAGE_NO_PAINSOUND;
 }
 
 template<class T>
@@ -129,5 +143,12 @@ CGameControllerInstagib<CGameControllerCTF>::CGameControllerInstagib() :
 	CGameControllerCTF()
 {
 	m_pGameType = "iCTF";
+	RegisterConfig();
+}
+
+template<>
+CGameControllerInstagib<CGameControllerCatch>::CGameControllerInstagib()
+{
+	m_pGameType = "zCatch";
 	RegisterConfig();
 }

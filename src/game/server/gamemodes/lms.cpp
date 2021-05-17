@@ -12,7 +12,7 @@ CGameControllerLMS::CGameControllerLMS() :
 	IGameController()
 {
 	m_pGameType = "LMS";
-	m_GameFlags = IGF_SURVIVAL | IGF_ROUND_TIMER_ROUND;
+	m_GameFlags = IGF_SURVIVAL | IGF_ROUND_TIMER_ROUND | IGF_SUDDENDEATH;
 
 	INSTANCE_CONFIG_INT(&m_SpawnArmor, "spawn_armor", 5, 0, 10, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Maximum room size (from 2 to 64)")
 }

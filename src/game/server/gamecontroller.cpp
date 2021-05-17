@@ -300,13 +300,14 @@ int IGameController::MakeGameFlagSixUp(int GameFlag)
 		Flags |= protocol7::GAMEFLAG_TEAMS;
 	if(GameFlag & IGF_FLAGS)
 		Flags |= protocol7::GAMEFLAG_FLAGS;
-	if(GameFlag & IGF_SURVIVAL)
+	if(GameFlag & (IGF_SURVIVAL | IGF_MARK_SURVIVAL))
 		Flags |= protocol7::GAMEFLAG_SURVIVAL;
 	return Flags;
 }
 
 IGameController::IGameController()
 {
+	m_Started = false;
 	m_pGameServer = nullptr;
 	m_pConfig = nullptr;
 	m_pServer = nullptr;
@@ -410,6 +411,8 @@ IGameController::~IGameController()
 
 void IGameController::StartController()
 {
+	m_Started = true;
+
 	// game
 	m_RoundCount = 0;
 	m_SuddenDeath = 0;
@@ -594,15 +597,12 @@ int IGameController::OnInternalCharacterDeath(CCharacter *pVictim, CPlayer *pKil
 	if(!(DeathFlag & DEATH_NO_SUICIDE_PANATY) && Weapon == WEAPON_SELF)
 		pVictim->GetPlayer()->m_RespawnTick = Server()->Tick() + Server()->TickSpeed() * 3.0f;
 
-	// update spectator modes for dead players in survival
-	if(IsSurvival())
+	// update spectator modes for dead players
+	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
-		for(int i = 0; i < MAX_CLIENTS; ++i)
-		{
-			CPlayer *pPlayer = GetPlayerIfInRoom(i);
-			if(pPlayer && pPlayer->m_DeadSpecMode)
-				pPlayer->UpdateDeadSpecMode();
-		}
+		CPlayer *pPlayer = GetPlayerIfInRoom(i);
+		if(pPlayer && pPlayer->m_DeadSpecMode)
+			pPlayer->UpdateDeadSpecMode();
 	}
 
 	return DeathFlag & (DEATH_VICTIM_HAS_FLAG | DEATH_KILLER_HAS_FLAG);
@@ -1104,7 +1104,7 @@ void IGameController::DoWincheckMatch()
 			(m_GameInfo.m_TimeLimit > 0 && !IsRoundTimer() && (Server()->Tick() - m_GameStartTick) >= m_GameInfo.m_TimeLimit * Server()->TickSpeed() * 60) ||
 			(m_GameInfo.m_MatchNum > 0 && m_GameInfo.m_MatchCurrent >= m_GameInfo.m_MatchNum))
 		{
-			if(m_aTeamscore[TEAM_RED] != m_aTeamscore[TEAM_BLUE] || IsSurvival())
+			if(m_aTeamscore[TEAM_RED] != m_aTeamscore[TEAM_BLUE] || !UseSuddenDeath())
 				EndMatch();
 			else
 				m_SuddenDeath = 1;
@@ -1135,7 +1135,7 @@ void IGameController::DoWincheckMatch()
 			(m_GameInfo.m_TimeLimit > 0 && !IsRoundTimer() && (Server()->Tick() - m_GameStartTick) >= m_GameInfo.m_TimeLimit * Server()->TickSpeed() * 60) ||
 			(m_GameInfo.m_MatchNum > 0 && m_GameInfo.m_MatchCurrent >= m_GameInfo.m_MatchNum))
 		{
-			if(TopscoreCount == 1)
+			if(TopscoreCount == 1 || !UseSuddenDeath())
 				EndMatch();
 			else
 				m_SuddenDeath = 1;
@@ -1339,6 +1339,8 @@ void IGameController::StartMatch()
 		str_format(aBuf, sizeof(aBuf), "start match type='%s' teamplay='%d' ddrteam='%d'", m_pGameType, m_GameFlags & IGF_TEAMS, GameWorld()->Team());
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 	}
+	else
+		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
 }
 
 void IGameController::StartRound()
@@ -1371,6 +1373,8 @@ void IGameController::StartRound()
 		str_format(aBuf, sizeof(aBuf), "start round type='%s' teamplay='%d' ddrteam='%d'", m_pGameType, m_GameFlags & IGF_TEAMS, GameWorld()->Team());
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 	}
+	else
+		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
 }
 
 void IGameController::SwapTeamscore()
@@ -1940,7 +1944,7 @@ void IGameController::UpdateGameInfo(int ClientID)
 	if(Server()->IsSixup(ClientID))
 	{
 		protocol7::CNetMsg_Sv_GameInfo GameInfoMsg;
-		GameInfoMsg.m_GameFlags = m_GameFlags;
+		GameInfoMsg.m_GameFlags = MakeGameFlagSixUp(m_GameFlags);
 		GameInfoMsg.m_ScoreLimit = m_GameInfo.m_ScoreLimit;
 		GameInfoMsg.m_TimeLimit = m_GameInfo.m_TimeLimit;
 		GameInfoMsg.m_MatchNum = m_GameInfo.m_MatchNum;
@@ -2164,6 +2168,11 @@ float IGameController::SpawnPosDangerScore(vec2 Pos, int SpawningTeam, class CCh
 		return 1.0f;
 }
 
+bool IGameController::CanDeadPlayerFollow(const CPlayer *pSpectator, const CPlayer *pTarget)
+{
+	return pSpectator->GetTeam() == pTarget->GetTeam();
+}
+
 bool IGameController::GetStartRespawnState() const
 {
 	if(IsSurvival())
@@ -2351,6 +2360,7 @@ CPlayer *IGameController::GetPlayerIfInRoom(int ClientID) const
 
 void IGameController::InitController(class CGameContext *pGameServer, class CGameWorld *pWorld)
 {
+	m_Started = false;
 	m_pGameServer = pGameServer;
 	m_pConfig = m_pGameServer->Config();
 	m_pServer = m_pGameServer->Server();

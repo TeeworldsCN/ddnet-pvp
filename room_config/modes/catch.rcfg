@@ -1,0 +1,17 @@
+# catch room config
+
+# game settings
+map lms1
+warmup 10
+powerups 1
+winner_bonus 100
+
+# room votes
+add_vote " " "info"
+add_vote "=== ROOM SETTINGS ===" "info"
+
+# add mode switch votes
+exec "room_config/modes.rcfg"
+
+# add map votes
+exec "room_config/maps/all.rcfg"

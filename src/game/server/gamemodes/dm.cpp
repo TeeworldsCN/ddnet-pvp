@@ -9,6 +9,7 @@ CGameControllerDM::CGameControllerDM() :
 	IGameController()
 {
 	m_pGameType = "DM";
+	m_GameFlags = IGF_SUDDENDEATH;
 }
 
 void CGameControllerDM::OnCharacterSpawn(CCharacter *pChr)
