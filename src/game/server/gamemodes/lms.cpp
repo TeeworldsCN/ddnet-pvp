@@ -12,10 +12,33 @@ CGameControllerLMS::CGameControllerLMS() :
 	IGameController()
 {
 	m_pGameType = "LMS";
-	m_GameFlags = IGF_SURVIVAL | IGF_ROUND;
+	m_GameFlags = IGF_SURVIVAL | IGF_ROUND_TIMER_ROUND;
 }
 
 // event
+void CGameControllerLMS::OnWorldReset()
+{
+	// only spawn topscore players on suddon death round
+	if(m_SuddenDeath)
+	{
+		int Topscore = 0;
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			CPlayer *pPlayer = GetPlayerIfInRoom(i);
+			if(pPlayer)
+				if(pPlayer->m_Score > Topscore)
+					Topscore = pPlayer->m_Score;
+		}
+
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			CPlayer *pPlayer = GetPlayerIfInRoom(i);
+			if(pPlayer && pPlayer->m_Score != Topscore)
+				pPlayer->CancelSpawn();
+		}
+	}
+}
+
 void CGameControllerLMS::OnCharacterSpawn(CCharacter *pChr)
 {
 	pChr->IncreaseHealth(10);
@@ -40,7 +63,7 @@ bool CGameControllerLMS::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int
 void CGameControllerLMS::DoWincheckRound()
 {
 	// check for time based win
-	if(m_GameInfo.m_TimeLimit > 0 && (Server()->Tick() - m_GameStartTick) >= m_GameInfo.m_TimeLimit * Server()->TickSpeed() * 60)
+	if(!m_SuddenDeath && m_GameInfo.m_TimeLimit > 0 && (Server()->Tick() - m_GameStartTick) >= m_GameInfo.m_TimeLimit * Server()->TickSpeed() * 60)
 	{
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 		{

@@ -3,7 +3,7 @@
 # game settings
 map lms1
 scorelimit 20
-timelimit 10
+timelimit 2
 warmup 10
 powerups 1
 
@@ -15,9 +15,9 @@ add_vote "=== ROOM SETTINGS ===" "info"
 exec "room_config/modes.rcfg"
 
 # rulesets
-add_vote "Rule: 1min 20points" "scorelimit 20;timelimit 1"
-add_vote "Rule: 1min 50points" "scorelimit 50;timelimit 1"
-add_vote "Rule: 2min 75points" "scorelimit 75;timelimit 2"
+add_vote "Rule: 2min 20points" "scorelimit 20;timelimit 2"
+add_vote "Rule: 3min 50points" "scorelimit 50;timelimit 3"
+add_vote "Rule: 5min 75points" "scorelimit 75;timelimit 5"
 
 # add map votes
 exec "room_config/maps/all.rcfg"

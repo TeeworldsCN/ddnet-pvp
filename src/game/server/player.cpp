@@ -792,6 +792,20 @@ void CPlayer::Respawn()
 		m_Spawning = true;
 }
 
+void CPlayer::CancelSpawn()
+{
+	m_RespawnDisabled = true;
+	m_Spawning = false;
+	if(m_Team != TEAM_SPECTATORS)
+	{
+		m_DeadSpecMode = true;
+		m_IsReadyToPlay = true;
+		m_SpecMode = SPECMODE_PLAYER;
+		UpdateDeadSpecMode();
+		return;
+	}
+}
+
 CCharacter *CPlayer::ForceSpawn(vec2 Pos)
 {
 	m_Spawning = false;
@@ -813,7 +827,7 @@ void CPlayer::SetTeam(int Team)
 	protocol7::CNetMsg_Sv_Team Msg;
 	Msg.m_ClientID = m_ClientID;
 	Msg.m_Team = m_Team;
-	Msg.m_Silent = false; // change team is always silent for sixup since we have custom message for that.
+	Msg.m_Silent = true; // change team is always silent for sixup since we have custom message for that.
 	Msg.m_CooldownTick = m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvRoomChangeDelay;
 
 	// Update team info for sixup

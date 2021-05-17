@@ -220,6 +220,9 @@ void CGameTeams::ReloadGameInstance(int Team)
 	if(!m_aTeamInstances[Team].m_IsCreated)
 		return;
 
+	if(m_aTeamInstances[Team].m_Entities == 0)
+		return;
+
 	m_aTeamReload[Team] = RELOAD_TYPE_SOFT;
 }
 

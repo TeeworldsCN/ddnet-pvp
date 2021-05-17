@@ -187,7 +187,6 @@ protected:
 
 	// game
 	int m_GameStartTick;
-	int m_MatchCount;
 	int m_RoundCount;
 	int m_SuddenDeath;
 	int m_aTeamscore[2];
@@ -198,8 +197,19 @@ protected:
 		IGF_TEAMS = 1,
 		IGF_FLAGS = 2,
 		IGF_SURVIVAL = 4,
+
+		// currently unused
 		IGF_RACE = 8,
-		IGF_ROUND = 16,
+
+		// set if the game is round based
+		// timer will reset after each round
+		// and won't be used for win check by default
+		IGF_ROUND_TIMER_ROUND = 16,
+
+		// set if the game is round based
+		// timer will not be reset after each round
+		// and will be used for win check by default
+		IGF_MATCH_TIMER_ROUND = 32,
 	};
 	int m_GameFlags;
 	const char *m_pGameType;
@@ -287,7 +297,8 @@ public:
 	bool IsTeamChangeAllowed() const;
 	bool IsTeamplay() const { return m_GameFlags & IGF_TEAMS; }
 	bool IsSurvival() const { return m_GameFlags & IGF_SURVIVAL; }
-	bool IsRoundBased() const { return m_GameFlags & IGF_ROUND; }
+	bool IsRoundBased() const { return m_GameFlags & (IGF_ROUND_TIMER_ROUND | IGF_MATCH_TIMER_ROUND); }
+	bool IsRoundMatchTimer() const { return m_GameFlags & IGF_MATCH_TIMER_ROUND; }
 	void SendGameMsg(int GameMsgID, int ClientID, int *i1 = nullptr, int *i2 = nullptr, int *i3 = nullptr);
 
 	const char *GetGameType() const { return m_pGameType; }
@@ -502,13 +513,36 @@ public:
 	*/
 	virtual void OnInit(){};
 	/*
-		Function: OnControllerStart()
+		Function: OnControllerStart
 			Called when the controller and its world are fully prepared.
 			When this is called:
 				the controllers gamestate is properly set,
 				and the config file is already executed.
 	*/
 	virtual void OnControllerStart(){};
+
+	/*
+		Function: OnGameStart
+			Called when a round or match is starting
+			When this is called:
+				the world clear request is set, but has not been cleared yet
+				if you want to cancel player's spawn use OnWorldReset instead
+		
+		Arguments:
+			IsRound - whether it is a round that is starting
+	*/
+	virtual void OnGameStart(bool IsRound){};
+
+	/*
+		Function: OnWorldReset
+			Called after the world is cleared
+				usually happens when round or match starts
+			When this is called:
+				all players started respawning
+				but no character has spawned yet
+	*/
+	virtual void OnWorldReset(){};
+
 	/*
 		Function: OnPlayerJoin
 			Called when a player joins the game controlled by this controller.

@@ -3,7 +3,7 @@
 # game settings
 map ctf1
 scorelimit 20
-timelimit 10
+timelimit 2
 warmup 10
 teamdamage 0
 powerups 1
@@ -17,9 +17,9 @@ add_vote "=== ROOM SETTINGS ===" "info"
 exec "room_config/modes.rcfg"
 
 # rulesets
-add_vote "Rule: 1min 10wins" "scorelimit 10;timelimit 1"
-add_vote "Rule: 1min 15wins" "scorelimit 15;timelimit 1"
-add_vote "Rule: 2min 25wins" "scorelimit 25;timelimit 2"
+add_vote "Rule: 2min 10wins" "scorelimit 10;timelimit 2"
+add_vote "Rule: 3min 15wins" "scorelimit 15;timelimit 3"
+add_vote "Rule: 5min 25wins" "scorelimit 25;timelimit 5"
 
 # add map votes
 exec "room_config/maps/all.rcfg"

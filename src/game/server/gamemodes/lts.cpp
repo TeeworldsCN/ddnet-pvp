@@ -12,7 +12,7 @@ CGameControllerLTS::CGameControllerLTS() :
 	IGameController()
 {
 	m_pGameType = "LTS";
-	m_GameFlags = IGF_TEAMS | IGF_SURVIVAL | IGF_ROUND;
+	m_GameFlags = IGF_TEAMS | IGF_SURVIVAL | IGF_ROUND_TIMER_ROUND;
 }
 
 // event

@@ -324,7 +324,6 @@ IGameController::IGameController()
 	m_GameState = IGS_GAME_RUNNING;
 	m_GameStateTimer = TIMER_INFINITE;
 	m_GameStartTick = 0;
-	m_MatchCount = 0;
 	m_RoundCount = 0;
 	m_SuddenDeath = 0;
 	m_aTeamscore[TEAM_RED] = 0;
@@ -333,7 +332,7 @@ IGameController::IGameController()
 	// info
 	m_GameFlags = 0;
 	m_pGameType = "unknown";
-	m_GameInfo.m_MatchCurrent = m_MatchCount + 1;
+	m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
 	m_GameInfo.m_MatchNum = 0;
 	m_GameInfo.m_ScoreLimit = 0;
 	m_GameInfo.m_TimeLimit = 0;
@@ -412,24 +411,14 @@ IGameController::~IGameController()
 void IGameController::StartController()
 {
 	// game
-	m_MatchCount = 0;
 	m_RoundCount = 0;
 	m_SuddenDeath = 0;
-	m_aTeamscore[TEAM_RED] = 0;
-	m_aTeamscore[TEAM_BLUE] = 0;
 
 	m_GameInfo.m_ScoreLimit = m_Scorelimit;
 	m_GameInfo.m_TimeLimit = m_Timelimit;
 	m_GameInfo.m_MatchNum = m_Roundlimit;
-	m_GameInfo.m_MatchCurrent = m_MatchCount + 1;
 
-	if(m_Warmup)
-		SetGameState(IGS_WARMUP_USER, m_Warmup);
-	else
-		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
-
-	if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
-		SetGameState(IGS_WARMUP_GAME, 0);
+	StartMatch();
 
 	OnControllerStart();
 }
@@ -1087,6 +1076,9 @@ void IGameController::OnReset()
 			pPlayer->m_IsReadyToPlay = true;
 		}
 	}
+
+	OnWorldReset();
+	dbg_msg("game", "world cleared, ddrteam='%d'", GameWorld()->Team());
 }
 
 // game
@@ -1096,7 +1088,7 @@ void IGameController::DoWincheckMatch()
 	{
 		// check score win condition
 		if((m_GameInfo.m_ScoreLimit > 0 && (m_aTeamscore[TEAM_RED] >= m_GameInfo.m_ScoreLimit || m_aTeamscore[TEAM_BLUE] >= m_GameInfo.m_ScoreLimit)) ||
-			(m_GameInfo.m_TimeLimit > 0 && (Server()->Tick() - m_GameStartTick) >= m_GameInfo.m_TimeLimit * Server()->TickSpeed() * 60) ||
+			(m_GameInfo.m_TimeLimit > 0 && IsRoundMatchTimer() && (Server()->Tick() - m_GameStartTick) >= m_GameInfo.m_TimeLimit * Server()->TickSpeed() * 60) ||
 			(m_GameInfo.m_MatchNum > 0 && m_GameInfo.m_MatchCurrent >= m_GameInfo.m_MatchNum))
 		{
 			if(m_aTeamscore[TEAM_RED] != m_aTeamscore[TEAM_BLUE] || IsSurvival())
@@ -1127,7 +1119,7 @@ void IGameController::DoWincheckMatch()
 
 		// check score win condition
 		if((m_GameInfo.m_ScoreLimit > 0 && Topscore >= m_GameInfo.m_ScoreLimit) ||
-			(m_GameInfo.m_TimeLimit > 0 && (Server()->Tick() - m_GameStartTick) >= m_GameInfo.m_TimeLimit * Server()->TickSpeed() * 60) ||
+			(m_GameInfo.m_TimeLimit > 0 && IsRoundMatchTimer() && (Server()->Tick() - m_GameStartTick) >= m_GameInfo.m_TimeLimit * Server()->TickSpeed() * 60) ||
 			(m_GameInfo.m_MatchNum > 0 && m_GameInfo.m_MatchCurrent >= m_GameInfo.m_MatchNum))
 		{
 			if(TopscoreCount == 1)
@@ -1144,7 +1136,6 @@ void IGameController::ResetGame()
 	GameWorld()->m_ResetRequested = true;
 
 	SetGameState(IGS_GAME_RUNNING);
-	m_SuddenDeath = 0;
 
 	// do team-balancing
 	DoTeamBalance();
@@ -1291,12 +1282,14 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 			if(IsEndMatch())
 				break;
 		}
+
 		// only possible when game is running or over
 		if(m_GameState == IGS_GAME_RUNNING || m_GameState == IGS_END_MATCH || m_GameState == IGS_END_ROUND || m_GameState == IGS_GAME_PAUSED)
 		{
 			m_GameState = GameState;
 			m_GameStateTimer = Timer * Server()->TickSpeed();
-			m_SuddenDeath = 0;
+			if(m_GameState != IGS_END_ROUND)
+				m_SuddenDeath = 0;
 			GameWorld()->m_Paused = true;
 		}
 	}
@@ -1309,9 +1302,11 @@ void IGameController::StartMatch()
 
 	m_GameStartTick = Server()->Tick();
 	m_RoundCount = 0;
+	m_SuddenDeath = 0;
 	m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 		UpdateGameInfo(i);
+
 	m_aTeamscore[TEAM_RED] = 0;
 	m_aTeamscore[TEAM_BLUE] = 0;
 
@@ -1320,6 +1315,8 @@ void IGameController::StartMatch()
 		SetGameState(IGS_START_COUNTDOWN);
 	else
 		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
+
+	OnGameStart(false);
 
 	// MYTODO: fix demo
 	// Server()->DemoRecorder_HandleAutoStart();
@@ -1332,7 +1329,9 @@ void IGameController::StartRound()
 {
 	ResetGame();
 
-	m_GameStartTick = Server()->Tick();
+	if(!IsRoundMatchTimer())
+		m_GameStartTick = Server()->Tick();
+
 	++m_RoundCount;
 	m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
 	for(int i = 0; i < MAX_CLIENTS; ++i)
@@ -1343,6 +1342,12 @@ void IGameController::StartRound()
 		SetGameState(IGS_START_COUNTDOWN);
 	else
 		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
+
+	OnGameStart(true);
+
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "start round type='%s' teamplay='%d' ddrteam='%d'", m_pGameType, m_GameFlags & IGF_TEAMS, GameWorld()->Team());
+	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 }
 
 void IGameController::SwapTeamscore()
@@ -1795,7 +1800,6 @@ void IGameController::Tick()
 				// MYTODO: swap team for match
 				// if(Config()->m_SvMatchSwap)
 				// 	GameServer()->SwapTeams();
-				m_MatchCount++;
 				StartMatch();
 				break;
 			case IGS_WARMUP_GAME:
@@ -2321,7 +2325,6 @@ void IGameController::InitController(class CGameContext *pGameServer, class CGam
 
 	// Init before StartController to be safe
 	// game
-	m_MatchCount = 0;
 	m_RoundCount = 0;
 	m_SuddenDeath = 0;
 	m_aTeamscore[TEAM_RED] = 0;
@@ -2339,7 +2342,7 @@ void IGameController::InitController(class CGameContext *pGameServer, class CGam
 	m_GameInfo.m_ScoreLimit = m_Scorelimit;
 	m_GameInfo.m_TimeLimit = m_Timelimit;
 	m_GameInfo.m_MatchNum = m_Roundlimit;
-	m_GameInfo.m_MatchCurrent = m_MatchCount + 1;
+	m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
 
 	OnInit();
 }
