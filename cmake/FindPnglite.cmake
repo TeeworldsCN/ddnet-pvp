@@ -34,7 +34,7 @@ if(NOT PNGLITE_FOUND)
   list(APPEND TARGETS_DEP pnglite)
 
   set(PNGLITE_INCLUDEDIR ${PNGLITE_SRC_DIR})
-  target_include_directories(pnglite PRIVATE ${ZLIB_INCLUDE_DIRS})
+  target_include_directories(pnglite BEFORE PRIVATE ${ZLIB_INCLUDE_DIRS})
 
   set(PNGLITE_DEP $<TARGET_OBJECTS:pnglite>)
   set(PNGLITE_INCLUDE_DIRS ${PNGLITE_INCLUDEDIR})
