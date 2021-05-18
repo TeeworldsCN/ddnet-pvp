@@ -66,7 +66,6 @@ enum
 class CConfig;
 class CHeap;
 class CPlayer;
-// class CScore;
 class IConsole;
 class IGameController;
 class IEngine;
@@ -74,7 +73,6 @@ class IStorage;
 class CGameTeams;
 struct CAntibotData;
 struct SGameInstance;
-// struct CScoreRandomMapResult;
 
 class CGameContext : public IGameServer
 {

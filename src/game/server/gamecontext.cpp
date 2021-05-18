@@ -392,8 +392,8 @@ void CGameContext::SendCurrentGameInfo(int ClientID, bool IsJoin)
 	NewClientInfoMsg.m_ClientID = ClientID;
 	NewClientInfoMsg.m_Local = 0;
 	NewClientInfoMsg.m_Team = pPlayer->GetTeam();
-	NewClientInfoMsg.m_pName = pPlayer->m_aOverrideName[0] ? pPlayer->m_aOverrideName : Server()->ClientName(ClientID);
-	NewClientInfoMsg.m_pClan = pPlayer->m_aOverrideClan[0] ? pPlayer->m_aOverrideClan : Server()->ClientClan(ClientID);
+	NewClientInfoMsg.m_pName = Server()->ClientName(ClientID);
+	NewClientInfoMsg.m_pClan = Server()->ClientClan(ClientID);
 	NewClientInfoMsg.m_Country = Server()->ClientCountry(ClientID);
 	NewClientInfoMsg.m_Silent = true;
 
@@ -422,8 +422,8 @@ void CGameContext::SendCurrentGameInfo(int ClientID, bool IsJoin)
 			ClientInfoMsg.m_ClientID = i;
 			ClientInfoMsg.m_Local = 0;
 			ClientInfoMsg.m_Team = pPlayer->GetTeam();
-			ClientInfoMsg.m_pName = pPlayer->m_aOverrideName[0] ? pPlayer->m_aOverrideName : Server()->ClientName(i);
-			ClientInfoMsg.m_pClan = pPlayer->m_aOverrideClan[0] ? pPlayer->m_aOverrideClan : Server()->ClientClan(i);
+			ClientInfoMsg.m_pName = Server()->ClientName(i);
+			ClientInfoMsg.m_pClan = Server()->ClientClan(i);
 			ClientInfoMsg.m_Country = Server()->ClientCountry(i);
 			ClientInfoMsg.m_Silent = true;
 
@@ -3967,8 +3967,9 @@ void CGameContext::SendClientInfo(int ClientID)
 
 	protocol7::CNetMsg_Sv_ClientInfo Info;
 	Info.m_ClientID = ClientID;
-	Info.m_pName = pPlayer->m_aOverrideName[0] ? pPlayer->m_aOverrideName : Server()->ClientName(ClientID);
-	Info.m_pClan = pPlayer->m_aOverrideClan[0] ? pPlayer->m_aOverrideClan : Server()->ClientClan(ClientID);
+
+	Info.m_pName = Server()->ClientName(ClientID);
+	Info.m_pClan = Server()->ClientClan(ClientID);
 	Info.m_Country = Server()->ClientCountry(ClientID);
 	Info.m_Local = 0;
 	Info.m_Silent = true;
@@ -3976,21 +3977,9 @@ void CGameContext::SendClientInfo(int ClientID)
 
 	for(int p = 0; p < 6; p++)
 	{
-		if(pPlayer->m_OverrideTeeInfos.m_apSkinPartNames[p][0])
-			Info.m_apSkinPartNames[p] = pPlayer->m_OverrideTeeInfos.m_apSkinPartNames[p];
-		else
-			Info.m_apSkinPartNames[p] = pPlayer->m_TeeInfos.m_apSkinPartNames[p];
-
-		if(pPlayer->m_OverrideTeeInfos.m_aUseCustomColors[p])
-		{
-			Info.m_aSkinPartColors[p] = pPlayer->m_OverrideTeeInfos.m_aSkinPartColors[p];
-			Info.m_aUseCustomColors[p] = pPlayer->m_OverrideTeeInfos.m_aUseCustomColors[p];
-		}
-		else
-		{
-			Info.m_aSkinPartColors[p] = pPlayer->m_TeeInfos.m_aSkinPartColors[p];
-			Info.m_aUseCustomColors[p] = pPlayer->m_TeeInfos.m_aUseCustomColors[p];
-		}
+		Info.m_apSkinPartNames[p] = pPlayer->m_TeeInfos.m_apSkinPartNames[p];
+		Info.m_aSkinPartColors[p] = pPlayer->m_TeeInfos.m_aSkinPartColors[p];
+		Info.m_aUseCustomColors[p] = pPlayer->m_TeeInfos.m_aUseCustomColors[p];
 	}
 
 	for(int i = 0; i < MAX_CLIENTS; i++)
@@ -4013,21 +4002,9 @@ void CGameContext::SendSkinInfo(int ClientID)
 	Msg.m_ClientID = ClientID;
 	for(int p = 0; p < 6; p++)
 	{
-		if(pPlayer->m_OverrideTeeInfos.m_apSkinPartNames[p][0])
-			Msg.m_apSkinPartNames[p] = pPlayer->m_OverrideTeeInfos.m_apSkinPartNames[p];
-		else
-			Msg.m_apSkinPartNames[p] = pPlayer->m_TeeInfos.m_apSkinPartNames[p];
-
-		if(pPlayer->m_OverrideTeeInfos.m_aUseCustomColors[p])
-		{
-			Msg.m_aSkinPartColors[p] = pPlayer->m_OverrideTeeInfos.m_aSkinPartColors[p];
-			Msg.m_aUseCustomColors[p] = pPlayer->m_OverrideTeeInfos.m_aUseCustomColors[p];
-		}
-		else
-		{
-			Msg.m_aSkinPartColors[p] = pPlayer->m_TeeInfos.m_aSkinPartColors[p];
-			Msg.m_aUseCustomColors[p] = pPlayer->m_TeeInfos.m_aUseCustomColors[p];
-		}
+		Msg.m_apSkinPartNames[p] = pPlayer->m_TeeInfos.m_apSkinPartNames[p];
+		Msg.m_aSkinPartColors[p] = pPlayer->m_TeeInfos.m_aSkinPartColors[p];
+		Msg.m_aUseCustomColors[p] = pPlayer->m_TeeInfos.m_aUseCustomColors[p];
 	}
 
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, -1);
