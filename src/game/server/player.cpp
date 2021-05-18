@@ -113,12 +113,13 @@ void CPlayer::Reset()
 
 	m_LastPause = 0;
 
-	// Variable initialized:
-	m_LastRoomChange = 0;
-	m_LastRoomCreation = 0;
-
 	int64 Now = Server()->Tick();
 	int64 TickSpeed = Server()->TickSpeed();
+
+	// Variable initialized:
+	m_LastRoomInfoChange = m_LastRoomChange = -g_Config.m_SvRoomChangeDelay * TickSpeed;
+	m_LastRoomCreation = -g_Config.m_SvRoomCreateDelay * TickSpeed;
+
 	// If the player joins within ten seconds of the server becoming
 	// non-empty, allow them to vote immediately. This allows players to
 	// vote after map changes or when they join an empty server.
