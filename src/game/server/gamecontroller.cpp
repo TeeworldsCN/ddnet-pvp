@@ -439,7 +439,17 @@ void IGameController::StartController()
 	if(m_Warmup)
 		SetGameState(IGS_WARMUP_USER, m_Warmup);
 	else
-		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
+	{
+		if(HasEnoughPlayers())
+		{
+			//  start the game
+			SetGameState(IGS_WARMUP_GAME, 0);
+		}
+		else
+		{
+			SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
+		}
+	}
 
 	OnControllerStart();
 }
@@ -1008,9 +1018,6 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	// update game info first
 	UpdateGameInfo(ClientID);
 
-	// clear broadcast
-	GameServer()->SendBroadcast(" ", ClientID, false);
-
 	// change team second
 	pPlayer->SetTeam(GetStartTeam());
 
@@ -1021,7 +1028,12 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 
 	m_aFakeClientBroadcast[ClientID].m_LastGameState = -1;
 	m_aFakeClientBroadcast[ClientID].m_LastTimer = -1;
-	m_aFakeClientBroadcast[ClientID].m_NextBroadcastTick = Server()->Tick() + Server()->TickSpeed() / 2;
+	m_aFakeClientBroadcast[ClientID].m_NextBroadcastTick = -1;
+	m_aFakeClientBroadcast[ClientID].m_LastDeadSpec = false;
+	if(ServerJoin)
+		m_aFakeClientBroadcast[ClientID].m_DisableUntil = Server()->Tick() + Server()->TickSpeed() * 3;
+	else
+		m_aFakeClientBroadcast[ClientID].m_DisableUntil = -1;
 
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "ddrteam_join player='%d:%s' team=%d ddrteam='%d'", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam(), GameWorld()->Team());
@@ -1401,15 +1413,23 @@ void IGameController::FakeClientBroadcast(int SnappingClient)
 	if(Server()->IsSixup(SnappingClient))
 		return;
 
+	CPlayer *pPlayer = GetPlayerIfInRoom(SnappingClient);
+	if(!pPlayer)
+		return;
+
 	SBroadcastState *pState = &m_aFakeClientBroadcast[SnappingClient];
+	if(Server()->Tick() < pState->m_DisableUntil)
+		return;
+
 	int TimerNumber = (int)ceil(m_GameStateTimer / (float)Server()->TickSpeed());
 
-	if(pState->m_LastGameState == m_GameState && pState->m_LastTimer == TimerNumber && (pState->m_NextBroadcastTick < 0 || Server()->Tick() < pState->m_NextBroadcastTick))
+	if(pState->m_LastDeadSpec == pPlayer->m_DeadSpecMode && pState->m_LastGameState == m_GameState && pState->m_LastTimer == TimerNumber && (pState->m_NextBroadcastTick < 0 || Server()->Tick() < pState->m_NextBroadcastTick))
 		return;
 
 	pState->m_NextBroadcastTick = -1;
 	pState->m_LastGameState = m_GameState;
 	pState->m_LastTimer = TimerNumber;
+	pState->m_LastDeadSpec = pPlayer->m_DeadSpecMode;
 
 	switch(m_GameState)
 	{
@@ -1433,8 +1453,14 @@ void IGameController::FakeClientBroadcast(int SnappingClient)
 		pState->m_NextBroadcastTick = Server()->Tick() + 5 * Server()->TickSpeed();
 		break;
 	case IGS_GAME_RUNNING:
-	case IGS_END_MATCH:
+		if(pPlayer->m_DeadSpecMode)
+		{
+			GameServer()->SendBroadcast("Wait for next round", SnappingClient, false);
+			break;
+		}
 		GameServer()->SendBroadcast(" ", SnappingClient, false);
+		break;
+	case IGS_END_MATCH:
 		break;
 	}
 }
@@ -2185,7 +2211,7 @@ bool IGameController::GetStartRespawnState() const
 {
 	if(IsSurvival())
 	{
-		// players can always respawn during warmup or match/round start countdown
+		// players can always respawn during warmup
 		if(m_GameState == IGS_WARMUP_GAME || m_GameState == IGS_WARMUP_USER || (m_GameState == IGS_START_COUNTDOWN && m_GameStartTick == Server()->Tick()))
 			return false;
 		else

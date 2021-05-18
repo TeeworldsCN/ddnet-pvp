@@ -130,3 +130,10 @@ void CGameControllerCatch::DoWincheckMatch()
 		EndMatch();
 	}
 }
+
+template<>
+CGameControllerInstagib<CGameControllerCatch>::CGameControllerInstagib()
+{
+	m_pGameType = "zCatch";
+	RegisterConfig();
+}

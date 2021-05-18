@@ -99,6 +99,8 @@ class IGameController
 		int m_LastGameState;
 		int m_LastTimer;
 		int m_NextBroadcastTick;
+		bool m_LastDeadSpec;
+		int m_DisableUntil;
 	};
 	SBroadcastState m_aFakeClientBroadcast[MAX_CLIENTS];
 	void FakeClientBroadcast(int SnappingClient);
@@ -203,6 +205,9 @@ protected:
 	{
 		IGF_TEAMS = 1,
 		IGF_FLAGS = 2,
+
+		// use default survival behaviour
+		// player spawns at round/match start, no respawn
 		IGF_SURVIVAL = 4,
 
 		// currently unused

@@ -36,6 +36,7 @@ public:
 	void Reset();
 	void GameReset();
 
+	bool IsSpawning() { return m_Spawning; };
 	void TryRespawn();
 	void Respawn();
 	void CancelSpawn();

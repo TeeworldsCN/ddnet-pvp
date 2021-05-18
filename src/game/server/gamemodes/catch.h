@@ -1,6 +1,7 @@
 #ifndef GAME_SERVER_GAMEMODES_CATCH_H
 #define GAME_SERVER_GAMEMODES_CATCH_H
 
+#include "instagib.h"
 #include <game/server/gamecontroller.h>
 
 class CGameControllerCatch : public IGameController
@@ -24,5 +25,7 @@ public:
 	virtual bool CanDeadPlayerFollow(const class CPlayer *pSpectator, const class CPlayer *Target) override;
 	virtual void DoWincheckMatch() override;
 };
+
+typedef CGameControllerInstagib<CGameControllerCatch> CGameControllerZCatch;
 
 #endif // GAME_SERVER_GAMEMODES_CATCH_H
