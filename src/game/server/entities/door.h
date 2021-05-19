@@ -13,6 +13,7 @@ class CDoor : public CEntity
 	void ResetCollision();
 	int m_Length;
 	vec2 m_Direction;
+	int m_ID;
 
 public:
 	void Open(int Tick, bool ActivatedTeam[]);
@@ -21,6 +22,7 @@ public:
 	CDoor(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
 		int Number);
 
+	virtual void FreeID();
 	virtual void Reset();
 	virtual void Tick();
 	virtual void Snap(int SnappingClient, int OtherMode);

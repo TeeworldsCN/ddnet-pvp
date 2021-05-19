@@ -10,7 +10,7 @@
 #include "character.h"
 
 CDragger::CDragger(CGameWorld *pGameWorld, vec2 Pos, float Strength, bool NW, int Layer, int Number) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+	CEntity(pGameWorld, CGameWorld::ENTTYPE_DDRACE)
 {
 	m_Target = 0;
 	m_Layer = Layer;
@@ -22,9 +22,9 @@ CDragger::CDragger(CGameWorld *pGameWorld, vec2 Pos, float Strength, bool NW, in
 	GameWorld()->InsertEntity(this);
 
 	for(int &SoloID : m_SoloIDs)
-	{
 		SoloID = -1;
-	}
+
+	m_ID = Server()->SnapNewID();
 }
 
 void CDragger::Move()
@@ -124,6 +124,14 @@ void CDragger::Drag()
 	}
 }
 
+void CDragger::FreeID()
+{
+	Server()->SnapFreeID(m_ID);
+	for(int &SoloID : m_SoloIDs)
+		if(SoloID >= 0)
+			Server()->SnapFreeID(SoloID);
+}
+
 void CDragger::Reset()
 {
 	GameWorld()->DestroyEntity(this);
@@ -198,7 +206,7 @@ void CDragger::Snap(int SnappingClient, int OtherMode)
 		if(i == -1)
 		{
 			obj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(
-				NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
+				NETOBJTYPE_LASER, m_ID, sizeof(CNetObj_Laser)));
 		}
 		else
 		{

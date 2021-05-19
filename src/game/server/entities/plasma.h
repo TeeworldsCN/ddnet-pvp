@@ -15,6 +15,7 @@ class CPlasma : public CEntity
 	int m_Freeze;
 
 	bool m_Explosive;
+	int m_ID;
 	bool HitCharacter();
 	void Move();
 
@@ -22,6 +23,7 @@ public:
 	CPlasma(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir, bool Freeze,
 		bool Explosive);
 
+	virtual void FreeID();
 	virtual void Reset();
 	virtual void Tick();
 	virtual void Snap(int SnappingClient, int OtherMode);

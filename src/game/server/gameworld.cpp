@@ -30,7 +30,10 @@ CGameWorld::CGameWorld(int Team, CGameContext *pGameServer)
 
 CGameWorld::~CGameWorld()
 {
-	// delete all entities
+	// try destroy all entities
+	RemoveEntities();
+
+	// delete all entities that didn't destroy themselves
 	for(auto &pFirstEntityType : m_apFirstEntityTypes)
 		while(pFirstEntityType)
 			delete pFirstEntityType;

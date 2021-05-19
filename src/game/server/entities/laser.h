@@ -21,6 +21,7 @@ public:
 		FLaserImpactCallback Callback = nullptr,
 		SEntityCustomData CustomData = {nullptr, nullptr});
 
+	virtual void FreeID() override;
 	virtual void Reset() override;
 	virtual void Tick() override;
 	virtual void TickPaused() override;
@@ -42,6 +43,8 @@ private:
 	int m_WeaponID;
 	FLaserImpactCallback m_Callback;
 	SEntityCustomData m_CustomData;
+
+	int m_ID;
 
 	// DDRace
 

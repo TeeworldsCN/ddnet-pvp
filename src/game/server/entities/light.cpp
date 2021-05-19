@@ -11,7 +11,7 @@
 
 CLight::CLight(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
 	int Layer, int Number) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+	CEntity(pGameWorld, CGameWorld::ENTTYPE_DDRACE)
 {
 	m_Layer = Layer;
 	m_Number = Number;
@@ -20,6 +20,7 @@ CLight::CLight(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
 	m_Rotation = Rotation;
 	m_Length = Length;
 	m_EvalTick = Server()->Tick();
+	m_ID = Server()->SnapNewID();
 	GameWorld()->InsertEntity(this);
 	Step();
 }
@@ -74,6 +75,11 @@ void CLight::Step()
 	GameServer()->Collision()->IntersectNoLaser(m_Pos, to2, &m_To, 0);
 }
 
+void CLight::FreeID()
+{
+	Server()->SnapFreeID(m_ID);
+}
+
 void CLight::Reset()
 {
 	GameWorld()->DestroyEntity(this);
@@ -110,7 +116,7 @@ void CLight::Snap(int SnappingClient, int OtherMode)
 		return;
 
 	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(
-		NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
+		NETOBJTYPE_LASER, m_ID, sizeof(CNetObj_Laser)));
 
 	if(!pObj)
 		return;

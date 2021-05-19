@@ -14,7 +14,7 @@
 // CGun
 //////////////////////////////////////////////////
 CGun::CGun(CGameWorld *pGameWorld, vec2 Pos, bool Freeze, bool Explosive, int Layer, int Number) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+	CEntity(pGameWorld, CGameWorld::ENTTYPE_DDRACE)
 {
 	m_Layer = Layer;
 	m_Number = Number;
@@ -25,6 +25,8 @@ CGun::CGun(CGameWorld *pGameWorld, vec2 Pos, bool Freeze, bool Explosive, int La
 	m_Explosive = Explosive;
 
 	GameWorld()->InsertEntity(this);
+
+	m_ID = Server()->SnapNewID();
 }
 
 void CGun::Fire()
@@ -80,6 +82,11 @@ void CGun::Fire()
 	}
 }
 
+void CGun::FreeID()
+{
+	Server()->SnapFreeID(m_ID);
+}
+
 void CGun::Reset()
 {
 	GameWorld()->DestroyEntity(this);
@@ -111,7 +118,7 @@ void CGun::Snap(int SnappingClient, int OtherMode)
 	if(m_Layer == LAYER_SWITCH && m_Number > 0 && !GameServer()->Collision()->m_pSwitchers[m_Number].m_Status[GameWorld()->Team()] && (!Tick))
 		return;
 
-	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
+	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, m_ID, sizeof(CNetObj_Laser)));
 
 	if(!pObj)
 		return;

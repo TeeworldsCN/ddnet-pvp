@@ -28,6 +28,7 @@ public:
 	vec2 GetPos(float Time);
 	void FillInfo(CNetObj_Projectile *pProj);
 
+	virtual void FreeID() override;
 	virtual void Reset() override;
 	virtual void Tick() override;
 	virtual void TickPaused() override;
@@ -41,6 +42,7 @@ private:
 	int m_StartTick;
 	int m_WeaponID;
 	FProjectileImpactCallback m_Callback;
+	int m_ID;
 
 	// DDRace
 	int m_TuneZone; //TODO: make curvature and property

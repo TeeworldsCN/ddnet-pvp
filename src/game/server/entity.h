@@ -33,7 +33,6 @@ private:
 	class CGameWorld *m_pGameWorld;
 	class CGameContext *m_pGameServer;
 
-	int m_ID;
 	int m_ObjType;
 
 	/* State */
@@ -53,9 +52,6 @@ public: // TODO: Maybe make protected
 			Contains the physical size of the entity.
 	*/
 	float m_ProximityRadius;
-
-	/* Getters */
-	int GetID() const { return m_ID; }
 
 public:
 	/* Constructor */
@@ -88,6 +84,12 @@ public:
 	void MarkForDestroy() { m_MarkedForDestroy = true; }
 
 	/* Other functions */
+
+	/*
+		Function: FreeID
+			You should free your snap id here.
+	*/
+	virtual void FreeID() {}
 
 	/*
 		Function: Destroy

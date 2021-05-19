@@ -21,11 +21,17 @@ class CGameWorld
 public:
 	enum
 	{
+		// findable entities
 		ENTTYPE_PROJECTILE = 0,
 		ENTTYPE_LASER,
 		ENTTYPE_PICKUP,
 		ENTTYPE_FLAG,
 		ENTTYPE_CHARACTER,
+
+		// entity collections
+		ENTTYPE_DDRACE,
+		ENTTYPE_CUSTOM,
+
 		NUM_ENTTYPES
 	};
 

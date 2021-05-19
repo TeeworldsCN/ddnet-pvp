@@ -14,7 +14,7 @@ const float PLASMA_ACCEL = 1.1f;
 
 CPlasma::CPlasma(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir, bool Freeze,
 	bool Explosive) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+	CEntity(pGameWorld, CGameWorld::ENTTYPE_DDRACE)
 {
 	m_Pos = Pos;
 	m_Core = Dir;
@@ -22,6 +22,8 @@ CPlasma::CPlasma(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir, bool Freeze,
 	m_Explosive = Explosive;
 	m_EvalTick = Server()->Tick();
 	m_LifeTime = Server()->TickSpeed() * 1.5f;
+
+	m_ID = Server()->SnapNewID();
 	GameWorld()->InsertEntity(this);
 }
 
@@ -43,6 +45,11 @@ void CPlasma::Move()
 {
 	m_Pos += m_Core;
 	m_Core *= PLASMA_ACCEL;
+}
+
+void CPlasma::FreeID()
+{
+	Server()->SnapFreeID(m_ID);
 }
 
 void CPlasma::Reset()
@@ -90,7 +97,7 @@ void CPlasma::Snap(int SnappingClient, int OtherMode)
 		return;
 
 	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(
-		NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
+		NETOBJTYPE_LASER, m_ID, sizeof(CNetObj_Laser)));
 
 	if(!pObj)
 		return;

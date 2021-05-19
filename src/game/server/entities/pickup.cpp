@@ -17,9 +17,15 @@ CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType) :
 	m_Type = Type;
 	m_Subtype = SubType;
 
+	m_ID = Server()->SnapNewID();
 	Reset();
 
 	GameWorld()->InsertEntity(this);
+}
+
+void CPickup::FreeID()
+{
+	Server()->SnapFreeID(m_ID);
 }
 
 void CPickup::Reset()
@@ -156,7 +162,7 @@ void CPickup::Snap(int SnappingClient, int OtherMode)
 	}
 
 	int Size = Server()->IsSixup(SnappingClient) ? 3 * 4 : sizeof(CNetObj_Pickup);
-	CNetObj_Pickup *pP = static_cast<CNetObj_Pickup *>(Server()->SnapNewItem(NETOBJTYPE_PICKUP, GetID(), Size));
+	CNetObj_Pickup *pP = static_cast<CNetObj_Pickup *>(Server()->SnapNewItem(NETOBJTYPE_PICKUP, m_ID, Size));
 	if(!pP)
 		return;
 
@@ -166,10 +172,29 @@ void CPickup::Snap(int SnappingClient, int OtherMode)
 	if(Server()->IsSixup(SnappingClient))
 	{
 		if(m_Type == POWERUP_WEAPON)
-			pP->m_Type = m_Subtype == WEAPON_SHOTGUN ? 3 : m_Subtype == WEAPON_GRENADE ? 2 :
-                                                                                                     4;
-		else if(m_Type == POWERUP_NINJA)
-			pP->m_Type = 5;
+		{
+			switch(m_Subtype)
+			{
+			case WEAPON_HAMMER:
+				pP->m_Type = protocol7::PICKUP_HAMMER;
+				break;
+			case WEAPON_GUN:
+				pP->m_Type = protocol7::PICKUP_GUN;
+				break;
+			case WEAPON_SHOTGUN:
+				pP->m_Type = protocol7::PICKUP_SHOTGUN;
+				break;
+			case WEAPON_GRENADE:
+				pP->m_Type = protocol7::PICKUP_GRENADE;
+				break;
+			case WEAPON_LASER:
+				pP->m_Type = protocol7::PICKUP_LASER;
+				break;
+			case WEAPON_NINJA:
+				pP->m_Type = protocol7::PICKUP_NINJA;
+				break;
+			}
+		}
 	}
 	else
 		pP->m_Subtype = m_Subtype;

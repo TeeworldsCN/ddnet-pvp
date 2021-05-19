@@ -14,6 +14,8 @@ class CLight : public CEntity
 
 	int m_Tick;
 
+	int m_ID;
+
 	bool HitCharacter();
 	void Move();
 	void Step();
@@ -28,6 +30,7 @@ public:
 	CLight(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
 		int Layer = 0, int Number = 0);
 
+	virtual void FreeID();
 	virtual void Reset();
 	virtual void Tick();
 	virtual void Snap(int SnappingClient, int OtherMode);

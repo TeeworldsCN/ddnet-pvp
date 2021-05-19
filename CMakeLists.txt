@@ -94,8 +94,6 @@ if(NOT VERSION)
   set(VERSION ${PROJECT_VERSION})
 endif()
 
-set(OpenGL_GL_PREFERENCE LEGACY)
-
 # Set the default build type to Release
 if(NOT(CMAKE_BUILD_TYPE))
   if(NOT(DEV))
@@ -474,17 +472,9 @@ endif()
 if(TARGET_OS STREQUAL "windows")
   set(PLATFORM_LIBS ws2_32) # Windows sockets
 elseif(TARGET_OS STREQUAL "mac")
-  find_library(CARBON Carbon)
-  find_library(COCOA Cocoa)
-  find_library(OPENGL OpenGL)
   find_library(SECURITY Security)
   set(PLATFORM_LIBS ${CARBON} ${SECURITY})
-elseif(TARGET_OS STREQUAL "haiku")
-    find_package(OpenGL)
-    set(PLATFORM_LIBS GL network)
 else()
-  find_package(OpenGL)
-  find_package(X11)
   if(TARGET_OS STREQUAL "linux")
     set(PLATFORM_LIBS rt) # clock_gettime for glibc < 2.17
   else()
@@ -958,6 +948,8 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   entities/door.h
   entities/dragger.cpp
   entities/dragger.h
+  entities/dumbentity.cpp
+  entities/dumbentity.h
   entities/flag.cpp
   entities/flag.h
   entities/gun.cpp

@@ -9,7 +9,7 @@
 
 CDoor::CDoor(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
 	int Number) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+	CEntity(pGameWorld, CGameWorld::ENTTYPE_DDRACE)
 {
 	m_Number = Number;
 	m_Pos = Pos;
@@ -20,6 +20,8 @@ CDoor::CDoor(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
 	GameServer()->Collision()->IntersectNoLaser(Pos, To, &this->m_To, 0);
 	ResetCollision();
 	GameWorld()->InsertEntity(this);
+
+	m_ID = Server()->SnapNewID();
 }
 
 void CDoor::Open(int Tick, bool ActivatedTeam[])
@@ -41,6 +43,11 @@ void CDoor::ResetCollision()
 				m_Pos.y + (m_Direction.y * i), TILE_STOPA, 0 /*Flags*/,
 				m_Number);
 	}
+}
+
+void CDoor::FreeID()
+{
+	Server()->SnapFreeID(m_ID);
 }
 
 void CDoor::Open(int Team)
@@ -65,7 +72,7 @@ void CDoor::Snap(int SnappingClient, int OtherMode)
 		return;
 
 	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(
-		NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
+		NETOBJTYPE_LASER, m_ID, sizeof(CNetObj_Laser)));
 
 	if(!pObj)
 		return;

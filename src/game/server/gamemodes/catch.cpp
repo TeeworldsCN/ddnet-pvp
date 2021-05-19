@@ -26,13 +26,13 @@ CGameControllerCatch::CGameControllerCatch()
 
 void CGameControllerCatch::Catch(CPlayer *pVictim, CPlayer *pBy)
 {
-	m_aCatchedBy[pVictim->GetCID()] = pBy->GetCID();
+	m_aCaughtBy[pVictim->GetCID()] = pBy->GetCID();
 	pVictim->CancelSpawn();
 }
 
 void CGameControllerCatch::Release(CPlayer *pPlayer)
 {
-	m_aCatchedBy[pPlayer->GetCID()] = -1;
+	m_aCaughtBy[pPlayer->GetCID()] = -1;
 	pPlayer->m_RespawnDisabled = false;
 	pPlayer->Respawn();
 	// spawn now
@@ -42,7 +42,7 @@ void CGameControllerCatch::Release(CPlayer *pPlayer)
 void CGameControllerCatch::OnWorldReset()
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)
-		m_aCatchedBy[i] = -1;
+		m_aCaughtBy[i] = -1;
 }
 
 void CGameControllerCatch::OnPlayerJoin(CPlayer *pPlayer)
@@ -82,7 +82,7 @@ int CGameControllerCatch::OnCharacterDeath(CCharacter *pVictim, CPlayer *pKiller
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
 		CPlayer *pPlayer = GetPlayerIfInRoom(i);
-		if(pPlayer && m_aCatchedBy[pPlayer->GetCID()] == pVictim->GetPlayer()->GetCID())
+		if(pPlayer && m_aCaughtBy[pPlayer->GetCID()] == pVictim->GetPlayer()->GetCID())
 		{
 			Release(pPlayer);
 		}
@@ -101,7 +101,7 @@ int CGameControllerCatch::OnCharacterDeath(CCharacter *pVictim, CPlayer *pKiller
 
 bool CGameControllerCatch::CanDeadPlayerFollow(const CPlayer *pSpectator, const CPlayer *pTarget)
 {
-	return m_aCatchedBy[pSpectator->GetCID()] == pTarget->GetCID();
+	return m_aCaughtBy[pSpectator->GetCID()] == pTarget->GetCID();
 }
 
 void CGameControllerCatch::DoWincheckMatch()

@@ -60,7 +60,10 @@ public:
 	// event
 	virtual void OnCharacterSpawn(class CCharacter *pChr) override
 	{
-		pChr->IncreaseHealth(10);
+		T::OnCharacterSpawn(pChr);
+
+		// remove spawn weapons
+		pChr->RemoveWeapons();
 
 		CWeapon *pStartingWeapon = nullptr;
 

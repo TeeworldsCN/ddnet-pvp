@@ -19,9 +19,12 @@ class CGun : public CEntity
 	void Fire();
 	int m_LastFire;
 
+	int m_ID;
+
 public:
 	CGun(CGameWorld *pGameWorld, vec2 Pos, bool Freeze, bool Explosive, int Layer = 0, int Number = 0);
 
+	virtual void FreeID();
 	virtual void Reset();
 	virtual void Tick();
 	virtual void Snap(int SnappingClient, int OtherMode);

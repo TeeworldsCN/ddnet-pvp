@@ -18,9 +18,12 @@ class CDragger : public CEntity
 	CCharacter *m_SoloEnts[MAX_CLIENTS];
 	int m_SoloIDs[MAX_CLIENTS];
 
+	int m_ID;
+
 public:
 	CDragger(CGameWorld *pGameWorld, vec2 Pos, float Strength, bool NW, int Layer = 0, int Number = 0);
 
+	virtual void FreeID();
 	virtual void Reset();
 	virtual void Tick();
 	virtual void Snap(int SnappingClient, int OtherMode);

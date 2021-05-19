@@ -38,6 +38,8 @@ CLaser::CLaser(
 	m_Callback = Callback;
 	m_CustomData = CustomData;
 
+	m_ID = Server()->SnapNewID();
+
 	if(m_Owner >= 0)
 	{
 		CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
@@ -188,6 +190,11 @@ void CLaser::DoBounce()
 	}
 }
 
+void CLaser::FreeID()
+{
+	Server()->SnapFreeID(m_ID);
+}
+
 void CLaser::Reset()
 {
 	GameWorld()->DestroyEntity(this);
@@ -229,7 +236,7 @@ void CLaser::Snap(int SnappingClient, int OtherMode)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
+	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, m_ID, sizeof(CNetObj_Laser)));
 	if(!pObj)
 		return;
 

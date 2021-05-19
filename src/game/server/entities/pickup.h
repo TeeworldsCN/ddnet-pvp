@@ -18,6 +18,7 @@ class CPickup : public CEntity
 public:
 	CPickup(CGameWorld *pGameWorld, int Type, int SubType = 0);
 
+	virtual void FreeID();
 	virtual void Reset();
 	virtual void Tick();
 	virtual void TickPaused();
@@ -32,6 +33,7 @@ private:
 	int m_SpawnTick; // for team
 	int m_SoloSpawnTick[MAX_CLIENTS]; // for solo
 
+	int m_ID;
 	// DDRace
 	void Move();
 	vec2 m_Core;

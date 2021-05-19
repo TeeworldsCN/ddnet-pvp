@@ -574,11 +574,12 @@ public:
 
 	/*
 		Function: OnWorldReset
-			Called after the world is cleared
+			Called after the world is reset
 				usually happens when round or match starts
 			When this is called:
 				all players started respawning
 				but no character has spawned yet
+				world is not garanteed to be empty
 	*/
 	virtual void OnWorldReset(){};
 

@@ -39,6 +39,7 @@ CProjectile::CProjectile(
 	m_OwnerIsSafe = false;
 	m_Hit = 0;
 	m_WeaponID = WeaponID;
+	m_ID = Server()->SnapNewID();
 	if(m_Owner >= 0)
 	{
 		CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
@@ -55,6 +56,11 @@ CProjectile::CProjectile(
 	m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
 	m_HitMask = 0;
 	GameWorld()->InsertEntity(this);
+}
+
+void CProjectile::FreeID()
+{
+	Server()->SnapFreeID(m_ID);
 }
 
 void CProjectile::Reset()
@@ -291,7 +297,7 @@ void CProjectile::Snap(int SnappingClient, int OtherMode)
 	if(SnappingClientVersion >= VERSION_DDNET_ANTIPING_PROJECTILE && (GameWorld()->Team() != Teams()->m_Core.Team(SnappingClient) || m_Bouncing) && FillExtraInfo(&DDNetProjectile))
 	{
 		int Type = SnappingClientVersion < VERSION_DDNET_MSG_LEGACY ? (int)NETOBJTYPE_PROJECTILE : NETOBJTYPE_DDNETPROJECTILE;
-		void *pProj = Server()->SnapNewItem(Type, GetID(), sizeof(DDNetProjectile));
+		void *pProj = Server()->SnapNewItem(Type, m_ID, sizeof(DDNetProjectile));
 		if(!pProj)
 		{
 			return;
@@ -300,7 +306,7 @@ void CProjectile::Snap(int SnappingClient, int OtherMode)
 	}
 	else
 	{
-		CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
+		CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, m_ID, sizeof(CNetObj_Projectile)));
 		if(!pProj)
 		{
 			return;
