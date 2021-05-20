@@ -8,7 +8,7 @@ CDumbEntity::CDumbEntity(CGameWorld *pGameWorld, int Type, vec2 Pos, vec2 LaserV
 	m_PrevPrevPos = m_PrevPos = Pos;
 	m_PrevVelocity = {0.0f, 0.0f};
 	m_Velocity = {0.0f, 0.0f};
-	m_LaserVector = m_LaserVector;
+	m_LaserVector = LaserVector;
 
 	if(!(m_Type & FLAG_MANUAL))
 		pGameWorld->InsertEntity(this);

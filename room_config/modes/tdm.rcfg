@@ -8,6 +8,7 @@ warmup 10
 teamdamage 0
 powerups 1
 teambalance_time 1
+match_swap 2
 
 # room votes
 add_vote " " "info"

@@ -44,6 +44,18 @@ static void ConchainGameInfoUpdate(IConsole::IResult *pResult, void *pUserData, 
 	}
 }
 
+static void ConSwapTeams(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	pSelf->SwapTeams();
+}
+
+static void ConShuffleTeams(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	pSelf->ShuffleTeams();
+}
+
 static void ConPause(IConsole::IResult *pResult, void *pUserData)
 {
 	IGameController *pSelf = (IGameController *)pUserData;
@@ -376,8 +388,8 @@ IGameController::IGameController()
 	INSTANCE_CONFIG_INT(&m_Warmup, "warmup", 10, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Number of seconds to do warmup before round starts");
 	INSTANCE_CONFIG_INT(&m_Countdown, "countdown", 0, -1000, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Number of seconds to freeze the game in a countdown before match starts, (-: for survival, +: for all")
 	INSTANCE_CONFIG_INT(&m_Teamdamage, "teamdamage", 0, 0, 2, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Team damage (1 = half damage, 2 = full damage)")
-	INSTANCE_CONFIG_INT(&m_RoundSwap, "round_swap", 1, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Swap teams between rounds")
-	INSTANCE_CONFIG_INT(&m_MatchSwap, "match_swap", 1, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Swap teams between matches")
+	INSTANCE_CONFIG_INT(&m_RoundSwap, "round_swap", 1, 0, 2, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Swap teams between rounds (2 = shuffle team)")
+	INSTANCE_CONFIG_INT(&m_MatchSwap, "match_swap", 1, 0, 2, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Swap teams between matches (2 = shuffle team)")
 	INSTANCE_CONFIG_INT(&m_Powerups, "powerups", 1, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Allow powerups like ninja")
 	INSTANCE_CONFIG_INT(&m_Scorelimit, "scorelimit", 20, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Score limit (0 disables)")
 	INSTANCE_CONFIG_INT(&m_Timelimit, "timelimit", 0, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Time limit in minutes (0 disables)")
@@ -393,6 +405,8 @@ IGameController::IGameController()
 
 	m_pInstanceConsole->Chain("cmdlist", ConchainReplyOnly, this);
 
+	m_pInstanceConsole->Register("shuffle_teams", "", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConShuffleTeams, this, "Shuffle the current teams");
+	m_pInstanceConsole->Register("swap_teams", "", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConSwapTeams, this, "Swap the current teams");
 	m_pInstanceConsole->Register("map", "?r[name]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConChangeMap, this, "Change map");
 	m_pInstanceConsole->Register("gametype", "?r[gametype]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConChangeGameType, this, "Change gametype");
 	m_pInstanceConsole->Register("pause", "?i[seconds]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConPause, this, "Pause/unpause game");
@@ -1396,7 +1410,7 @@ void IGameController::StartRound()
 		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
 }
 
-void IGameController::SwapTeamscore()
+void IGameController::SwapTeamScore()
 {
 	if(!IsTeamplay())
 		return;
@@ -1404,6 +1418,56 @@ void IGameController::SwapTeamscore()
 	int Score = m_aTeamscore[TEAM_RED];
 	m_aTeamscore[TEAM_RED] = m_aTeamscore[TEAM_BLUE];
 	m_aTeamscore[TEAM_BLUE] = Score;
+}
+
+void IGameController::SwapTeams()
+{
+	if(!IsTeamplay())
+		return;
+
+	SendGameMsg(GAMEMSG_TEAM_SWAP, -1);
+
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		CPlayer *pPlayer = GetPlayerIfInRoom(i);
+		if(pPlayer && pPlayer->GetTeam() != TEAM_SPECTATORS)
+			DoTeamChange(pPlayer, pPlayer->GetTeam() ^ 1, false);
+	}
+
+	SwapTeamScore();
+}
+
+void IGameController::ShuffleTeams()
+{
+	if(!IsTeamplay())
+		return;
+
+	int rnd = 0;
+	int PlayerTeam = 0;
+	CPlayer *aPlayer[MAX_CLIENTS];
+
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		CPlayer *pPlayer = GetPlayerIfInRoom(i);
+		if(pPlayer && pPlayer->GetTeam() != TEAM_SPECTATORS)
+			aPlayer[PlayerTeam++] = pPlayer;
+	}
+
+	SendGameMsg(GAMEMSG_TEAM_SHUFFLE, -1);
+
+	//creating random permutation
+	for(int i = PlayerTeam; i > 1; i--)
+	{
+		rnd = rand() % i;
+		CPlayer *tmp = aPlayer[rnd];
+		aPlayer[rnd] = aPlayer[i - 1];
+		aPlayer[i - 1] = tmp;
+	}
+	//uneven Number of Players?
+	rnd = PlayerTeam % 2 ? rand() % 2 : 0;
+
+	for(int i = 0; i < PlayerTeam; i++)
+		DoTeamChange(aPlayer[i], i < (PlayerTeam + rnd) / 2 ? TEAM_RED : TEAM_BLUE, false);
 }
 
 // for compatibility of 0.7's round ends and infinite warmup
@@ -1853,13 +1917,17 @@ void IGameController::Tick()
 				SetGameState(IGS_GAME_PAUSED, 0);
 				break;
 			case IGS_END_ROUND:
-				// MYTODO: swap team for round
+				if(m_RoundSwap == 1)
+					SwapTeams();
+				if(m_RoundSwap == 2)
+					ShuffleTeams();
 				StartRound();
 				break;
 			case IGS_END_MATCH:
-				// MYTODO: swap team for match
-				// if(Config()->m_SvMatchSwap)
-				// 	GameServer()->SwapTeams();
+				if(m_MatchSwap == 1)
+					SwapTeams();
+				if(m_MatchSwap == 2)
+					ShuffleTeams();
 				StartMatch();
 				break;
 			case IGS_WARMUP_GAME:

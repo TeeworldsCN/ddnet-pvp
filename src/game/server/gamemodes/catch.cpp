@@ -128,7 +128,6 @@ void CGameControllerCatch::OnPreTick()
 		if(pPlayer && pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive())
 		{
 			CCharacter *pChar = pPlayer->GetCharacter();
-			vec2 LastPos = m_aLastPosition[i];
 			vec2 DeltaPos = pChar->GetPos() - m_aLastPosition[i];
 			m_aLastPosition[i] = pChar->GetPos();
 
