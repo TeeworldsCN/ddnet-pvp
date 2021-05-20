@@ -323,7 +323,6 @@ IGameController::IGameController()
 	m_pServer = nullptr;
 	m_pWorld = nullptr;
 	m_pInstanceConsole = new CConsole(CFGFLAG_INSTANCE);
-	m_ChatResponseTargetID = -1;
 	m_MapIndex = 0;
 
 	// balancing
@@ -1785,7 +1784,7 @@ void IGameController::Tick()
 									(IsKickVote() || IsSpecVote()) && time_get() < m_VoteCloseTime))
 			{
 				// silence voted command response
-				m_ChatResponseTargetID = -2;
+				GameServer()->m_ChatResponseTargetID = -1;
 				Server()->SetRconCID(IServer::RCON_CID_VOTE);
 				InstanceConsole()->SetFlagMask(CFGFLAG_INSTANCE);
 				InstanceConsole()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
@@ -1801,7 +1800,7 @@ void IGameController::Tick()
 			{
 				char aBuf[64];
 				// silence voted command response
-				m_ChatResponseTargetID = -2;
+				GameServer()->m_ChatResponseTargetID = -1;
 				str_format(aBuf, sizeof(aBuf), "Vote passed enforced by authorized player");
 				InstanceConsole()->SetFlagMask(CFGFLAG_INSTANCE);
 				InstanceConsole()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
@@ -2656,7 +2655,7 @@ void IGameController::InstanceConsolePrint(const char *pStr, void *pUser, ColorR
 void IGameController::ConchainReplyOnly(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
 {
 	IGameController *pThis = static_cast<IGameController *>(pUserData);
-	pThis->m_ChatResponseTargetID = pResult->m_ClientID;
+	pThis->GameServer()->m_ChatResponseTargetID = pResult->m_ClientID;
 	pfnCallback(pResult, pCallbackUserData);
 }
 

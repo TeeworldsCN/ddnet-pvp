@@ -252,7 +252,6 @@ public:
 	IServer *Server() const { return m_pServer; }
 	CGameWorld *GameWorld() const { return m_pWorld; }
 	IConsole *InstanceConsole() const { return m_pInstanceConsole; }
-	int m_ChatResponseTargetID;
 
 	// common config
 	int m_Warmup;

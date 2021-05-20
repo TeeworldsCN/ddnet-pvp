@@ -169,12 +169,12 @@ void CDumbEntity::DoSnap(int SnapID, int SnappingClient)
 				vec2 ClientPos = CalcPos(PrevPos, Direction, Curvature, Speed, Delta);
 				vec2 ClientVel = (ClientPos - PrevPos) * Delta;
 
-				if(std::fpclassify(ClientVel.x) == FP_ZERO)
+				if(fabs(ClientVel.x) < 1e-6)
 					pProj->m_VelX = 0;
 				else
 					pProj->m_VelX = (int)(Direction.x * (Vel.x / ClientVel.x) * 100.0f);
 
-				if(std::fpclassify(ClientVel.y) == FP_ZERO)
+				if(fabs(ClientVel.y) < 1e-6)
 					pProj->m_VelY = 0;
 				else
 					pProj->m_VelY = (int)(Direction.y * (Vel.y / ClientVel.y) * 100.0f);

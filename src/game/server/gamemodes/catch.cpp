@@ -59,7 +59,7 @@ void CGameControllerCatch::Catch(CPlayer *pVictim, CPlayer *pBy, vec2 Pos)
 		m_aHeartKillTick[pVictim->GetCID()] = -1;
 	}
 
-	m_apHearts[pVictim->GetCID()] = new CDumbEntity(GameWorld(), CDumbEntity::TYPE_HEART | CDumbEntity::FLAG_CLEAR_ON_RESET, Pos);
+	m_apHearts[pVictim->GetCID()] = new CDumbEntity(GameWorld(), CDumbEntity::TYPE_HEART, Pos);
 	m_aHeartID[pVictim->GetCID()] = m_aNumCaught[pBy->GetCID()];
 	m_aNumCaught[pBy->GetCID()]++;
 
@@ -132,7 +132,7 @@ void CGameControllerCatch::OnPreTick()
 			vec2 LastPoint = m_aCharPath[i].LatestPoint();
 			vec2 Dir = normalize(pChar->GetPos() - LastPoint);
 
-			if(std::fpclassify(length(DeltaPos)) == FP_ZERO)
+			if(fabs(length(DeltaPos)) < 1e-6)
 			{
 				m_aCharInertia[i] = m_aCharInertia[i] / 1.05f;
 				m_aCharMoveDist[i] += m_aCharInertia[i];
@@ -193,6 +193,11 @@ void CGameControllerCatch::OnWorldReset()
 		m_aCaughtBy[i] = -1;
 		m_aNumCaught[i] = 0;
 		m_aHeartKillTick[i] = -1;
+		if(m_apHearts[i])
+		{
+			delete m_apHearts[i];
+			m_apHearts[i] = nullptr;
+		}
 	}
 }
 

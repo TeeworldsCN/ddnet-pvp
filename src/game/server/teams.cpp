@@ -297,7 +297,7 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 		str_copy(m_aTeamInstances[Team].m_Creator, GameServer()->Server()->ClientName(Asker), sizeof(m_aTeamInstances[Team].m_Creator));
 
 	// surpress room creation reply
-	m_aTeamInstances[Team].m_pController->m_ChatResponseTargetID = -2;
+	GameServer()->m_ChatResponseTargetID = -1;
 	m_aTeamInstances[Team].m_pController->InstanceConsole()->SetFlagMask(CFGFLAG_INSTANCE);
 
 	if(Type.pSettings && Type.pSettings[0])
