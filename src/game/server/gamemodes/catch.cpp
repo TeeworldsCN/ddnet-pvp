@@ -306,8 +306,7 @@ void CGameControllerCatch::DoWincheckMatch()
 		{
 			TotalPlayerCount++;
 
-			if(!pPlayer->m_RespawnDisabled ||
-				(pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive()))
+			if(pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive())
 			{
 				++AlivePlayerCount;
 				pAlivePlayer = pPlayer;
