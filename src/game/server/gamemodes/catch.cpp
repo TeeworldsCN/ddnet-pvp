@@ -132,7 +132,7 @@ void CGameControllerCatch::OnPreTick()
 			vec2 LastPoint = m_aCharPath[i].LatestPoint();
 			vec2 Dir = normalize(pChar->GetPos() - LastPoint);
 
-			if(fpclassify(length(DeltaPos)) == FP_ZERO)
+			if(std::fpclassify(length(DeltaPos)) == FP_ZERO)
 			{
 				m_aCharInertia[i] = m_aCharInertia[i] / 1.05f;
 				m_aCharMoveDist[i] += m_aCharInertia[i];
