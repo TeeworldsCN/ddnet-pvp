@@ -17,16 +17,6 @@ CGameControllerCatch::CGameControllerCatch()
 	m_GameFlags = IGF_MARK_SURVIVAL;
 	INSTANCE_CONFIG_INT(&m_WinnerBonus, "winner_bonus", 100, 0, 2000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "amount of points given to winner")
 	INSTANCE_CONFIG_INT(&m_MinimumPlayers, "minimum_players", 5, 1, MAX_CLIENTS, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "how many players required to trigger match end")
-
-	mem_zero(m_apHearts, sizeof(m_apHearts));
-	mem_zero(m_aCharMoveDist, sizeof(m_aCharMoveDist));
-	mem_zero(m_aNumCaught, sizeof(m_aNumCaught));
-
-	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		m_aCaughtBy[i] = -1;
-		m_aHeartKillTick[i] = -1;
-	}
 }
 
 void CGameControllerCatch::Catch(CPlayer *pVictim)
@@ -110,6 +100,19 @@ void CGameControllerCatch::Release(CPlayer *pPlayer, bool IsKillRelease)
 	pPlayer->m_RespawnDisabled = false;
 	pPlayer->m_RespawnTick = Server()->Tick() + Server()->TickSpeed();
 	pPlayer->Respawn();
+}
+
+void CGameControllerCatch::OnInit()
+{
+	mem_zero(m_apHearts, sizeof(m_apHearts));
+	mem_zero(m_aCharMoveDist, sizeof(m_aCharMoveDist));
+	mem_zero(m_aNumCaught, sizeof(m_aNumCaught));
+
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		m_aCaughtBy[i] = -1;
+		m_aHeartKillTick[i] = -1;
+	}
 }
 
 void CGameControllerCatch::OnPreTick()

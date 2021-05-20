@@ -58,6 +58,7 @@ public:
 	void Release(class CPlayer *pPlayer, bool IsKillRelease);
 
 	// event
+	virtual void OnInit() override;
 	virtual void OnPreTick() override;
 	virtual void OnWorldReset() override;
 	virtual void OnPlayerJoin(class CPlayer *pPlayer) override;
