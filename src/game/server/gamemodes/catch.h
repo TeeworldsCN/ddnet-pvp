@@ -9,6 +9,7 @@ class CGameControllerCatch : public IGameController
 private:
 	// config
 	int m_WinnerBonus;
+	int m_MinimumPlayers;
 
 	// states
 	int m_aCaughtBy[MAX_CLIENTS];

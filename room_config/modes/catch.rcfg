@@ -1,10 +1,12 @@
 # catch room config
 
 # game settings
+scorelimit 100
 map lms1
 warmup 10
 powerups 1
 winner_bonus 100
+minimum_players 5
 
 # room votes
 add_vote " " "info"

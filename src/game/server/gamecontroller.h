@@ -616,7 +616,7 @@ public:
 
 	/*
 		Function: OnPlayerTryRespawn
-			Called when a player tries to respawn, when this called, the character isn't spawn yet.
+			Called when a player tries to respawn, when this called, the character hasn't spawn yet.
 			You can call `pPlayer->CancelSpawn()` and return false to cancel respawn.
 			You can also call `pPlayer->CancelSpawn()` and return true to disable player spawn after they dies.
 			Or just return true to spawn the character normally

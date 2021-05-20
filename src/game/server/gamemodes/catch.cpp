@@ -10,20 +10,13 @@ CGameControllerCatch::CGameControllerCatch()
 {
 	m_pGameType = "Catch";
 
-	// Force win condition off
-	INSTANCE_COMMAND_REMOVE("timelimit")
-	INSTANCE_COMMAND_REMOVE("scorelimit")
-	INSTANCE_COMMAND_REMOVE("roundlimit")
-	m_Scorelimit = 0;
-	m_Timelimit = 0;
-	m_Roundlimit = 0;
-
 	// Disable kill
 	INSTANCE_COMMAND_REMOVE("kill_delay")
 	m_KillDelay = -1;
 
 	m_GameFlags = IGF_MARK_SURVIVAL;
 	INSTANCE_CONFIG_INT(&m_WinnerBonus, "winner_bonus", 100, 0, 2000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "amount of points given to winner")
+	INSTANCE_CONFIG_INT(&m_MinimumPlayers, "minimum_players", 5, 1, MAX_CLIENTS, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "how many players required to trigger match end")
 
 	mem_zero(m_apHearts, sizeof(m_apHearts));
 	mem_zero(m_aCharMoveDist, sizeof(m_aCharMoveDist));
@@ -168,6 +161,7 @@ void CGameControllerCatch::OnPreTick()
 		{
 			if(m_aHeartKillTick[i] != -1 && m_aHeartKillTick[i] < Server()->Tick())
 			{
+				GameWorld()->CreateSound(m_apHearts[i]->GetPos(), SOUND_PLAYER_DIE);
 				GameWorld()->CreateDeath(m_apHearts[i]->GetPos(), i);
 				delete m_apHearts[i];
 				m_apHearts[i] = nullptr;
@@ -297,27 +291,43 @@ void CGameControllerCatch::DoWincheckMatch()
 {
 	CPlayer *pAlivePlayer = 0;
 	int AlivePlayerCount = 0;
+	int TotalPlayerCount = 0;
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
 		CPlayer *pPlayer = GetPlayerIfInRoom(i);
-		if(pPlayer && pPlayer->GetTeam() != TEAM_SPECTATORS &&
-			(!pPlayer->m_RespawnDisabled ||
-				(pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive())))
+		if(pPlayer && pPlayer->GetTeam() != TEAM_SPECTATORS)
 		{
-			++AlivePlayerCount;
-			pAlivePlayer = pPlayer;
+			TotalPlayerCount++;
+
+			if(!pPlayer->m_RespawnDisabled ||
+				(pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive()))
+			{
+				++AlivePlayerCount;
+				pAlivePlayer = pPlayer;
+			}
 		}
 	}
 
-	if(AlivePlayerCount == 0) // no winner
+	if(AlivePlayerCount == 1) // 1 winner
 	{
-		EndMatch();
+		if(TotalPlayerCount >= m_MinimumPlayers)
+		{
+			pAlivePlayer->m_Score += m_WinnerBonus;
+			EndMatch();
+		}
+		else
+		{
+			for(int i = 0; i < MAX_CLIENTS; ++i)
+			{
+				CPlayer *pPlayer = GetPlayerIfInRoom(i);
+				if(pPlayer && m_aCaughtBy[pPlayer->GetCID()] == pAlivePlayer->GetCID())
+					Release(pPlayer, true);
+			}
+		}
 	}
-	else if(AlivePlayerCount == 1) // 1 winner
-	{
-		pAlivePlayer->m_Score += m_WinnerBonus;
-		EndMatch();
-	}
+
+	// still counts scorelimit
+	IGameController::DoWincheckMatch();
 }
 
 template<>
