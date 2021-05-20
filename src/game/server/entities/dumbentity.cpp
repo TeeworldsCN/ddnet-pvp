@@ -42,9 +42,33 @@ void CDumbEntity::Snap(int SnappingClient, int OtherMode)
 	DoSnap(m_ID, SnappingClient);
 }
 
+void CDumbEntity::MoveTo(vec2 Pos)
+{
+	m_Pos = Pos;
+}
+
+void CDumbEntity::TeleportTo(vec2 Pos)
+{
+	m_PrevVelocity = m_Velocity = {0.0f, 0.0f};
+	m_PrevPrevPos = m_PrevPos = m_Pos = Pos;
+}
+
+void CDumbEntity::SetLaserVector(vec2 Vector)
+{
+	m_LaserVector = Vector;
+}
+
+void CDumbEntity::SetHide(bool Hide)
+{
+	m_Hide = Hide;
+}
+
 void CDumbEntity::DoSnap(int SnapID, int SnappingClient)
 {
 	if(NetworkClipped(SnappingClient))
+		return;
+
+	if(m_Hide)
 		return;
 
 	int Type = m_Type & MASK_TYPE;

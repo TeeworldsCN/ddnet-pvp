@@ -40,7 +40,7 @@ public:
 	void TryRespawn();
 	void Respawn();
 	void CancelSpawn();
-	CCharacter *ForceSpawn(vec2 Pos); // required for loading savegames
+	CCharacter *ForceSpawn(vec2 Pos);
 	void SetTeam(int Team);
 	int GetTeam() const { return m_Team; };
 	int GetCID() const { return m_ClientID; };

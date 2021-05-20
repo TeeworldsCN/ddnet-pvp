@@ -795,11 +795,15 @@ void CPlayer::CancelSpawn()
 
 CCharacter *CPlayer::ForceSpawn(vec2 Pos)
 {
+	// don't spawn spectator char
+	if(m_Team == TEAM_SPECTATORS)
+		return nullptr;
+
 	m_DeadSpecMode = false;
 	m_Spawning = false;
 	m_pCharacter = new(m_ClientID) CCharacter(GameWorld());
 	m_pCharacter->Spawn(this, Pos);
-	m_Team = 0;
+	m_ViewPos = Pos;
 	return m_pCharacter;
 }
 
@@ -919,9 +923,10 @@ void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
 
-	if(!GameServer()->PlayerGameInstance(m_ClientID).m_Init || !Controller() || !Controller()->CanSpawn(m_Team, &SpawnPos))
+	if(!GameServer()->PlayerGameInstance(m_ClientID).m_Init || !Controller() || !Controller()->CanSpawn(m_Team, &SpawnPos) || !Controller()->OnPlayerTryRespawn(this, SpawnPos))
 		return;
 
+	m_DeadSpecMode = false;
 	m_Spawning = false;
 	m_pCharacter = new(m_ClientID) CCharacter(GameWorld());
 	m_pCharacter->Spawn(this, SpawnPos);

@@ -13,6 +13,7 @@ private:
 	vec2 m_PrevVelocity;
 	vec2 m_LaserVector;
 	int m_ID;
+	bool m_Hide;
 
 	void GetProjectileProperties(float *pCurvature, float *pSpeed, int TuneZone = 0);
 
@@ -58,6 +59,14 @@ public:
 	virtual void Reset() override;
 	virtual void Tick() override;
 	virtual void Snap(int SnappingClient, int OtherMode) override;
+
+	// Moving
+	void MoveTo(vec2 Pos);
+	void TeleportTo(vec2 Pos);
+	void SetHide(bool Hide);
+
+	// Laser
+	void SetLaserVector(vec2 Vector);
 
 	// Custom Snap, pass SnapID from outside world
 	void DoSnap(int SnapID, int SnappingClient);

@@ -602,6 +602,31 @@ public:
 			pPlayer - The CPlayer that is leaving.
 	*/
 	virtual void OnPlayerLeave(class CPlayer *pPlayer){};
+
+	/*
+		Function: OnPlayerChangeTeam
+			Called when a player changed team (including joined spectators)
+
+		Arguments:
+			pPlayer - The CPlayer that changed team
+			FromTeam - which team was the player in
+			ToTeam - which team has the player changed to
+	*/
+	virtual void OnPlayerChangeTeam(class CPlayer *pPlayer, int FromTeam, int ToTeam){};
+
+	/*
+		Function: OnPlayerTryRespawn
+			Called when a player tries to respawn, when this called, the character isn't spawn yet.
+			You can call `pPlayer->CancelSpawn()` and return false to cancel respawn.
+			You can also call `pPlayer->CancelSpawn()` and return true to disable player spawn after they dies.
+			Or just return true to spawn the character normally
+
+		Arguments:
+			pPlayer - The CPlayer that is trying to respawn
+			Pos - The position the player will spawn in
+	*/
+	virtual bool OnPlayerTryRespawn(class CPlayer *pPlayer, vec2 Pos) { return true; };
+
 	/*
 		Function: OnCharacterDeath
 			Called when a CCharacter in the world dies.

@@ -2321,6 +2321,7 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 	}
 
 	CheckReadyStates();
+	OnPlayerChangeTeam(pPlayer, OldTeam, Team);
 
 	// reset inactivity counter when joining the game
 	if(OldTeam == TEAM_SPECTATORS)
