@@ -1622,7 +1622,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			{
 				int Authed = Server()->GetAuthedState(ClientID);
 
-				if(str_startswith(pMsg->m_Value, "⨀"))
+				if(str_startswith(pMsg->m_Value, "⨀") || str_startswith(pMsg->m_Value, "⨂"))
 				{
 					// is room vote
 					char aBuf[32];
