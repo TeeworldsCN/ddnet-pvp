@@ -61,6 +61,7 @@ public:
 	virtual void OnInit() override;
 	virtual void OnPreTick() override;
 	virtual void OnWorldReset() override;
+	virtual void OnKill(class CPlayer *pPlayer) override;
 	virtual void OnPlayerJoin(class CPlayer *pPlayer) override;
 	virtual void OnPlayerLeave(class CPlayer *pPlayer) override;
 	virtual bool OnPlayerTryRespawn(class CPlayer *pPlayer, vec2 Pos) override;

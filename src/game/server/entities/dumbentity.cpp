@@ -85,7 +85,9 @@ void CDumbEntity::DoSnap(int SnapID, int SnappingClient)
 
 		int PickupType = POWERUP_HEALTH;
 		int PickupSubtype = -1;
-		if(Type == TYPE_ARMOR)
+		if(Type == TYPE_HEART)
+			PickupType = POWERUP_HEALTH;
+		else if(Type == TYPE_ARMOR)
 			PickupType = POWERUP_ARMOR;
 		else if(Type <= TYPE_PICKUP_NINJA)
 		{

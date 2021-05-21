@@ -10,10 +10,6 @@ CGameControllerCatch::CGameControllerCatch()
 {
 	m_pGameType = "Catch";
 
-	// Disable kill
-	INSTANCE_COMMAND_REMOVE("kill_delay")
-	m_KillDelay = -1;
-
 	m_GameFlags = IGF_MARK_SURVIVAL;
 	INSTANCE_CONFIG_INT(&m_WinnerBonus, "winner_bonus", 100, 0, 2000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "amount of points given to winner")
 	INSTANCE_CONFIG_INT(&m_MinimumPlayers, "minimum_players", 5, 1, MAX_CLIENTS, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "how many players required to trigger match end")
@@ -112,6 +108,25 @@ void CGameControllerCatch::OnInit()
 	{
 		m_aCaughtBy[i] = -1;
 		m_aHeartKillTick[i] = -1;
+	}
+}
+
+void CGameControllerCatch::OnKill(CPlayer *pPlayer)
+{
+	int ClientID = pPlayer->GetCID();
+
+	if(m_aNumCaught[ClientID] > 0)
+	{
+		for(int i = 0; i < MAX_CLIENTS; ++i)
+		{
+			CPlayer *pPlayer = GetPlayerIfInRoom(i);
+			if(pPlayer && m_aCaughtBy[pPlayer->GetCID()] == ClientID)
+				Release(pPlayer, true);
+		}
+
+		char aBuf[128];
+		str_format(aBuf, sizeof(aBuf), "'%s' released.", Server()->ClientName(ClientID));
+		SendChatTarget(-1, aBuf);
 	}
 }
 
@@ -306,7 +321,7 @@ void CGameControllerCatch::DoWincheckMatch()
 		{
 			TotalPlayerCount++;
 
-			if(pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive())
+			if(!pPlayer->m_RespawnDisabled || (pPlayer->GetCharacter() && pPlayer->GetCharacter()->IsAlive()))
 			{
 				++AlivePlayerCount;
 				pAlivePlayer = pPlayer;
