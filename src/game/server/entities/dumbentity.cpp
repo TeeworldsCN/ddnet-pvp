@@ -97,7 +97,7 @@ void CDumbEntity::DoSnap(int SnapID, int SnappingClient)
 
 		pP->m_X = (int)m_Pos.x;
 		pP->m_Y = (int)m_Pos.y;
-		pP->m_Type = Type;
+		pP->m_Type = PickupType;
 		if(Server()->IsSixup(SnappingClient))
 		{
 			if(Type == POWERUP_WEAPON)

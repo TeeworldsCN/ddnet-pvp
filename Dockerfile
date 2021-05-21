@@ -2,7 +2,7 @@ FROM alpine:3.4 AS builder
 WORKDIR /ddnet-pvp
 COPY . .
 RUN apk update && apk upgrade && apk add g++ cmake make python3 sqlite-dev
-RUN cmake -DCLIENT=OFF -DCMAKE_BUILD_TYPE=Release . && make -j
+RUN cmake -DCMAKE_BUILD_TYPE=Release . && make DDNet-Server -j
 
 FROM alpine:3.4
 WORKDIR /srv
