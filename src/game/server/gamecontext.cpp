@@ -120,11 +120,6 @@ int CGameContext::GetPlayerDDRTeam(int ClientID)
 	return Teams()->m_Core.Team(ClientID);
 }
 
-bool CGameContext::EmulateBug(int Bug)
-{
-	return m_MapBugs.Contains(Bug);
-}
-
 void CGameContext::FillAntibot(CAntibotRoundData *pData)
 {
 	if(!pData->m_Map.m_pTiles)
@@ -2840,7 +2835,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	SHA256_DIGEST MapSha256;
 	int MapCrc;
 	Server()->GetMapInfo(aMapName, sizeof(aMapName), &MapSize, &MapSha256, &MapCrc);
-	m_MapBugs = GetMapBugs(aMapName, MapSize, MapSha256);
 
 	// reset everything here
 	//world = new GAMEWORLD;
@@ -2896,8 +2890,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	Teams()->ClearMaps();
 	LoadMapSettings();
 	m_Teams.Init(this);
-
-	m_MapBugs.Dump();
 
 	const char *pCensorFilename = "censorlist.txt";
 	IOHANDLE File = Storage()->OpenFile(pCensorFilename, IOFLAG_READ, IStorage::TYPE_ALL);

@@ -822,9 +822,6 @@ set_src(ENGINE_SHARED GLOB src/engine/shared
   snapshot.cpp
   snapshot.h
   storage.cpp
-  teehistorian_ex.cpp
-  teehistorian_ex.h
-  teehistorian_ex_chunks.h
   uuid_manager.cpp
   uuid_manager.h
   websockets.cpp
@@ -845,9 +842,6 @@ set_src(GAME_SHARED GLOB src/game
   layers.h
   localization.cpp
   localization.h
-  mapbugs.cpp
-  mapbugs.h
-  mapbugs_list.h
   mapitems.cpp
   mapitems.h
   mapitems_ex.cpp
@@ -1157,7 +1151,6 @@ if(GTEST_FOUND OR DOWNLOAD_GTEST)
     hash.cpp
     jobs.cpp
     json.cpp
-    mapbugs.cpp
     name_ban.cpp
     netaddr.cpp
     packer.cpp

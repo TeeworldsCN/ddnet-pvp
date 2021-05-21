@@ -8,7 +8,6 @@
 #include <engine/server.h>
 
 #include <game/layers.h>
-#include <game/mapbugs.h>
 #include <game/server/teams.h>
 // #include <game/server/weapons.h>
 #include <game/voting.h>
@@ -92,7 +91,6 @@ class CGameContext : public IGameServer
 	array<string> m_aCensorlist;
 
 	CUuid m_GameUuid;
-	CMapBugs m_MapBugs;
 	CPrng m_Prng;
 
 	static void ConTuneParam(IConsole::IResult *pResult, void *pUserData);
@@ -166,7 +164,6 @@ public:
 	SGameInstance GameInstance(int Team);
 	SGameInstance PlayerGameInstance(int ClientID);
 	int GetPlayerDDRTeam(int ClientID);
-	bool EmulateBug(int Bug);
 
 	// voting
 	void StartVote(const char *pDesc, const char *pCommand, const char *pReason, const char *pSixupDesc);

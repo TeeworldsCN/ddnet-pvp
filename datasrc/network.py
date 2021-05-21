@@ -40,7 +40,7 @@ Authed = ["NO", "HELPER", "MOD", "ADMIN"]
 RawHeader = '''
 
 #include <engine/message.h>
-#include <engine/shared/teehistorian_ex.h>
+#include <engine/shared/protocol_ex.h>
 
 enum
 {
