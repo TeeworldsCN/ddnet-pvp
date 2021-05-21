@@ -405,7 +405,12 @@ void CGameContext::SendCurrentGameInfo(int ClientID, bool IsJoin)
 		if(i == ClientID || !m_apPlayers[i] || !Server()->ClientIngame(i))
 			continue;
 
-		CPlayer *pPlayer = m_apPlayers[i];
+		CPlayer *pOtherPlayer = m_apPlayers[i];
+
+		if(GetDDRaceTeam(i) != GetDDRaceTeam(ClientID) && !pOtherPlayer->ShowOthersMode())
+			NewClientInfoMsg.m_Team = TEAM_SPECTATORS;
+		else
+			NewClientInfoMsg.m_Team = pPlayer->GetTeam();
 
 		if(IsJoin && Server()->IsSixup(i))
 			Server()->SendPackMsg(&NewClientInfoMsg, MSGFLAG_VITAL | MSGFLAG_NORECORD, i);
@@ -416,7 +421,7 @@ void CGameContext::SendCurrentGameInfo(int ClientID, bool IsJoin)
 			protocol7::CNetMsg_Sv_ClientInfo ClientInfoMsg;
 			ClientInfoMsg.m_ClientID = i;
 			ClientInfoMsg.m_Local = 0;
-			ClientInfoMsg.m_Team = pPlayer->GetTeam();
+			ClientInfoMsg.m_Team = pOtherPlayer->GetTeam();
 			ClientInfoMsg.m_pName = Server()->ClientName(i);
 			ClientInfoMsg.m_pClan = Server()->ClientClan(i);
 			ClientInfoMsg.m_Country = Server()->ClientCountry(i);
@@ -427,9 +432,9 @@ void CGameContext::SendCurrentGameInfo(int ClientID, bool IsJoin)
 
 			for(int p = 0; p < 6; p++)
 			{
-				ClientInfoMsg.m_apSkinPartNames[p] = pPlayer->m_TeeInfos.m_apSkinPartNames[p];
-				ClientInfoMsg.m_aUseCustomColors[p] = pPlayer->m_TeeInfos.m_aUseCustomColors[p];
-				ClientInfoMsg.m_aSkinPartColors[p] = pPlayer->m_TeeInfos.m_aSkinPartColors[p];
+				ClientInfoMsg.m_apSkinPartNames[p] = pOtherPlayer->m_TeeInfos.m_apSkinPartNames[p];
+				ClientInfoMsg.m_aUseCustomColors[p] = pOtherPlayer->m_TeeInfos.m_aUseCustomColors[p];
+				ClientInfoMsg.m_aSkinPartColors[p] = pOtherPlayer->m_TeeInfos.m_aSkinPartColors[p];
 			}
 
 			Server()->SendPackMsg(&ClientInfoMsg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
@@ -1064,8 +1069,6 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 
 void CGameContext::OnClientEnter(int ClientID)
 {
-	Teams()->OnPlayerConnect(m_apPlayers[ClientID]);
-
 	if(Server()->IsSixup(ClientID))
 	{
 		// /team is essential
@@ -1140,6 +1143,7 @@ void CGameContext::OnClientEnter(int ClientID)
 
 	Server()->ExpireServerInfo();
 	SendCurrentGameInfo(ClientID, true);
+	Teams()->OnPlayerConnect(m_apPlayers[ClientID]);
 }
 
 bool CGameContext::OnClientDataPersist(int ClientID, void *pData)

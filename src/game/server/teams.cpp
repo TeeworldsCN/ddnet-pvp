@@ -114,7 +114,7 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 	if(Team != OldTeam && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
 	{
 		if(State == TEAM_REASON_NORMAL && m_aTeamInstances[OldTeam].m_IsCreated)
-			m_aTeamInstances[OldTeam].m_pController->OnInternalPlayerLeave(GameServer()->m_apPlayers[ClientID], INSTANCE_CONNECTION_NORMAL);
+			m_aTeamInstances[OldTeam].m_pController->OnInternalPlayerLeave(GameServer()->m_apPlayers[ClientID], CreatingRoom ? INSTANCE_CONNECTION_CREATE : INSTANCE_CONNECTION_NORMAL);
 		if(Count(OldTeam) <= 1 && OldTeam != TEAM_FLOCK)
 		{
 			m_aTeamState[OldTeam] = TEAMSTATE_EMPTY;

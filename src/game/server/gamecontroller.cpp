@@ -1031,8 +1031,9 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, int Type)
 	// update game info first
 	UpdateGameInfo(ClientID);
 
-	// change team second
-	pPlayer->SetTeam(GetStartTeam());
+	// change team second, and don't update team if it is a reload
+	if(Type != INSTANCE_CONNECTION_RELOAD)
+		pPlayer->SetTeam(GetStartTeam());
 
 	// sixup: update team info for fake spectators
 	pPlayer->SendCurrentTeamInfo();
@@ -1055,14 +1056,24 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, int Type)
 	if(Type != INSTANCE_CONNECTION_RELOAD)
 	{
 		if(Type == INSTANCE_CONNECTION_SERVER)
-			str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s in %s room %d", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()), m_pGameType, GameWorld()->Team());
-		else
-			str_format(aBuf, sizeof(aBuf), "'%s' joined the %s in %s%s room %d", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()), Type == INSTANCE_CONNECTION_CREATE ? "a new " : "", m_pGameType, GameWorld()->Team());
+		{
+			if(g_Config.m_SvRoom == 0)
+				str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()));
+			else
+				str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s in %s room %d", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()), m_pGameType, GameWorld()->Team());
 
-		if(Type == INSTANCE_CONNECTION_CREATE || Type == INSTANCE_CONNECTION_SERVER)
 			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1);
+		}
+		else if(Type == INSTANCE_CONNECTION_CREATE)
+		{
+			str_format(aBuf, sizeof(aBuf), "'%s' created %s room %d and joined the %s", Server()->ClientName(ClientID), m_pGameType, GameWorld()->Team(), GetTeamName(pPlayer->GetTeam()));
+			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1);
+		}
 		else
+		{
+			str_format(aBuf, sizeof(aBuf), "'%s' entered the room and joined the %s", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()));
 			SendChatTarget(-1, aBuf);
+		}
 	}
 
 	OnPlayerJoin(pPlayer);
@@ -1074,11 +1085,20 @@ void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer, int Type)
 {
 	int ClientID = pPlayer->GetCID();
 
-	if(Server()->ClientIngame(ClientID))
+	if(GameServer()->Server()->ClientIngame(ClientID))
 	{
 		char aBuf[128];
 		str_format(aBuf, sizeof(aBuf), "ddrteam_leave player='%d:%s' ddrteam='%d'", ClientID, Server()->ClientName(ClientID), GameWorld()->Team());
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+
+		if(Type == INSTANCE_CONNECTION_NORMAL)
+		{
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "'%s' has left the room", Server()->ClientName(ClientID));
+			for(int i = 0; i < MAX_CLIENTS; i++)
+				if(GetPlayerIfInRoom(i) && i != pPlayer->GetCID())
+					GameServer()->SendChatTarget(i, aBuf);
+		}
 	}
 
 	if(pPlayer->GetTeam() != TEAM_SPECTATORS)
