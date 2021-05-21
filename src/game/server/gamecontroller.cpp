@@ -2193,13 +2193,9 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos) const
 	}
 	else
 	{
-		// first try normal spawn, then team spawn
 		EvaluateSpawnType(&Eval, 0);
-		if(!Eval.m_Got)
-		{
-			EvaluateSpawnType(&Eval, 1);
-			EvaluateSpawnType(&Eval, 2);
-		}
+		EvaluateSpawnType(&Eval, 1);
+		EvaluateSpawnType(&Eval, 2);
 	}
 
 	*pOutPos = Eval.m_Pos;
