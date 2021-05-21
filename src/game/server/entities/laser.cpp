@@ -190,7 +190,7 @@ void CLaser::DoBounce()
 	}
 }
 
-void CLaser::FreeID()
+CLaser::~CLaser()
 {
 	Server()->SnapFreeID(m_ID);
 }

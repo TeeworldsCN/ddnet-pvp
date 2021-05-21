@@ -26,7 +26,6 @@ CEntity::CEntity(CGameWorld *pGameWorld, int ObjType, vec2 Pos, int ProximityRad
 CEntity::~CEntity()
 {
 	GameWorld()->RemoveEntity(this);
-	FreeID();
 }
 
 bool CEntity::NetworkClipped(int SnappingClient)

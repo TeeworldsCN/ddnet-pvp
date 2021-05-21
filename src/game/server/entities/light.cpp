@@ -75,7 +75,7 @@ void CLight::Step()
 	GameServer()->Collision()->IntersectNoLaser(m_Pos, to2, &m_To, 0);
 }
 
-void CLight::FreeID()
+CLight::~CLight()
 {
 	Server()->SnapFreeID(m_ID);
 }

@@ -22,11 +22,11 @@ class CDragger : public CEntity
 
 public:
 	CDragger(CGameWorld *pGameWorld, vec2 Pos, float Strength, bool NW, int Layer = 0, int Number = 0);
+	~CDragger();
 
-	virtual void FreeID();
-	virtual void Reset();
-	virtual void Tick();
-	virtual void Snap(int SnappingClient, int OtherMode);
+	virtual void Reset() override;
+	virtual void Tick() override;
+	virtual void Snap(int SnappingClient, int OtherMode) override;
 };
 
 #endif // GAME_SERVER_ENTITIES_DRAGGER_H

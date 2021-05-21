@@ -1009,7 +1009,7 @@ int IGameController::OnPickup(CPickup *pPickup, CCharacter *pChar, SPickupSound 
 	return -1;
 }
 
-void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bool Creating, bool SendMessage)
+void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, int Type)
 {
 	int ClientID = pPlayer->GetCID();
 	pPlayer->GameReset();
@@ -1043,7 +1043,7 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	m_aFakeClientBroadcast[ClientID].m_LastTimer = -1;
 	m_aFakeClientBroadcast[ClientID].m_NextBroadcastTick = -1;
 	m_aFakeClientBroadcast[ClientID].m_LastDeadSpec = false;
-	if(ServerJoin)
+	if(Type == INSTANCE_CONNECTION_SERVER)
 		m_aFakeClientBroadcast[ClientID].m_DisableUntil = Server()->Tick() + Server()->TickSpeed() * 3;
 	else
 		m_aFakeClientBroadcast[ClientID].m_DisableUntil = -1;
@@ -1052,14 +1052,14 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	str_format(aBuf, sizeof(aBuf), "ddrteam_join player='%d:%s' team=%d ddrteam='%d'", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam(), GameWorld()->Team());
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
-	if(SendMessage)
+	if(Type != INSTANCE_CONNECTION_RELOAD)
 	{
-		if(ServerJoin)
+		if(Type == INSTANCE_CONNECTION_SERVER)
 			str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s in %s room %d", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()), m_pGameType, GameWorld()->Team());
 		else
-			str_format(aBuf, sizeof(aBuf), "'%s' joined the %s in %s%s room %d", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()), Creating ? "a new " : "", m_pGameType, GameWorld()->Team());
+			str_format(aBuf, sizeof(aBuf), "'%s' joined the %s in %s%s room %d", Server()->ClientName(ClientID), GetTeamName(pPlayer->GetTeam()), Type == INSTANCE_CONNECTION_CREATE ? "a new " : "", m_pGameType, GameWorld()->Team());
 
-		if(Creating || ServerJoin)
+		if(Type == INSTANCE_CONNECTION_CREATE || Type == INSTANCE_CONNECTION_SERVER)
 			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1);
 		else
 			SendChatTarget(-1, aBuf);
@@ -1070,7 +1070,7 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, bool ServerJoin, bo
 	m_VoteUpdate = true;
 }
 
-void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer, bool ServerLeave)
+void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer, int Type)
 {
 	int ClientID = pPlayer->GetCID();
 
@@ -1097,7 +1097,7 @@ void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer, bool ServerLeave)
 	CheckReadyStates(ClientID);
 	OnPlayerLeave(pPlayer);
 
-	if(m_VoteVictim == ClientID && (GameWorld()->Team() > 0 || ServerLeave))
+	if(m_VoteVictim == ClientID && (GameWorld()->Team() > 0 || Type == INSTANCE_CONNECTION_SERVER))
 	{
 		EndVote(true);
 	}

@@ -54,8 +54,8 @@ public:
 
 	// Let CGameWorld handle snaps
 	CDumbEntity(CGameWorld *pGameWorld, int Type, vec2 Pos, vec2 To = {0.0f, 0.0f});
+	~CDumbEntity();
 
-	virtual void FreeID() override;
 	virtual void Reset() override;
 	virtual void Tick() override;
 	virtual void Snap(int SnappingClient, int OtherMode) override;

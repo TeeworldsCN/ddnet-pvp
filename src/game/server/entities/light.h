@@ -29,8 +29,8 @@ public:
 
 	CLight(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
 		int Layer = 0, int Number = 0);
+	~CLight();
 
-	virtual void FreeID();
 	virtual void Reset();
 	virtual void Tick();
 	virtual void Snap(int SnappingClient, int OtherMode);

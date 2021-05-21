@@ -58,7 +58,7 @@ CProjectile::CProjectile(
 	GameWorld()->InsertEntity(this);
 }
 
-void CProjectile::FreeID()
+CProjectile::~CProjectile()
 {
 	Server()->SnapFreeID(m_ID);
 }

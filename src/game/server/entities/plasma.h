@@ -22,8 +22,8 @@ class CPlasma : public CEntity
 public:
 	CPlasma(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir, bool Freeze,
 		bool Explosive);
+	~CPlasma();
 
-	virtual void FreeID();
 	virtual void Reset();
 	virtual void Tick();
 	virtual void Snap(int SnappingClient, int OtherMode);

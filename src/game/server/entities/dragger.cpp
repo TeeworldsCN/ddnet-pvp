@@ -124,7 +124,7 @@ void CDragger::Drag()
 	}
 }
 
-void CDragger::FreeID()
+CDragger::~CDragger()
 {
 	Server()->SnapFreeID(m_ID);
 	for(int &SoloID : m_SoloIDs)

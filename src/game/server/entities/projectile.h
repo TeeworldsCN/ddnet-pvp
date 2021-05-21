@@ -23,12 +23,12 @@ public:
 		SEntityCustomData CustomData = {nullptr, nullptr},
 		int Layer = 0,
 		int Number = 0);
+	~CProjectile();
 
 	void GetProjectileProperties(float *pCurvature, float *pSpeed);
 	vec2 GetPos(float Time);
 	void FillInfo(CNetObj_Projectile *pProj);
 
-	virtual void FreeID() override;
 	virtual void Reset() override;
 	virtual void Tick() override;
 	virtual void TickPaused() override;

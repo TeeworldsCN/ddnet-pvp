@@ -114,7 +114,7 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 	if(Team != OldTeam && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
 	{
 		if(State == TEAM_REASON_NORMAL && m_aTeamInstances[OldTeam].m_IsCreated)
-			m_aTeamInstances[OldTeam].m_pController->OnInternalPlayerLeave(GameServer()->m_apPlayers[ClientID], false);
+			m_aTeamInstances[OldTeam].m_pController->OnInternalPlayerLeave(GameServer()->m_apPlayers[ClientID], INSTANCE_CONNECTION_NORMAL);
 		if(Count(OldTeam) <= 1 && OldTeam != TEAM_FLOCK)
 		{
 			m_aTeamState[OldTeam] = TEAMSTATE_EMPTY;
@@ -141,7 +141,7 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 	if(OldTeam != Team)
 	{
 		if(State != TEAM_REASON_DISCONNECT)
-			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], false, CreatingRoom, true);
+			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[ClientID], CreatingRoom ? INSTANCE_CONNECTION_CREATE : INSTANCE_CONNECTION_NORMAL);
 
 		for(int LoopClientID = 0; LoopClientID < MAX_CLIENTS; ++LoopClientID)
 			if(GameServer()->PlayerExists(LoopClientID))
@@ -317,7 +317,7 @@ bool CGameTeams::CreateGameInstance(int Team, const char *pGameName, int Asker)
 
 	for(int i = 0; i < MAX_CLIENTS; i++)
 		if(GameServer()->PlayerExists(i) && m_Core.Team(i) == Team)
-			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[i], false, false, false);
+			m_aTeamInstances[Team].m_pController->OnInternalPlayerJoin(GameServer()->m_apPlayers[i], INSTANCE_CONNECTION_RELOAD);
 
 	UpdateGameTypeName();
 	return true;
@@ -388,7 +388,7 @@ void CGameTeams::OnPlayerConnect(CPlayer *pPlayer)
 	SetForcePlayerTeam(ClientID, 0, TEAM_REASON_CONNECT);
 
 	if(m_aTeamInstances[m_Core.Team(ClientID)].m_IsCreated)
-		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerJoin(pPlayer, true, false, true);
+		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerJoin(pPlayer, INSTANCE_CONNECTION_SERVER);
 
 	if(!GameServer()->Server()->ClientPrevIngame(ClientID))
 	{
@@ -408,7 +408,7 @@ void CGameTeams::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)
 
 	if(m_aTeamInstances[m_Core.Team(ClientID)].m_IsCreated)
 	{
-		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerLeave(pPlayer, true);
+		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerLeave(pPlayer, INSTANCE_CONNECTION_SERVER);
 	}
 
 	pPlayer->OnDisconnect();

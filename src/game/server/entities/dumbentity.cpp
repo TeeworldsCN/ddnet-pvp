@@ -4,17 +4,20 @@ CDumbEntity::CDumbEntity(CGameWorld *pGameWorld, int Type, vec2 Pos, vec2 LaserV
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_CUSTOM, Pos)
 {
 	m_Type = Type;
-	m_ID = Server()->SnapNewID();
 	m_PrevPrevPos = m_PrevPos = Pos;
 	m_PrevVelocity = {0.0f, 0.0f};
 	m_Velocity = {0.0f, 0.0f};
 	m_LaserVector = LaserVector;
+	m_ID = -1;
 
 	if(!(m_Type & FLAG_MANUAL))
+	{
+		m_ID = Server()->SnapNewID();
 		pGameWorld->InsertEntity(this);
+	}
 }
 
-void CDumbEntity::FreeID()
+CDumbEntity::~CDumbEntity()
 {
 	if(!(m_Type & FLAG_MANUAL))
 		Server()->SnapFreeID(m_ID);

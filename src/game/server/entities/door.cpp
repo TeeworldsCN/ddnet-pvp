@@ -45,7 +45,7 @@ void CDoor::ResetCollision()
 	}
 }
 
-void CDoor::FreeID()
+CDoor::~CDoor()
 {
 	Server()->SnapFreeID(m_ID);
 }

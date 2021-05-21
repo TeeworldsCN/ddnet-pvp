@@ -82,7 +82,7 @@ void CGun::Fire()
 	}
 }
 
-void CGun::FreeID()
+CGun::~CGun()
 {
 	Server()->SnapFreeID(m_ID);
 }

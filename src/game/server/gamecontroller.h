@@ -75,6 +75,14 @@ enum
 	DAMAGE_DIED = DAMAGE_NO_DAMAGE | DAMAGE_NO_EMOTE | DAMAGE_NO_KNOCKBACK | DAMAGE_NO_DEATH,
 };
 
+enum
+{
+	INSTANCE_CONNECTION_NORMAL = 0,
+	INSTANCE_CONNECTION_SERVER,
+	INSTANCE_CONNECTION_CREATE,
+	INSTANCE_CONNECTION_RELOAD,
+};
+
 /*
 	Class: Game Controller
 		Controls the main game logic. Keeping track of team and player score,
@@ -273,8 +281,8 @@ public:
 
 	// internal events
 	void StartController();
-	void OnInternalPlayerJoin(class CPlayer *pPlayer, bool ServerJoin, bool Creating, bool SendMessage);
-	void OnInternalPlayerLeave(class CPlayer *pPlayer, bool ServerLeave);
+	void OnInternalPlayerJoin(class CPlayer *pPlayer, int Type);
+	void OnInternalPlayerLeave(class CPlayer *pPlayer, int Type);
 	int OnInternalCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
 	void OnInternalCharacterSpawn(class CCharacter *pChr);
 	bool OnInternalCharacterTile(class CCharacter *pChr, int MapIndex);

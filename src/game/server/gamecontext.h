@@ -102,7 +102,6 @@ class CGameContext : public IGameServer
 	static void ConTuneResetZone(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneSetZoneMsgEnter(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneSetZoneMsgLeave(IConsole::IResult *pResult, void *pUserData);
-	static void ConMapbug(IConsole::IResult *pResult, void *pUserData);
 	static void ConSwitchOpen(IConsole::IResult *pResult, void *pUserData);
 	static void ConChangeMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConRestart(IConsole::IResult *pResult, void *pUserData);
@@ -231,7 +230,6 @@ public:
 	// engine events
 	virtual void OnInit();
 	virtual void OnConsoleInit();
-	virtual void OnMapChange(char *pNewMapName, int MapNameSize);
 	virtual void OnShutdown(bool FullShutdown);
 
 	virtual void OnTick();

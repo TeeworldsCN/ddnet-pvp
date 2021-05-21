@@ -44,7 +44,7 @@ void CGameControllerCatch::Catch(CPlayer *pVictim, CPlayer *pBy, vec2 Pos)
 
 	if(m_apHearts[pVictim->GetCID()])
 	{
-		delete m_apHearts[pVictim->GetCID()];
+		m_apHearts[pVictim->GetCID()]->Destroy();
 		m_apHearts[pVictim->GetCID()] = nullptr;
 		m_aHeartKillTick[pVictim->GetCID()] = -1;
 	}
@@ -90,7 +90,7 @@ void CGameControllerCatch::Release(CPlayer *pPlayer, bool IsKillRelease)
 			}
 		}
 
-		delete m_apHearts[WhoHasLastHeart];
+		m_apHearts[WhoHasLastHeart]->Destroy();
 		m_apHearts[WhoHasLastHeart] = m_apHearts[pPlayer->GetCID()];
 		m_aHeartID[WhoHasLastHeart] = m_aHeartID[pPlayer->GetCID()];
 		m_apHearts[pPlayer->GetCID()] = nullptr;
@@ -165,7 +165,7 @@ void CGameControllerCatch::OnPreTick()
 			{
 				GameWorld()->CreateSound(m_apHearts[i]->GetPos(), SOUND_PLAYER_DIE);
 				GameWorld()->CreateDeath(m_apHearts[i]->GetPos(), i);
-				delete m_apHearts[i];
+				m_apHearts[i]->Destroy();
 				m_apHearts[i] = nullptr;
 				m_aHeartID[i] = -1;
 				m_aHeartKillTick[i] = -1;
@@ -197,7 +197,7 @@ void CGameControllerCatch::OnWorldReset()
 		m_aHeartKillTick[i] = -1;
 		if(m_apHearts[i])
 		{
-			delete m_apHearts[i];
+			m_apHearts[i]->Destroy();
 			m_apHearts[i] = nullptr;
 		}
 	}

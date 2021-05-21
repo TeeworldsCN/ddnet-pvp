@@ -57,7 +57,9 @@ public:
 	/* Constructor */
 	CEntity(CGameWorld *pGameWorld, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
 
-	/* Destructor */
+	/* Destructor 
+		You should free SnapID in destructor
+	*/
 	virtual ~CEntity();
 
 	/* Objects */
@@ -84,12 +86,6 @@ public:
 	void MarkForDestroy() { m_MarkedForDestroy = true; }
 
 	/* Other functions */
-
-	/*
-		Function: FreeID
-			You should free your snap id here.
-	*/
-	virtual void FreeID() {}
 
 	/*
 		Function: Destroy

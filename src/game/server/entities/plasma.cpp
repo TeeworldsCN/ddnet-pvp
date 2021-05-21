@@ -47,7 +47,7 @@ void CPlasma::Move()
 	m_Core *= PLASMA_ACCEL;
 }
 
-void CPlasma::FreeID()
+CPlasma::~CPlasma()
 {
 	Server()->SnapFreeID(m_ID);
 }

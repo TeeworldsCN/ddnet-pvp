@@ -23,7 +23,7 @@ CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType) :
 	GameWorld()->InsertEntity(this);
 }
 
-void CPickup::FreeID()
+CPickup::~CPickup()
 {
 	Server()->SnapFreeID(m_ID);
 }

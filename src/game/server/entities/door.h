@@ -21,11 +21,11 @@ public:
 	void Close(int Team);
 	CDoor(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
 		int Number);
+	~CDoor();
 
-	virtual void FreeID();
-	virtual void Reset();
-	virtual void Tick();
-	virtual void Snap(int SnappingClient, int OtherMode);
+	virtual void Reset() override;
+	virtual void Tick() override;
+	virtual void Snap(int SnappingClient, int OtherMode) override;
 };
 
 #endif // GAME_SERVER_ENTITIES_DOOR_H

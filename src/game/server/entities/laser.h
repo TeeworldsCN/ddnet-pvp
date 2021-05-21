@@ -20,8 +20,8 @@ public:
 		float StartEnergy,
 		FLaserImpactCallback Callback = nullptr,
 		SEntityCustomData CustomData = {nullptr, nullptr});
+	~CLaser();
 
-	virtual void FreeID() override;
 	virtual void Reset() override;
 	virtual void Tick() override;
 	virtual void TickPaused() override;

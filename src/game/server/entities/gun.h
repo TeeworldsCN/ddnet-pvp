@@ -23,11 +23,11 @@ class CGun : public CEntity
 
 public:
 	CGun(CGameWorld *pGameWorld, vec2 Pos, bool Freeze, bool Explosive, int Layer = 0, int Number = 0);
+	~CGun();
 
-	virtual void FreeID();
-	virtual void Reset();
-	virtual void Tick();
-	virtual void Snap(int SnappingClient, int OtherMode);
+	virtual void Reset() override;
+	virtual void Tick() override;
+	virtual void Snap(int SnappingClient, int OtherMode) override;
 };
 
 #endif // GAME_SERVER_ENTITIES_GUN_H
