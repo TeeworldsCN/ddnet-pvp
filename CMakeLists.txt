@@ -1062,21 +1062,6 @@ endif()
 # VARIOUS TARGETS
 ########################################################################
 
-set_src(MASTERSRV_SRC GLOB src/mastersrv mastersrv.cpp mastersrv.h)
-set_src(TWPING_SRC GLOB src/twping twping.cpp)
-
-set(TARGET_MASTERSRV mastersrv)
-set(TARGET_TWPING twping)
-
-add_executable(${TARGET_MASTERSRV} EXCLUDE_FROM_ALL ${MASTERSRV_SRC} $<TARGET_OBJECTS:engine-shared> ${DEPS})
-add_executable(${TARGET_TWPING} EXCLUDE_FROM_ALL ${TWPING_SRC} $<TARGET_OBJECTS:engine-shared> ${DEPS})
-
-target_link_libraries(${TARGET_MASTERSRV} ${LIBS})
-target_link_libraries(${TARGET_TWPING} ${LIBS})
-
-list(APPEND TARGETS_OWN ${TARGET_MASTERSRV} ${TARGET_TWPING})
-list(APPEND TARGETS_LINK ${TARGET_MASTERSRV} ${TARGET_TWPING})
-
 set(TARGETS_TOOLS)
 set_src(TOOLS GLOB src/tools
   config_common.h
