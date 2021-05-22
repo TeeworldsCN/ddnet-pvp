@@ -37,7 +37,7 @@ bool CPlasma::HitCharacter()
 	m_Freeze ? Hit->Freeze() : Hit->UnFreeze();
 	if(m_Explosive)
 		GameWorld()->CreateExplosion(m_Pos, -1, WEAPON_GRENADE, WEAPON_ID_DDRACE, 0, true);
-	GameWorld()->DestroyEntity(this);
+	m_MarkedForDestroy = true;
 	return true;
 }
 
@@ -54,7 +54,7 @@ CPlasma::~CPlasma()
 
 void CPlasma::Reset()
 {
-	GameWorld()->DestroyEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CPlasma::Tick()

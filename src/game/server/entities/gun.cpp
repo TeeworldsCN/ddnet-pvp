@@ -89,7 +89,7 @@ CGun::~CGun()
 
 void CGun::Reset()
 {
-	GameWorld()->DestroyEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CGun::Tick()

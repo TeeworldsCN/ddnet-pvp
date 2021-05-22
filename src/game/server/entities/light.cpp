@@ -82,7 +82,7 @@ CLight::~CLight()
 
 void CLight::Reset()
 {
-	GameWorld()->DestroyEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CLight::Tick()

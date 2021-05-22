@@ -104,7 +104,7 @@ void CLaser::DoBounce()
 
 	if(m_Energy < 0)
 	{
-		GameWorld()->DestroyEntity(this);
+		m_MarkedForDestroy = true;
 		return;
 	}
 	m_PrevPos = m_Pos;
@@ -197,7 +197,7 @@ CLaser::~CLaser()
 
 void CLaser::Reset()
 {
-	GameWorld()->DestroyEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CLaser::Tick()

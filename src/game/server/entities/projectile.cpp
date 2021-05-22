@@ -66,7 +66,7 @@ CProjectile::~CProjectile()
 void CProjectile::Reset()
 {
 	if(m_LifeSpan > -2)
-		GameWorld()->DestroyEntity(this);
+		m_MarkedForDestroy = true;
 }
 
 void CProjectile::GetProjectileProperties(float *pCurvature, float *pSpeed)
@@ -167,14 +167,14 @@ void CProjectile::Tick()
 	// Owner is dead, consider destroying the projectile
 	if((!pOwnerChar || !pOwnerChar->IsAlive()) && m_Owner >= 0 && (m_IsSolo || g_Config.m_SvDestroyBulletsOnDeath))
 	{
-		GameWorld()->DestroyEntity(this);
+		m_MarkedForDestroy = true;
 		return;
 	}
 
 	// Owner has gone to another reality, destroy the projectile
 	if(!pOwnerPlayer || GameServer()->GetDDRaceTeam(m_Owner) != GameWorld()->Team())
 	{
-		GameWorld()->DestroyEntity(this);
+		m_MarkedForDestroy = true;
 		return;
 	}
 
@@ -198,7 +198,7 @@ void CProjectile::Tick()
 			pChar->m_HitData.m_FirstImpact = !AlreadyHit;
 			if(m_Callback(this, ColPos, pChar, false))
 			{
-				GameWorld()->DestroyEntity(this);
+				m_MarkedForDestroy = true;
 				return;
 			}
 		}
@@ -207,7 +207,7 @@ void CProjectile::Tick()
 		{
 			if(m_Callback(this, ColPos, nullptr, false))
 			{
-				GameWorld()->DestroyEntity(this);
+				m_MarkedForDestroy = true;
 				return;
 			}
 		}
@@ -233,7 +233,7 @@ void CProjectile::Tick()
 		if(m_Callback)
 			if(m_Callback(this, ColPos, nullptr, false))
 			{
-				GameWorld()->DestroyEntity(this);
+				m_MarkedForDestroy = true;
 				return;
 			}
 	}
@@ -242,7 +242,7 @@ void CProjectile::Tick()
 	{
 		if(m_Callback)
 			m_Callback(this, ColPos, nullptr, true);
-		GameWorld()->DestroyEntity(this);
+		m_MarkedForDestroy = true;
 		return;
 	}
 
