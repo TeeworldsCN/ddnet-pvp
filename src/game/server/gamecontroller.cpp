@@ -1579,10 +1579,7 @@ void IGameController::Snap(int SnappingClient)
 
 		break;
 	case IGS_GAME_PAUSED:
-		if(isSixUp)
-			GameStateFlags |= protocol7::GAMESTATEFLAG_PAUSED;
-		else
-			GameStateFlags |= GAMESTATEFLAG_PAUSED;
+		GameStateFlags |= GAMESTATEFLAG_PAUSED;
 		if(m_GameStateTimer != TIMER_INFINITE)
 			GameStateEndTick = Server()->Tick() + m_GameStateTimer;
 		break;
@@ -1608,12 +1605,7 @@ void IGameController::Snap(int SnappingClient)
 	}
 
 	if(m_SuddenDeath)
-	{
-		if(isSixUp)
-			GameStateFlags |= protocol7::GAMESTATEFLAG_SUDDENDEATH;
-		else
-			GameStateFlags |= GAMESTATEFLAG_SUDDENDEATH;
-	}
+		GameStateFlags |= GAMESTATEFLAG_SUDDENDEATH;
 
 	if(!isSixUp)
 	{
