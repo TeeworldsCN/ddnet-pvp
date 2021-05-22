@@ -104,6 +104,10 @@ public:
 
 	virtual int OnCharacterTakeDamage(class CCharacter *pChr, vec2 &Force, int &Dmg, int From, int Weapon, int WeaponType, bool IsExplosion) override
 	{
+		// ignore invalid damage (i.e. friendly fire)
+		if(Dmg <= 0)
+			return DAMAGE_SKIP;
+
 		// no self damage
 		if(pChr->GetPlayer()->GetCID() == From)
 		{
