@@ -1214,7 +1214,9 @@ void CGameContext::OnClientConnected(int ClientID, void *pData)
 
 void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 {
-	Teams()->OnPlayerDisconnect(m_apPlayers[ClientID], pReason);
+	if(((CServer *)Server())->m_aClients[ClientID].m_State == CServer::CClient::STATE_INGAME)
+		Teams()->OnPlayerDisconnect(m_apPlayers[ClientID], pReason);
+
 	delete m_apPlayers[ClientID];
 	m_apPlayers[ClientID] = 0;
 

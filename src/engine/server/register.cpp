@@ -6,8 +6,6 @@
 #include <engine/shared/config.h>
 #include <engine/shared/network.h>
 
-#include <mastersrv/mastersrv.h>
-
 #include "register.h"
 
 CRegister::CRegister(bool Sixup)

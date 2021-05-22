@@ -30,8 +30,6 @@
 #include <engine/shared/protocol_ex.h>
 #include <engine/shared/snapshot.h>
 
-#include <mastersrv/mastersrv.h>
-
 // DDRace
 #include <cstring>
 #include <engine/shared/linereader.h>

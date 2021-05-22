@@ -416,9 +416,7 @@ void CGameTeams::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)
 	bool WasModerator = pPlayer->m_Moderating && GameServer()->Server()->ClientIngame(ClientID);
 
 	if(m_aTeamInstances[m_Core.Team(ClientID)].m_IsCreated)
-	{
 		m_aTeamInstances[m_Core.Team(ClientID)].m_pController->OnInternalPlayerLeave(pPlayer, INSTANCE_CONNECTION_SERVER);
-	}
 
 	pPlayer->OnDisconnect();
 	if(GameServer()->Server()->ClientIngame(ClientID))
