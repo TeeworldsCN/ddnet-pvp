@@ -1070,7 +1070,6 @@ set_src(TOOLS GLOB src/tools
   crapnet.cpp
   dilate.cpp
   dummy_map.cpp
-  fake_server.cpp
   map_convert_07.cpp
   map_diff.cpp
   map_extract.cpp
