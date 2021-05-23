@@ -19,6 +19,7 @@ private:
 	int m_WeaponMaxAmmo;
 	int m_WeaponAmmoRegenTime;
 	int m_WeaponAmmoRegenOnBoost;
+	int m_WeaponAmmoRegenDelay;
 	int m_WeaponEmptyReloadPenalty;
 	int m_LaserJump;
 
@@ -51,6 +52,7 @@ public:
 		INSTANCE_CONFIG_INT(&m_WeaponMaxAmmo, "max_ammo", -1, -1, 10, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Maximum amount of ammo (-1 = infinite and no regen)");
 		INSTANCE_CONFIG_INT(&m_WeaponAmmoRegenTime, "ammo_regen_time", 128, 1, 2000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Ammo regen interval (in milliseconds)");
 		INSTANCE_CONFIG_INT(&m_WeaponAmmoRegenOnBoost, "ammo_regen_boost", 1, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Whether rocket jump or laser jump gives back ammo");
+		INSTANCE_CONFIG_INT(&m_WeaponAmmoRegenDelay, "ammo_regen_delay", 256, 0, 2000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Time of delay after weapon reload and before regen starts");
 		INSTANCE_CONFIG_INT(&m_WeaponEmptyReloadPenalty, "empty_penalty", 1000, 0, 2000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Time to reload after firing the last ammo (in milliseconds)");
 		INSTANCE_CONFIG_INT(&m_LaserJump, "laser_jump", 0, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Whether laser jump is enabled");
 
@@ -96,6 +98,7 @@ public:
 			pStartingWeapon->SetAmmo(m_WeaponMaxAmmo);
 			pStartingWeapon->SetAmmoRegenTime(m_WeaponAmmoRegenTime);
 			pStartingWeapon->SetEmptyReloadPenalty(m_WeaponEmptyReloadPenalty);
+			pStartingWeapon->SetAmmoRegenDelay(m_WeaponAmmoRegenDelay);
 		}
 
 		if(pStartingWeapon && pStartingWeapon->GetWeaponID() == WEAPON_ID_EXPLODINGLASER)

@@ -11,6 +11,7 @@ CWeapon::CWeapon(CCharacter *pOwnerChar)
 	m_FullAuto = false;
 	m_AmmoRegenTime = 0;
 	m_AmmoRegenStart = 0;
+	m_AmmoRegenDelay = 0;
 	m_EmptyReloadPenalty = 0;
 	m_ReloadTimer = 0;
 	m_AttackTick = 0;
@@ -86,6 +87,8 @@ void CWeapon::HandleFire(vec2 Direction)
 	}
 
 	Fire(Direction);
+	if(m_AmmoRegenDelay)
+		m_AmmoRegenStart = Server()->Tick() + (m_FireDelay + m_AmmoRegenDelay) * Server()->TickSpeed() / 1000;
 
 	m_AttackTick = Server()->Tick();
 	if(m_Ammo > 0)

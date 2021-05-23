@@ -19,6 +19,7 @@ protected:
 	int m_FireDelay;
 	int m_AmmoRegenStart;
 	int m_AmmoRegenTime;
+	int m_AmmoRegenDelay;
 	int m_EmptyReloadPenalty;
 
 	bool m_FullAuto;
@@ -70,6 +71,8 @@ public:
 	void SetFullAuto(int FullAuto) { m_FullAuto = FullAuto; }
 	int GetAmmoRegenTime() { return m_AmmoRegenTime; }
 	void SetAmmoRegenTime(int AmmoRegenTime) { m_AmmoRegenTime = AmmoRegenTime; }
+	int GetAmmoRegenDelay() { return m_AmmoRegenDelay; }
+	void SetAmmoRegenDelay(int Delay) { m_AmmoRegenDelay = Delay; }
 	int GetEmptyReloadPenalty() { return m_EmptyReloadPenalty; }
 	void SetEmptyReloadPenalty(int Penalty) { m_EmptyReloadPenalty = Penalty; }
 
