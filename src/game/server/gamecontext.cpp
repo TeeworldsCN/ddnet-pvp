@@ -232,18 +232,23 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText, in
 		if(ProcessSpamProtection(SpamProtectionClientID))
 			return;
 
+	// prevent spoofing room number
+	if(ChatterClientID >= 0 && ChatterClientID < MAX_CLIENTS && str_startswith(pText, "[#"))
+		return;
+
 	int Room = -1;
 	if(ChatterClientID >= 0 && ChatterClientID < MAX_CLIENTS)
 		Room = GetPlayerDDRTeam(ChatterClientID);
 
-	char aBuf[256], aText[256];
-	str_copy(aText, pText, sizeof(aText));
+	// leave space for room number in aText "[#00]: "
+	char aBuf[256], aText[256 - 7], aRoomedText[256];
+	str_utf8_copy(aText, pText, sizeof(aText));
 	if(ChatterClientID >= 0 && ChatterClientID < MAX_CLIENTS)
 		str_format(aBuf, sizeof(aBuf), "%d:%d:%s: %s", ChatterClientID, Team, Server()->ClientName(ChatterClientID), aText);
 	else if(ChatterClientID == -2)
 	{
 		str_format(aBuf, sizeof(aBuf), "### %s", aText);
-		str_copy(aText, aBuf, sizeof(aText));
+		str_utf8_copy(aText, aBuf, sizeof(aText));
 		ChatterClientID = -1;
 	}
 	else
@@ -256,6 +261,11 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText, in
 		Msg.m_Team = 0;
 		Msg.m_ClientID = ChatterClientID;
 		Msg.m_pMessage = aText;
+		if(Room >= 0)
+		{
+			str_format(aBuf, sizeof(aBuf), "[#%02d]: %s", Room, aText);
+			str_utf8_copy(aRoomedText, aBuf, sizeof(aRoomedText));
+		}
 
 		// pack one for the recording only
 		if(g_Config.m_SvDemoChat)
@@ -268,6 +278,11 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText, in
 				continue;
 			bool Send = (Server()->IsSixup(i) && (Flags & CHAT_SIXUP)) ||
 				    (!Server()->IsSixup(i) && (Flags & CHAT_SIX));
+
+			if(Room >= 0 && Room != GetPlayerDDRTeam(i))
+				Msg.m_pMessage = aRoomedText;
+			else
+				Msg.m_pMessage = aText;
 
 			if(!m_apPlayers[i]->m_DND && Send)
 				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, i);
