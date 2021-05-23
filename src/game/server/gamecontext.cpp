@@ -940,10 +940,11 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 
 	SGameInstance Instance = PlayerGameInstance(ClientID);
 
-	int GlobalVotes = m_NumVoteOptions;
-	int NumInstanceVotes = Instance.m_IsCreated ? Instance.m_pController->m_NumVoteOptions : 0;
+	int NumRoomTitleVote = g_Config.m_SvRoomVoteTitle[0] ? 1 : 0;
 	int NumRoomVotes = Teams()->m_NumRooms;
-	int TotalVotes = GlobalVotes + NumInstanceVotes + NumRoomVotes;
+	int NumInstanceVotes = Instance.m_IsCreated ? Instance.m_pController->m_NumVoteOptions : 0;
+	int GlobalVotes = m_NumVoteOptions;
+	int TotalVotes = NumRoomTitleVote + NumRoomVotes + NumInstanceVotes + GlobalVotes;
 
 	if(pPl->m_SendVoteIndex == -1)
 		return; // we didn't start sending options yet
@@ -952,9 +953,10 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 		return; // shouldn't happen / fail silently
 
 	int VotesLeft = TotalVotes - pPl->m_SendVoteIndex;
-	int NumGlobalVotesToSend = clamp(GlobalVotes - pPl->m_SendVoteIndex, 0, GlobalVotes);
-	int NumRoomVotesToSend = clamp(NumRoomVotes - (pPl->m_SendVoteIndex - GlobalVotes), 0, NumRoomVotes);
-	int NumInstanceVotesToSend = clamp(NumInstanceVotes - (pPl->m_SendVoteIndex - GlobalVotes - NumRoomVotes), 0, NumInstanceVotes);
+	int NumRoomTitleToSend = clamp(NumRoomTitleVote - pPl->m_SendVoteIndex, 0, NumRoomTitleVote);
+	int NumRoomVotesToSend = clamp(NumRoomVotes - (pPl->m_SendVoteIndex - NumRoomTitleVote), 0, NumRoomVotes);
+	int NumInstanceVotesToSend = clamp(NumInstanceVotes - (pPl->m_SendVoteIndex - NumRoomTitleVote - NumRoomVotes), 0, NumInstanceVotes);
+	int NumGlobalVotesToSend = clamp(GlobalVotes - (pPl->m_SendVoteIndex - NumRoomTitleVote - NumRoomVotes - NumInstanceVotes), 0, GlobalVotes);
 
 	if(!VotesLeft)
 	{
@@ -982,34 +984,11 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 	OptionMsg.m_pDescription13 = "";
 	OptionMsg.m_pDescription14 = "";
 
-	// get current vote option by index
-	CVoteOptionServer *pCurrent = NULL;
-	if(NumGlobalVotesToSend)
-		pCurrent = GetVoteOption(GlobalVotes - NumGlobalVotesToSend);
-
-	while(CurIndex < GlobalVotes && CurIndex < g_Config.m_SvSendVotesPerTick && pCurrent != NULL)
+	// room list title
+	if(NumRoomTitleToSend)
 	{
-		switch(CurIndex)
-		{
-		case 0: OptionMsg.m_pDescription0 = pCurrent->m_aDescription; break;
-		case 1: OptionMsg.m_pDescription1 = pCurrent->m_aDescription; break;
-		case 2: OptionMsg.m_pDescription2 = pCurrent->m_aDescription; break;
-		case 3: OptionMsg.m_pDescription3 = pCurrent->m_aDescription; break;
-		case 4: OptionMsg.m_pDescription4 = pCurrent->m_aDescription; break;
-		case 5: OptionMsg.m_pDescription5 = pCurrent->m_aDescription; break;
-		case 6: OptionMsg.m_pDescription6 = pCurrent->m_aDescription; break;
-		case 7: OptionMsg.m_pDescription7 = pCurrent->m_aDescription; break;
-		case 8: OptionMsg.m_pDescription8 = pCurrent->m_aDescription; break;
-		case 9: OptionMsg.m_pDescription9 = pCurrent->m_aDescription; break;
-		case 10: OptionMsg.m_pDescription10 = pCurrent->m_aDescription; break;
-		case 11: OptionMsg.m_pDescription11 = pCurrent->m_aDescription; break;
-		case 12: OptionMsg.m_pDescription12 = pCurrent->m_aDescription; break;
-		case 13: OptionMsg.m_pDescription13 = pCurrent->m_aDescription; break;
-		case 14: OptionMsg.m_pDescription14 = pCurrent->m_aDescription; break;
-		}
-
+		OptionMsg.m_pDescription0 = g_Config.m_SvRoomVoteTitle;
 		CurIndex++;
-		pCurrent = pCurrent->m_pNext;
 	}
 
 	// room list
@@ -1043,8 +1022,8 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 		RoomIndex++;
 	}
 
-	// get current vote option by index
-	pCurrent = NULL;
+	// get current instance vote option by index
+	CVoteOptionServer *pCurrent = NULL;
 	int InstanceVoteIndex = NumInstanceVotes - NumInstanceVotesToSend;
 	if(NumInstanceVotesToSend)
 		pCurrent = Instance.m_pController->GetVoteOption(InstanceVoteIndex);
@@ -1073,6 +1052,36 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 		CurIndex++;
 		pCurrent = pCurrent->m_pNext;
 		InstanceVoteIndex++;
+	}
+
+	// get current global vote option by index
+	pCurrent = NULL;
+	if(NumGlobalVotesToSend)
+		pCurrent = GetVoteOption(GlobalVotes - NumGlobalVotesToSend);
+
+	while(CurIndex < GlobalVotes && CurIndex < g_Config.m_SvSendVotesPerTick && pCurrent != NULL)
+	{
+		switch(CurIndex)
+		{
+		case 0: OptionMsg.m_pDescription0 = pCurrent->m_aDescription; break;
+		case 1: OptionMsg.m_pDescription1 = pCurrent->m_aDescription; break;
+		case 2: OptionMsg.m_pDescription2 = pCurrent->m_aDescription; break;
+		case 3: OptionMsg.m_pDescription3 = pCurrent->m_aDescription; break;
+		case 4: OptionMsg.m_pDescription4 = pCurrent->m_aDescription; break;
+		case 5: OptionMsg.m_pDescription5 = pCurrent->m_aDescription; break;
+		case 6: OptionMsg.m_pDescription6 = pCurrent->m_aDescription; break;
+		case 7: OptionMsg.m_pDescription7 = pCurrent->m_aDescription; break;
+		case 8: OptionMsg.m_pDescription8 = pCurrent->m_aDescription; break;
+		case 9: OptionMsg.m_pDescription9 = pCurrent->m_aDescription; break;
+		case 10: OptionMsg.m_pDescription10 = pCurrent->m_aDescription; break;
+		case 11: OptionMsg.m_pDescription11 = pCurrent->m_aDescription; break;
+		case 12: OptionMsg.m_pDescription12 = pCurrent->m_aDescription; break;
+		case 13: OptionMsg.m_pDescription13 = pCurrent->m_aDescription; break;
+		case 14: OptionMsg.m_pDescription14 = pCurrent->m_aDescription; break;
+		}
+
+		CurIndex++;
+		pCurrent = pCurrent->m_pNext;
 	}
 
 	// send msg
@@ -1733,8 +1742,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					{
 						if(Authed != AUTHED_ADMIN) // allow admins to call any vote they want
 						{
-							str_format(aChatmsg, sizeof(aChatmsg), "'%s' isn't an option on this server", pMsg->m_Value);
-							SendChatTarget(ClientID, aChatmsg);
 							return;
 						}
 						else

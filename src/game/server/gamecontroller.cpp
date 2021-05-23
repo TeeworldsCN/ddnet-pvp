@@ -1032,8 +1032,24 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, int Type)
 	UpdateGameInfo(ClientID);
 
 	// change team second, and don't update team if it is a reload
-	if(Type != INSTANCE_CONNECTION_RELOAD)
+	if(Type != INSTANCE_CONNECTION_RELOAD || pPlayer->GetTeam() != TEAM_SPECTATORS)
 		pPlayer->SetTeam(GetStartTeam());
+
+	if(pPlayer->GetTeam() != TEAM_SPECTATORS)
+	{
+		int Team = pPlayer->GetTeam();
+		++m_aTeamSize[Team];
+		dbg_msg("game", "team size increased to %d, team='%d', ddrteam='%d'", m_aTeamSize[Team], Team, GameWorld()->Team());
+		m_UnbalancedTick = TBALANCE_CHECK;
+		if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
+		{
+			// we got enough player, redo warmup if we have one, otherwise start the game
+			if(m_Warmup)
+				SetGameState(IGS_WARMUP_USER, m_Warmup);
+			else
+				SetGameState(IGS_WARMUP_GAME, 0);
+		}
+	}
 
 	// sixup: update team info for fake spectators
 	pPlayer->SendCurrentTeamInfo();
@@ -1106,12 +1122,6 @@ void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer, int Type)
 		--m_aTeamSize[pPlayer->GetTeam()];
 		dbg_msg("game", "team size decreased to %d, team='%d', ddrteam='%d'", m_aTeamSize[pPlayer->GetTeam()], pPlayer->GetTeam(), GameWorld()->Team());
 		m_UnbalancedTick = TBALANCE_CHECK;
-		// if player left, stop the game and go back to warmup
-		if(!HasEnoughPlayers())
-		{
-			EndMatch();
-			return;
-		}
 	}
 
 	CheckReadyStates(ClientID);
@@ -2420,20 +2430,8 @@ int IGameController::GetStartTeam()
 
 	// check if there're enough player slots left
 	if(m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] < m_PlayerSlots)
-	{
-		++m_aTeamSize[Team];
-		dbg_msg("game", "team size increased to %d, team='%d', ddrteam='%d'", m_aTeamSize[Team], Team, GameWorld()->Team());
-		m_UnbalancedTick = TBALANCE_CHECK;
-		if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
-		{
-			// we got enough player, redo warmup if we have one, otherwise start the game
-			if(m_Warmup)
-				SetGameState(IGS_WARMUP_USER, m_Warmup);
-			else
-				SetGameState(IGS_WARMUP_GAME, 0);
-		}
 		return Team;
-	}
+
 	return TEAM_SPECTATORS;
 }
 

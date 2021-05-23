@@ -13,6 +13,7 @@ match_swap 2
 # room votes
 add_vote " " "info"
 add_vote "=== ROOM SETTINGS ===" "info"
+add_vote "Restart" "restart"
 
 # add mode switch votes
 exec "room_config/modes.rcfg"
