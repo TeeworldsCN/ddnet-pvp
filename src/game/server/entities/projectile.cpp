@@ -276,13 +276,14 @@ void CProjectile::FillInfo(CNetObj_Projectile *pProj)
 	pProj->m_Type = m_Type;
 }
 
-void CProjectile::Snap(int SnappingClient, int OtherMode)
+bool CProjectile::NetworkClipped(int SnappingClient)
 {
 	float Ct = (Server()->Tick() - m_StartTick) / (float)Server()->TickSpeed();
+	return NetworkPointClipped(SnappingClient, GetPos(Ct));
+}
 
-	if(NetworkClipped(SnappingClient, GetPos(Ct)))
-		return;
-
+void CProjectile::Snap(int SnappingClient, int OtherMode)
+{
 	// don't snap projectiles that is disowned for other mode
 	if(m_Owner == -2 && OtherMode)
 		return;

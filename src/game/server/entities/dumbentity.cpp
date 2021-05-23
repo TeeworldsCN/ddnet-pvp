@@ -37,6 +37,14 @@ void CDumbEntity::Tick()
 	m_PrevPos = m_Pos;
 }
 
+bool CDumbEntity::NetworkClipped(int SnappingClient)
+{
+	if((m_Type & MASK_TYPE) == TYPE_LASER && !(m_Type & FLAG_LASER_VELOCITY))
+		return NetworkLineClipped(SnappingClient, m_Pos, m_Pos + m_LaserVector);
+
+	return NetworkPointClipped(SnappingClient, m_Pos);
+}
+
 void CDumbEntity::Snap(int SnappingClient, int OtherMode)
 {
 	if(OtherMode || (m_Type & FLAG_MANUAL))
@@ -61,19 +69,8 @@ void CDumbEntity::SetLaserVector(vec2 Vector)
 	m_LaserVector = Vector;
 }
 
-void CDumbEntity::SetHide(bool Hide)
-{
-	m_Hide = Hide;
-}
-
 void CDumbEntity::DoSnap(int SnapID, int SnappingClient)
 {
-	if(NetworkClipped(SnappingClient))
-		return;
-
-	if(m_Hide)
-		return;
-
 	int Type = m_Type & MASK_TYPE;
 
 	if(Type <= TYPE_POWERUP_NINJA)

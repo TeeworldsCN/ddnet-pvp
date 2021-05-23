@@ -25,6 +25,7 @@ public:
 
 	virtual void Reset() override;
 	virtual void Tick() override;
+	virtual bool NetworkClipped(int SnappingClient) override;
 	virtual void Snap(int SnappingClient, int OtherMode) override;
 };
 

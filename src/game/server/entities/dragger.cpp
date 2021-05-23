@@ -158,8 +158,12 @@ void CDragger::Tick()
 
 void CDragger::Snap(int SnappingClient, int OtherMode)
 {
+	if(OtherMode)
+		return;
+
 	CCharacter *Target = m_Target;
 
+	int pos = 0;
 	for(int &SoloID : m_SoloIDs)
 	{
 		if(SoloID == -1)
@@ -168,11 +172,6 @@ void CDragger::Snap(int SnappingClient, int OtherMode)
 		Server()->SnapFreeID(SoloID);
 		SoloID = -1;
 	}
-
-	if(OtherMode)
-		return;
-
-	int pos = 0;
 
 	for(int i = -1; i < MAX_CLIENTS; i++)
 	{
@@ -184,12 +183,7 @@ void CDragger::Snap(int SnappingClient, int OtherMode)
 				continue;
 		}
 
-		if(Target)
-		{
-			if(NetworkClipped(SnappingClient, m_Pos) && NetworkClipped(SnappingClient, Target->m_Pos))
-				continue;
-		}
-		else if(NetworkClipped(SnappingClient, m_Pos))
+		if(Target && NetworkLineClipped(SnappingClient, m_Pos, Target->m_Pos))
 			continue;
 
 		int Tick = (Server()->Tick() % Server()->TickSpeed()) % 11;

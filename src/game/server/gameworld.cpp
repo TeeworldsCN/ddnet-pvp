@@ -135,7 +135,7 @@ void CGameWorld::Snap(int SnappingClient, int OtherMode)
 		for(; pEnt;)
 		{
 			m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
-			pEnt->Snap(SnappingClient, OtherMode);
+			pEnt->InternalSnap(SnappingClient, OtherMode);
 			pEnt = m_pNextTraverseEntity;
 		}
 

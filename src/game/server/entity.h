@@ -10,6 +10,8 @@
 #include "gameworld.h"
 
 typedef void (*FCustomDataDestroyCallback)(void *pData);
+typedef bool (*FCustomSnapCallback)(class IGameController *pController, CEntity *pEntity, int SnappingClient, bool IsClipped);
+
 struct SEntityCustomData
 {
 	void *m_pData;
@@ -45,6 +47,9 @@ protected:
 	/* State */
 	bool m_MarkedForDestroy;
 
+	/* Callback */
+	FCustomSnapCallback m_OnSnap;
+
 public: // TODO: Maybe make protected
 	/*
 		Variable: m_Pos
@@ -79,6 +84,17 @@ public:
 	CEntity *TypePrev() { return m_pPrevTypeEntity; }
 	const vec2 &GetPos() const { return m_Pos; }
 	float GetProximityRadius() const { return m_ProximityRadius; }
+	void CustomSnap(class IGameController *pController, FCustomSnapCallback Callback)
+	{
+#ifdef CONF_DEBUG
+		if(pController == Controller())
+			m_OnSnap = Callback;
+		else
+			dbg_msg("entity", "warning: you can only do custom snaps for entities in the same room of your controller");
+#else
+		m_OnSnap = Callback;
+#endif
+	}
 
 	/* Other functions */
 
@@ -86,7 +102,10 @@ public:
 		Function: Destroy
 			Destroys the entity.
 	*/
-	virtual void Destroy() { delete this; }
+	virtual void Destroy()
+	{
+		delete this;
+	}
 
 	/*
 		Function: Reset
@@ -141,10 +160,13 @@ public:
 		Returns:
 			True if the entity doesn't have to be in the snapshot.
 	*/
-	bool NetworkClipped(int SnappingClient);
-	bool NetworkClipped(int SnappingClient, vec2 CheckPos);
+	virtual bool NetworkClipped(int SnappingClient);
 
+	bool NetworkPointClipped(int SnappingClient, vec2 CheckPos, vec2 MinView = {0.0f, 0.0f});
+	bool NetworkLineClipped(int SnappingClient, vec2 From, vec2 To, vec2 MinView = {0.0f, 0.0f});
 	bool GameLayerClipped(vec2 CheckPos);
+
+	void InternalSnap(int SnappingClient, int OtherMode);
 
 	// DDRace
 
@@ -155,6 +177,7 @@ public:
 	int m_Layer;
 };
 
-bool NetworkClipped(CGameContext *pGameServer, int SnappingClient, vec2 CheckPos);
+bool NetworkPointClipped(CGameContext *pGameServer, int SnappingClient, vec2 CheckPos, vec2 MinView = {0.0f, 0.0f});
+bool NetworkLineClipped(CGameContext *pGameServer, int SnappingClient, vec2 From, vec2 To, vec2 MinView = {0.0f, 0.0f});
 
 #endif

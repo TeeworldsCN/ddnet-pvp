@@ -944,14 +944,16 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 	}
 }
 
+bool CCharacter::NetworkClipped(int SnappingClient)
+{
+	return NetworkLineClipped(SnappingClient, m_Core.m_Pos, m_Core.m_HookPos);
+}
+
 void CCharacter::Snap(int SnappingClient, int OtherMode)
 {
 	int MappedID = m_pPlayer->GetCID();
 
 	if(SnappingClient > -1 && !Server()->Translate(MappedID, SnappingClient))
-		return;
-
-	if(NetworkClipped(SnappingClient))
 		return;
 
 	if(m_Disabled)

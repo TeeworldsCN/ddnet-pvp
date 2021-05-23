@@ -50,7 +50,8 @@ void CEventHandler::Snap(int SnappingClient)
 		if(SnappingClient == -1 || CmaskIsSet(m_aClientMasks[i], SnappingClient))
 		{
 			CNetEvent_Common *ev = (CNetEvent_Common *)&m_aData[m_aOffsets[i]];
-			if(!NetworkClipped(GameServer(), SnappingClient, vec2(ev->m_X, ev->m_Y)))
+			// larger clip for events (especially for sounds), to provides full spatial sounds
+			if(!NetworkPointClipped(GameServer(), SnappingClient, vec2(ev->m_X, ev->m_Y), vec2(1800.0f, 1800.0f)))
 			{
 				int Type = m_aTypes[i];
 				int Size = m_aSizes[i];

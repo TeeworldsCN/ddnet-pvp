@@ -105,9 +105,14 @@ void CLight::Tick()
 	return;
 }
 
+bool CLight::NetworkClipped(int SnappingClient)
+{
+	return NetworkLineClipped(SnappingClient, m_To, m_Pos);
+}
+
 void CLight::Snap(int SnappingClient, int OtherMode)
 {
-	if(OtherMode && NetworkClipped(SnappingClient, m_Pos) && NetworkClipped(SnappingClient, m_To))
+	if(OtherMode)
 		return;
 
 	int Tick = (Server()->Tick() % Server()->TickSpeed()) % 6;

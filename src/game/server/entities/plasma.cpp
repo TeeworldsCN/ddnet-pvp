@@ -88,7 +88,7 @@ void CPlasma::Tick()
 
 void CPlasma::Snap(int SnappingClient, int OtherMode)
 {
-	if(NetworkClipped(SnappingClient))
+	if(OtherMode)
 		return;
 
 	int Tick = (Server()->Tick() % Server()->TickSpeed()) % 11;

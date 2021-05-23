@@ -31,9 +31,10 @@ public:
 		int Layer = 0, int Number = 0);
 	~CLight();
 
-	virtual void Reset();
-	virtual void Tick();
-	virtual void Snap(int SnappingClient, int OtherMode);
+	virtual void Reset() override;
+	virtual void Tick() override;
+	virtual bool NetworkClipped(int SnappingClient) override;
+	virtual void Snap(int SnappingClient, int OtherMode) override;
 };
 
 #endif // GAME_SERVER_ENTITIES_LIGHT_H

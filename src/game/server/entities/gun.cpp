@@ -111,9 +111,6 @@ void CGun::Tick()
 
 void CGun::Snap(int SnappingClient, int OtherMode)
 {
-	if(OtherMode || NetworkClipped(SnappingClient))
-		return;
-
 	int Tick = (Server()->Tick() % Server()->TickSpeed()) % 11;
 	if(m_Layer == LAYER_SWITCH && m_Number > 0 && !GameServer()->Collision()->m_pSwitchers[m_Number].m_Status[GameWorld()->Team()] && (!Tick))
 		return;
