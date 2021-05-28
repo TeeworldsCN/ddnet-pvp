@@ -249,7 +249,11 @@ protected:
 		int m_ScoreLimit;
 		int m_TimeLimit;
 	} m_GameInfo;
-	int m_DDNetServerCapability;
+
+	// default to: GAMEINFOFLAG_ALLOW_EYE_WHEEL | GAMEINFOFLAG_ALLOW_HOOK_COLL | GAMEINFOFLAG_PREDICT_DDRACE_TILES
+	int m_DDNetInfoFlag;
+	// default to: 0
+	int m_DDNetInfoFlag2;
 
 public:
 	IGameController();
@@ -389,6 +393,10 @@ public:
 	// Instance Space Ops
 	void SendChatTarget(int To, const char *pText, int Flags = 3) const;
 	void SendBroadcast(const char *pText, int ClientID, bool IsImportant = true) const;
+
+	// helpers
+	bool IsDDNetEntity(int Index) const;
+	bool IsDDNetTile(int Index) const;
 
 	// Instance Config
 	static void InstanceConsolePrint(const char *pStr, void *pUser, ColorRGBA PrintColor);
