@@ -135,13 +135,11 @@ void CDumbEntity::DoSnap(int SnapID, int SnappingClient)
 
 		pProj->m_StartTick = Server()->Tick() - 2;
 		pProj->m_Type = Type - (TYPE_PROJECTILE_GUN - WEAPON_GUN);
-		vec2 Pos = m_PrevPos;
 		vec2 PrevPos = m_PrevPrevPos;
 		vec2 Vel = m_PrevVelocity;
 		float Delta = 2.0f / (float)Server()->TickSpeed();
 		if(m_Type & FLAG_IMMEDIATE)
 		{
-			Pos = m_Pos;
 			PrevPos = m_PrevPos;
 			Vel = m_Velocity;
 			Delta = 1.0f / (float)Server()->TickSpeed();

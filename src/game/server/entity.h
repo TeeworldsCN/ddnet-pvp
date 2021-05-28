@@ -164,6 +164,7 @@ public:
 
 	bool NetworkPointClipped(int SnappingClient, vec2 CheckPos, vec2 MinView = {0.0f, 0.0f});
 	bool NetworkLineClipped(int SnappingClient, vec2 From, vec2 To, vec2 MinView = {0.0f, 0.0f});
+	bool NetworkRectClipped(int SnappingClient, vec2 TL, vec2 BR, vec2 MinView = {0.0f, 0.0f});
 	bool GameLayerClipped(vec2 CheckPos);
 
 	void InternalSnap(int SnappingClient, int OtherMode);
@@ -179,5 +180,6 @@ public:
 
 bool NetworkPointClipped(CGameContext *pGameServer, int SnappingClient, vec2 CheckPos, vec2 MinView = {0.0f, 0.0f});
 bool NetworkLineClipped(CGameContext *pGameServer, int SnappingClient, vec2 From, vec2 To, vec2 MinView = {0.0f, 0.0f});
+bool NetworkRectClipped(CGameContext *pGameServer, int SnappingClient, vec2 TL, vec2 BR, vec2 MinView = {0.0f, 0.0f});
 
 #endif

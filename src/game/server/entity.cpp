@@ -44,6 +44,11 @@ bool CEntity::NetworkLineClipped(int SnappingClient, vec2 From, vec2 To, vec2 Mi
 	return ::NetworkLineClipped(GameServer(), SnappingClient, From, To, MinView);
 }
 
+bool CEntity::NetworkRectClipped(int SnappingClient, vec2 TL, vec2 BR, vec2 MinView)
+{
+	return ::NetworkRectClipped(GameServer(), SnappingClient, TL, BR, MinView);
+}
+
 bool CEntity::GameLayerClipped(vec2 CheckPos)
 {
 	return round_to_int(CheckPos.x) / 32 < -200 || round_to_int(CheckPos.x) / 32 > GameServer()->Collision()->GetWidth() + 200 ||
@@ -155,6 +160,32 @@ bool NetworkLineClipped(CGameContext *pGameServer, int SnappingClient, vec2 From
 		return false;
 
 	return true;
+}
+
+bool NetworkRectClipped(CGameContext *pGameServer, int SnappingClient, vec2 TL, vec2 BR, vec2 MinView)
+{
+	if(SnappingClient == -1)
+		return false;
+
+	vec2 ShowDistance;
+	if(pGameServer->m_apPlayers[SnappingClient]->IsSpectating())
+		ShowDistance = pGameServer->m_apPlayers[SnappingClient]->m_ShowDistance;
+	else
+		ShowDistance = vec2(SHOW_DISTANCE_DEFAULT_X, SHOW_DISTANCE_DEFAULT_Y);
+
+	ShowDistance.x = maximum(ShowDistance.x, MinView.x);
+	ShowDistance.y = maximum(ShowDistance.y, MinView.y);
+
+	vec2 ViewPos = pGameServer->m_apPlayers[SnappingClient]->m_ViewPos;
+	float Top = ViewPos.y - ShowDistance.y;
+	float Left = ViewPos.x - ShowDistance.x;
+	float Bottom = ViewPos.y + ShowDistance.y;
+	float Right = ViewPos.x + ShowDistance.x;
+
+	if(TL.x < Right && BR.x > Left && TL.y > Bottom && BR.y < Top)
+		return true;
+
+	return false;
 }
 
 void CEntity::InternalSnap(int SnappingClient, int OtherMode)

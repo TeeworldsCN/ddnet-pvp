@@ -260,7 +260,7 @@ void CCharacter::FireWeapon()
 	DoWeaponSwitch();
 
 	CWeapon *pCurrentWeapon = CurrentWeapon();
-	if(!pCurrentWeapon || IsFrozen())
+	if(!pCurrentWeapon)
 		return;
 
 	if(pCurrentWeapon->IsReloading())
@@ -284,17 +284,21 @@ void CCharacter::FireWeapon()
 	}
 
 	if(!(m_LatestInput.m_Fire & 1))
-	{
 		m_IsFiring = false;
-	}
 
-	if(pCurrentWeapon->IsFullAuto() && m_IsFiring)
+	// cancel firing if not allowed to hold fire during freeze
+	if(IsFrozen() && !m_FreezeAllowHoldFire)
+		m_IsFiring = false;
+
+	if((pCurrentWeapon->IsFullAuto() || m_FrozenLastTick) && m_IsFiring)
 		WillFire = true;
 
-	if(!WillFire)
+	if(!WillFire || IsFrozen())
 		return;
 
 	pCurrentWeapon->HandleFire(Direction);
+	if(m_ProtectCancelOnFire && m_ProtectTick > 1)
+		m_ProtectTick = 1;
 }
 
 CWeapon *CCharacter::CurrentWeapon()
@@ -1847,11 +1851,12 @@ void CCharacter::DDRacePostCoreTick()
 	HandleBroadcast();
 }
 
-void CCharacter::Protect(float Seconds)
+void CCharacter::Protect(float Seconds, bool CancelOnFire)
 {
 	if(m_ProtectTick == 0)
 		m_ProtectStartTick = Server()->Tick();
 	m_ProtectTick = round_to_int(Seconds * Server()->TickSpeed());
+	m_ProtectCancelOnFire = CancelOnFire;
 }
 
 bool CCharacter::IsProtected()
@@ -1880,9 +1885,10 @@ void CCharacter::SetAllowFrozenWeaponSwitch(bool Allow)
 	m_FreezeWeaponSwitch = Allow;
 }
 
-bool CCharacter::Freeze(float Seconds)
+bool CCharacter::Freeze(float Seconds, bool BlockHoldFire)
 {
 	int Ticks = round_to_int(Seconds * Server()->TickSpeed());
+	m_FreezeAllowHoldFire = !BlockHoldFire;
 	if(Seconds <= 0 || m_Super || m_FreezeTime > Ticks)
 		return false;
 	if(m_FreezeTime == 0 || m_FreezeTick < Server()->Tick() - Server()->TickSpeed())
