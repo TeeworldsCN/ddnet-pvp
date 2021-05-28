@@ -176,12 +176,12 @@ private:
 public:
 	void FillAntibot(CAntibotCharacterData *pData);
 	void SetDisable(bool Pause);
-	bool Freeze(int Time);
+	bool Freeze(float Time);
 	bool Freeze();
 	bool IsFrozen();
 	bool IsDeepFrozen();
 	bool UnFreeze();
-	bool ReduceFreeze(int Time);
+	bool ReduceFreeze(float Time);
 	bool DeepFreeze();
 	bool UndeepFreeze();
 	void SetAllowFrozenWeaponSwitch(bool Allow);
@@ -245,6 +245,8 @@ public:
 
 	int m_SpawnTick;
 	int m_WeaponChangeTick;
+	int m_ProtectTick;
+	int m_ProtectStartTick;
 
 	// Setters/Getters because i don't want to modify vanilla vars access modifiers
 	int GetLastWeapon() { return m_LastWeaponSlot; };
@@ -262,6 +264,8 @@ public:
 	CWeapon *GetWeapon(int Slot) { return m_apWeaponSlots[Slot]; }
 	CWeapon *GetOverrideWeapon(int Slot) { return m_apOverrideWeaponSlots[Slot]; }
 	CWeapon *GetPowerupWeapon() { return m_pPowerupWeapon; }
+	void Protect(float Seconds);
+	bool IsProtected();
 
 	int GetLastAction() const
 	{

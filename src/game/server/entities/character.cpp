@@ -26,6 +26,8 @@ CCharacter::CCharacter(CGameWorld *pWorld) :
 	m_Armor = 0;
 	m_WeaponTimerType = WEAPON_TIMER_GLOBAL;
 	m_FreezeWeaponSwitch = false;
+	m_ProtectTick = 0;
+	m_ProtectStartTick = 0;
 
 	// never intilize both to zero
 	m_Input.m_TargetX = 0;
@@ -654,6 +656,9 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int Weapo
 			Dmg = 0;
 	}
 
+	if(m_ProtectTick > 0)
+		Dmg = 0;
+
 	int DamageFlag = Controller()->OnCharacterTakeDamage(this, Force, Dmg, From, Weapon, WeaponID, IsExplosion);
 
 	if((DamageFlag & DAMAGE_SKIP) == DAMAGE_SKIP)
@@ -788,6 +793,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 
 	int Tick, Emote = m_EmoteType, Weapon = pCurrentWeapon ? pCurrentWeapon->GetType() : m_ActiveWeaponSlot, AmmoCount = 0,
 		  Health = 0, Armor = 0, AttackTick = pCurrentWeapon ? pCurrentWeapon->GetAttackTick() : 0;
+
 	if(!m_ReckoningTick || GameWorld()->m_Paused)
 	{
 		Tick = 0;
@@ -870,6 +876,18 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 		ShowNinjaProgress = false;
 
 	NinjaProgress = clamp(NinjaProgress, 0.0f, 1.0f);
+
+	if(m_ProtectTick > 0)
+	{
+		if((Server()->Tick() - m_ProtectStartTick) / 8 % 2)
+			Emote = EMOTE_NORMAL;
+		else
+		{
+			Health = 0;
+			Armor = 0;
+			Emote = EMOTE_SURPRISE;
+		}
+	}
 
 	if(!Server()->IsSixup(SnappingClient))
 	{
@@ -1742,9 +1760,15 @@ void CCharacter::DDRaceTick()
 		if(m_FreezeTime == 1)
 			UnFreeze();
 	}
-
-	if(m_FreezeTime < 0)
+	else if(m_FreezeTime < 0)
 		m_FreezeTime = 0;
+
+	if(m_ProtectTick > 0)
+	{
+		m_ProtectTick--;
+	}
+	else if(m_ProtectTick < 0)
+		m_ProtectTick = 0;
 
 	HandleTuneLayer(); // need this before coretick
 
@@ -1812,6 +1836,18 @@ void CCharacter::DDRacePostCoreTick()
 	HandleBroadcast();
 }
 
+void CCharacter::Protect(float Seconds)
+{
+	if(m_ProtectTick == 0)
+		m_ProtectStartTick = Server()->Tick();
+	m_ProtectTick = round_to_int(Seconds * Server()->TickSpeed());
+}
+
+bool CCharacter::IsProtected()
+{
+	return m_ProtectTick > 0;
+}
+
 bool CCharacter::DeepFreeze()
 {
 	if(m_DeepFreeze)
@@ -1833,14 +1869,14 @@ void CCharacter::SetAllowFrozenWeaponSwitch(bool Allow)
 	m_FreezeWeaponSwitch = Allow;
 }
 
-bool CCharacter::Freeze(int Seconds)
+bool CCharacter::Freeze(float Seconds)
 {
-	if((Seconds <= 0 || m_Super || m_FreezeTime > Seconds * Server()->TickSpeed()) && Seconds != -1)
+	int Ticks = round_to_int(Seconds * Server()->TickSpeed());
+	if(Seconds <= 0 || m_Super || m_FreezeTime > Ticks)
 		return false;
-	if(m_FreezeTick < Server()->Tick() - Server()->TickSpeed() || Seconds == -1)
+	if(m_FreezeTime == 0 || m_FreezeTick < Server()->Tick() - Server()->TickSpeed())
 	{
-		m_Armor = 0;
-		m_FreezeTime = Seconds == -1 ? Seconds : Seconds * Server()->TickSpeed();
+		m_FreezeTime = Ticks;
 		m_FreezeTick = Server()->Tick();
 		return true;
 	}
@@ -1869,11 +1905,11 @@ bool CCharacter::UnFreeze()
 	return false;
 }
 
-bool CCharacter::ReduceFreeze(int Time)
+bool CCharacter::ReduceFreeze(float Time)
 {
 	if(m_FreezeTime > 0)
 	{
-		m_FreezeTime -= Time * Server()->TickSpeed();
+		m_FreezeTime -= round_to_int(Time * Server()->TickSpeed());
 		if(m_FreezeTime <= 0)
 		{
 			m_FreezeTime = 0;
