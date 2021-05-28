@@ -34,7 +34,7 @@ bool CPlasma::HitCharacter()
 	if(!Hit)
 		return false;
 
-	m_Freeze ? Hit->Freeze() : Hit->UnFreeze();
+	m_Freeze ? Hit->Freeze(3) : Hit->UnFreeze();
 	if(m_Explosive)
 		GameWorld()->CreateExplosion(m_Pos, -1, WEAPON_GRENADE, WEAPON_ID_DDRACE, 0, true);
 	m_MarkedForDestroy = true;

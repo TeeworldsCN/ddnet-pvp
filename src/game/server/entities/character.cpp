@@ -1188,7 +1188,7 @@ void CCharacter::HandleTiles(int Index)
 	// freeze
 	if(((m_TileIndex == TILE_FREEZE) || (m_TileFIndex == TILE_FREEZE)) && !m_Super && !m_DeepFreeze)
 	{
-		Freeze();
+		Freeze(3);
 	}
 	else if(((m_TileIndex == TILE_UNFREEZE) || (m_TileFIndex == TILE_UNFREEZE)) && !m_DeepFreeze)
 	{
@@ -1761,7 +1761,7 @@ void CCharacter::DDRacePostCoreTick()
 	m_FrozenLastTick = false;
 
 	if(m_DeepFreeze && !m_Super)
-		Freeze();
+		Freeze(3);
 
 	if(m_Core.m_Jumps == 0 && !m_Super)
 		m_Core.m_Jumped = 3;

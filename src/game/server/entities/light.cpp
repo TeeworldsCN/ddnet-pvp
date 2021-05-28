@@ -35,7 +35,7 @@ bool CLight::HitCharacter()
 	{
 		if(m_Layer == LAYER_SWITCH && m_Number > 0 && !GameServer()->Collision()->m_pSwitchers[m_Number].m_Status[Char->Team()])
 			continue;
-		Char->Freeze();
+		Char->Freeze(3);
 	}
 	return true;
 }
