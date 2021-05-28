@@ -25,6 +25,7 @@ CCharacter::CCharacter(CGameWorld *pWorld) :
 	m_Health = 0;
 	m_Armor = 0;
 	m_WeaponTimerType = WEAPON_TIMER_GLOBAL;
+	m_FreezeWeaponSwitch = false;
 
 	// never intilize both to zero
 	m_Input.m_TargetX = 0;
@@ -199,10 +200,6 @@ void CCharacter::DoWeaponSwitch()
 
 void CCharacter::HandleWeaponSwitch()
 {
-	int WantedWeapon = m_ActiveWeaponSlot;
-	if(m_QueuedWeaponSlot != -1)
-		WantedWeapon = m_QueuedWeaponSlot;
-
 	bool Anything = false;
 	for(int i = 0; i < NUM_WEAPON_SLOTS; ++i)
 		if(m_apWeaponSlots[i])
@@ -210,6 +207,16 @@ void CCharacter::HandleWeaponSwitch()
 
 	if(!Anything)
 		return;
+
+	if(IsFrozen() && !m_FreezeWeaponSwitch)
+	{
+		m_QueuedWeaponSlot = m_ActiveWeaponSlot;
+		return;
+	}
+
+	int WantedWeapon = m_ActiveWeaponSlot;
+	if(m_QueuedWeaponSlot != -1)
+		WantedWeapon = m_QueuedWeaponSlot;
 
 	// select Weapon
 	int Next = CountInput(m_LatestPrevInput.m_NextWeapon, m_LatestInput.m_NextWeapon).m_Presses;
@@ -793,7 +800,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 	}
 
 	// change eyes and use ninja graphic if player is frozen
-	if(m_DeepFreeze || m_FreezeTime > 0 || m_FreezeTime == -1)
+	if(m_DeepFreeze || m_FreezeTime > 0)
 	{
 		if(Emote == EMOTE_NORMAL)
 			Emote = m_DeepFreeze ? EMOTE_PAIN : EMOTE_BLINK;
@@ -834,7 +841,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 
 	if(GetPlayer()->m_Afk || GetPlayer()->IsPaused())
 	{
-		if(m_FreezeTime > 0 || m_FreezeTime == -1 || m_DeepFreeze)
+		if(m_FreezeTime > 0 || m_DeepFreeze)
 			Emote = EMOTE_NORMAL;
 		else
 			Emote = EMOTE_BLINK;
@@ -850,7 +857,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 	bool ShowNinjaProgress = true;
 	if(m_FreezeTime > 0)
 		NinjaProgress = 1.0f - (m_FreezeTime / (float)(m_FreezeTime + (Server()->Tick() - m_FreezeTick)));
-	else if(m_FreezeTime == -1 || m_DeepFreeze)
+	else if(m_DeepFreeze)
 		NinjaProgress = 1.0f;
 	else if(Weapon == WEAPON_NINJA)
 	{
@@ -1000,8 +1007,8 @@ void CCharacter::Snap(int SnappingClient, int OtherMode)
 	if(pWeapon && pWeapon->GetType() == WEAPON_NINJA)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
 
-	pDDNetCharacter->m_FreezeEnd = (m_DeepFreeze || m_FreezeTime == -1) ? -1 : m_FreezeTime == 0 ? 0 :
-                                                                                                       Server()->Tick() + m_FreezeTime;
+	pDDNetCharacter->m_FreezeEnd = m_DeepFreeze ? -1 : m_FreezeTime == 0 ? 0 :
+                                                                               Server()->Tick() + m_FreezeTime;
 	pDDNetCharacter->m_Jumps = m_Core.m_Jumps;
 	pDDNetCharacter->m_TeleCheckpoint = m_TeleCheckpoint;
 	pDDNetCharacter->m_StrongWeakID = SnappingClient == m_pPlayer->GetCID() ? 1 : 0;
@@ -1724,12 +1731,8 @@ void CCharacter::DDRaceTick()
 	if(m_Input.m_Direction != 0 || m_Input.m_Jump != 0)
 		m_LastMove = Server()->Tick();
 
-	if(m_FreezeTime > 0 || m_FreezeTime == -1)
+	if(m_FreezeTime > 0)
 	{
-		if(m_FreezeTime % Server()->TickSpeed() == Server()->TickSpeed() - 1 || m_FreezeTime == -1)
-		{
-			GameWorld()->CreateDamageInd(m_Pos, 0, (m_FreezeTime + 1) / Server()->TickSpeed());
-		}
 		if(m_FreezeTime > 0)
 			m_FreezeTime--;
 
@@ -1739,6 +1742,9 @@ void CCharacter::DDRaceTick()
 		if(m_FreezeTime == 1)
 			UnFreeze();
 	}
+
+	if(m_FreezeTime < 0)
+		m_FreezeTime = 0;
 
 	HandleTuneLayer(); // need this before coretick
 
@@ -1806,9 +1812,30 @@ void CCharacter::DDRacePostCoreTick()
 	HandleBroadcast();
 }
 
+bool CCharacter::DeepFreeze()
+{
+	if(m_DeepFreeze)
+		return false;
+	m_DeepFreeze = true;
+	return true;
+}
+
+bool CCharacter::UndeepFreeze()
+{
+	if(!m_DeepFreeze)
+		return false;
+	m_DeepFreeze = false;
+	return true;
+}
+
+void CCharacter::SetAllowFrozenWeaponSwitch(bool Allow)
+{
+	m_FreezeWeaponSwitch = Allow;
+}
+
 bool CCharacter::Freeze(int Seconds)
 {
-	if((Seconds <= 0 || m_Super || m_FreezeTime == -1 || m_FreezeTime > Seconds * Server()->TickSpeed()) && Seconds != -1)
+	if((Seconds <= 0 || m_Super || m_FreezeTime > Seconds * Server()->TickSpeed()) && Seconds != -1)
 		return false;
 	if(m_FreezeTick < Server()->Tick() - Server()->TickSpeed() || Seconds == -1)
 	{
@@ -1820,26 +1847,39 @@ bool CCharacter::Freeze(int Seconds)
 	return false;
 }
 
-bool CCharacter::Freeze()
+bool CCharacter::IsFrozen()
 {
-	return Freeze(g_Config.m_SvFreezeDelay);
+	return m_DeepFreeze || m_FreezeTime > 0;
+}
+
+bool CCharacter::IsDeepFrozen()
+{
+	return m_DeepFreeze;
 }
 
 bool CCharacter::UnFreeze()
 {
 	if(m_FreezeTime > 0)
 	{
-		if(!m_apWeaponSlots[m_ActiveWeaponSlot])
-			for(int i = 0; i < NUM_WEAPON_SLOTS; ++i)
-				if(m_apWeaponSlots[i])
-				{
-					SetWeaponSlot(i, true);
-					break;
-				}
-
 		m_FreezeTime = 0;
 		m_FreezeTick = 0;
 		m_FrozenLastTick = true;
+		return true;
+	}
+	return false;
+}
+
+bool CCharacter::ReduceFreeze(int Time)
+{
+	if(m_FreezeTime > 0)
+	{
+		m_FreezeTime -= Time * Server()->TickSpeed();
+		if(m_FreezeTime <= 0)
+		{
+			m_FreezeTime = 0;
+			m_FreezeTick = 0;
+			m_FrozenLastTick = true;
+		}
 		return true;
 	}
 	return false;

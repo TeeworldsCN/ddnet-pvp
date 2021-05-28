@@ -110,6 +110,7 @@ private:
 	bool m_Alive;
 	bool m_Disabled;
 	int m_WeaponTimerType;
+	bool m_FreezeWeaponSwitch;
 	int m_NeededFaketuning;
 
 	CWeapon *m_pPowerupWeapon;
@@ -177,7 +178,13 @@ public:
 	void SetDisable(bool Pause);
 	bool Freeze(int Time);
 	bool Freeze();
+	bool IsFrozen();
+	bool IsDeepFrozen();
 	bool UnFreeze();
+	bool ReduceFreeze(int Time);
+	bool DeepFreeze();
+	bool UndeepFreeze();
+	void SetAllowFrozenWeaponSwitch(bool Allow);
 	void RemoveWeapons();
 	int m_DDRaceState;
 	int Team();
