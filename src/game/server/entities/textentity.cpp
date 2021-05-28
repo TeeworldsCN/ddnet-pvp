@@ -4,7 +4,7 @@ static struct SFontDot
 {
 	int m_Width;
 	int m_Dots;
-	char *m_Data;
+	const char *m_Data;
 } s_FontDotData[256] = {
 	{0, 0, 0},
 	{0, 0, 0},
