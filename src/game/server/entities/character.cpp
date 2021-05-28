@@ -258,7 +258,7 @@ void CCharacter::FireWeapon()
 	DoWeaponSwitch();
 
 	CWeapon *pCurrentWeapon = CurrentWeapon();
-	if(!pCurrentWeapon)
+	if(!pCurrentWeapon || IsFrozen())
 		return;
 
 	if(pCurrentWeapon->IsReloading())
@@ -889,7 +889,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 		}
 
 		// HACK: try disable weapon antiping when the weapon is non-standard or is using quick switch
-		if(m_WeaponTimerType == WEAPON_TIMER_INDIVIDUAL && (!pCurrentWeapon || pCurrentWeapon->GetType() != WEAPON_NINJA))
+		if(m_WeaponTimerType == WEAPON_TIMER_INDIVIDUAL && !IsFrozen() && (!pCurrentWeapon || pCurrentWeapon->GetType() != WEAPON_NINJA))
 			AttackTick = AttackTick > Server()->Tick() - 25 ? AttackTick : Server()->Tick() - 12;
 		else if(pCurrentWeapon)
 		{
