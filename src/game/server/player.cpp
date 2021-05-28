@@ -43,6 +43,8 @@ void CPlayer::Reset()
 
 	m_IsReadyToEnter = false;
 
+	m_LastFire = false;
+
 	int *pIdMap = Server()->GetIdMap(m_ClientID);
 	for(int i = 1; i < VANILLA_MAX_CLIENTS; i++)
 	{
@@ -701,10 +703,13 @@ void CPlayer::OnPredictedEarlyInput(CNetObj_PlayerInput *NewInput)
 	if(m_pCharacter && !m_Paused)
 		m_pCharacter->OnDirectInput(NewInput);
 
-	if(!m_pCharacter && m_Team != TEAM_SPECTATORS && (NewInput->m_Fire & 1))
+	bool JustFired = !m_LastFire && (NewInput->m_Fire & 1);
+	m_LastFire = (NewInput->m_Fire & 1);
+
+	if(!m_pCharacter && m_Team != TEAM_SPECTATORS && JustFired)
 		Respawn();
 
-	if(!m_pCharacter && IsSpectating() && (NewInput->m_Fire & 1))
+	if(!m_pCharacter && IsSpectating() && JustFired)
 	{
 		if(!m_ActiveSpecSwitch)
 		{

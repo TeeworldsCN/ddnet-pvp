@@ -89,6 +89,8 @@ public:
 
 	bool m_RespawnDisabled;
 
+	bool m_LastFire;
+
 	//
 	int m_Vote;
 	int m_VotePos;
