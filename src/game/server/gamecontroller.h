@@ -416,7 +416,7 @@ public:
 			Whether a player can be moved to the other team when a team balancing is taking place
 
 		Arguments:
-			ClientID - which player is being evaluated.
+			pPlayer - which player is being evaluated.
 
 		Return:
 			return true if the player can be killed and moved to the other team
@@ -425,7 +425,7 @@ public:
 			Team balancing will always try to match both team's player score.
 			If you don't want this, you should override DoTeamBalance instead.
 	*/
-	virtual bool CanBeMovedOnBalance(int ClientID) const { return true; };
+	virtual bool CanBeMovedOnBalance(class CPlayer *pPlayer) const { return true; };
 
 	/*
 		Function: AreTeamsUnbalanced
@@ -763,14 +763,17 @@ public:
 			Whether the player is disrupting the game by leaving
 		
 		Arguments:
-			ClientID = player's cid
+			pPlayer - checking player
 		
-		return:
+		Return:
 			bool - player can't switch room or join spectator if set to true
 				also, disconnected players' characters will not be
 				killed until this check returns false.
+		
+		Note:
+			This method will be called every tick
 	*/
-	virtual bool IsDisruptiveLeave(int ClientID) const { return false; };
+	virtual bool IsDisruptiveLeave(class CPlayer *pPlayer) const { return false; };
 
 	// ============
 	//    OTHERS

@@ -34,12 +34,8 @@ void CGameControllerCTF::OnCharacterSpawn(CCharacter *pChr)
 }
 
 // balancing
-bool CGameControllerCTF::CanBeMovedOnBalance(int ClientID) const
+bool CGameControllerCTF::CanBeMovedOnBalance(CPlayer *pPlayer) const
 {
-	CPlayer *pPlayer = GetPlayerIfInRoom(ClientID);
-	if(!pPlayer)
-		return false;
-
 	CCharacter *Character = pPlayer->GetCharacter();
 	if(Character)
 	{

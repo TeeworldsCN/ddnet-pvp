@@ -8,7 +8,7 @@
 class CGameControllerCTF : public IGameController
 {
 	// balancing
-	virtual bool CanBeMovedOnBalance(int ClientID) const override;
+	virtual bool CanBeMovedOnBalance(CPlayer *pPlayer) const override;
 
 	// game
 	class CFlag *m_apFlags[2];

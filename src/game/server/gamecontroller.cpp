@@ -577,7 +577,7 @@ void IGameController::DoTeamBalance()
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
 			CPlayer *pRoomPlayer = GetPlayerIfInRoom(i);
-			if(!pRoomPlayer || !CanBeMovedOnBalance(i))
+			if(!pRoomPlayer || !CanBeMovedOnBalance(pRoomPlayer))
 				continue;
 
 			// remember the player whom would cause lowest score-difference

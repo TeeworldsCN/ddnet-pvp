@@ -274,7 +274,7 @@ void CPlayer::Tick()
 		m_ChatScore--;
 
 	SGameInstance Instance = GameServer()->PlayerGameInstance(m_ClientID);
-	if(Instance.m_Init && Instance.m_pController->IsDisruptiveLeave(m_ClientID))
+	if(Instance.m_Init && Instance.m_pController->IsDisruptiveLeave(this))
 		Server()->SetDisruptiveLeave(m_ClientID, true);
 	else
 		Server()->SetDisruptiveLeave(m_ClientID, false);
