@@ -877,16 +877,27 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 
 	NinjaProgress = clamp(NinjaProgress, 0.0f, 1.0f);
 
+	// Protection indicator
 	if(m_ProtectTick > 0)
 	{
-		if((Server()->Tick() - m_ProtectStartTick) / 8 % 2)
+		int TotalTick = (Server()->Tick() - m_ProtectStartTick) + m_ProtectTick;
+		float Progress = 1.0f - m_ProtectTick / (float)TotalTick;
+		Health = Health * Progress;
+		Armor = Armor * Progress;
+		int Factor = 8;
+		if(m_ProtectTick < Server()->TickSpeed())
+			Factor = 4;
+		else if(m_ProtectTick < Server()->TickSpeed() * 2)
+			Factor = 5;
+		else if(m_ProtectTick < Server()->TickSpeed() * 3)
+			Factor = 6;
+		else if(m_ProtectTick < Server()->TickSpeed() * 4)
+			Factor = 7;
+
+		if((Server()->Tick() - m_ProtectStartTick) / Factor % 2)
 			Emote = EMOTE_NORMAL;
 		else
-		{
-			Health = 0;
-			Armor = 0;
 			Emote = EMOTE_SURPRISE;
-		}
 	}
 
 	if(!Server()->IsSixup(SnappingClient))
