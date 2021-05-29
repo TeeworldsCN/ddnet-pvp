@@ -48,7 +48,10 @@ enum
 	DEATH_NO_SUICIDE_PANATY = 8,
 
 	// Keep solo states when a character killed, be careful when using this
-	DEATH_KEEP_SOLO = 16
+	DEATH_KEEP_SOLO = 16,
+
+	// Do not generate kill message
+	DEATH_NO_KILL_MSG = 32,
 };
 
 // for OnCharacterTakeDamage
@@ -393,6 +396,7 @@ public:
 	// Instance Space Ops
 	void SendChatTarget(int To, const char *pText, int Flags = 3) const;
 	void SendBroadcast(const char *pText, int ClientID, bool IsImportant = true) const;
+	void SendKillMsg(int Killer, int Victim, int Weapon, int ModeSpecial = 0) const;
 
 	// helpers
 	bool IsDDNetEntity(int Index) const;

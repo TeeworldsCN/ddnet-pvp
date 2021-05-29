@@ -640,7 +640,7 @@ int IGameController::OnInternalCharacterDeath(CCharacter *pVictim, CPlayer *pKil
 			pPlayer->UpdateDeadSpecMode();
 	}
 
-	return DeathFlag & (DEATH_VICTIM_HAS_FLAG | DEATH_KILLER_HAS_FLAG);
+	return DeathFlag;
 }
 
 void IGameController::OnInternalCharacterSpawn(CCharacter *pChr)
@@ -2697,6 +2697,22 @@ void IGameController::SendBroadcast(const char *pText, int ClientID, bool IsImpo
 	for(int i = Start; i < Limit; i++)
 		if(GetPlayerIfInRoom(i))
 			GameServer()->SendBroadcast(pText, i, IsImportant);
+}
+
+void IGameController::SendKillMsg(int Killer, int Victim, int Weapon, int ModeSpecial) const
+{
+	// send the kill message
+	CNetMsg_Sv_KillMsg Msg;
+	Msg.m_Killer = Killer;
+	Msg.m_Victim = Victim;
+	Msg.m_Weapon = Weapon;
+	Msg.m_ModeSpecial = ModeSpecial;
+
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if(GetPlayerIfInRoom(i))
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
+	}
 }
 
 void IGameController::InstanceConsolePrint(const char *pStr, void *pUser, ColorRGBA PrintColor)

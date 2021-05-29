@@ -626,20 +626,11 @@ void CCharacter::Die(int Killer, int Weapon)
 	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 	GameWorld()->CreateDeath(m_Pos, m_pPlayer->GetCID());
 
-	int ModeSpecial = Controller()->OnInternalCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
+	int DeathFlag = Controller()->OnInternalCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
+	int ModeSpecial = DeathFlag & (DEATH_KILLER_HAS_FLAG | DEATH_VICTIM_HAS_FLAG);
 
-	// send the kill message
-	CNetMsg_Sv_KillMsg Msg;
-	Msg.m_Killer = Killer;
-	Msg.m_Victim = m_pPlayer->GetCID();
-	Msg.m_Weapon = Weapon;
-	Msg.m_ModeSpecial = ModeSpecial;
-
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		if(GameServer()->m_apPlayers[i] && (GameServer()->GetPlayerDDRTeam(i) == GameWorld()->Team() || GameServer()->m_apPlayers[i]->ShowOthersMode() == CPlayer::SHOWOTHERS_DISTRACTING))
-			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
-	}
+	if(!(DeathFlag & DEATH_NO_KILL_MSG))
+		Controller()->SendKillMsg(Killer, m_pPlayer->GetCID(), Weapon, ModeSpecial);
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "kill killer='%d:%s' victim='%d:%s' weapon=%d special=%d",
