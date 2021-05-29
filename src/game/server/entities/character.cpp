@@ -752,7 +752,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int Weapo
 			Die(From, Weapon);
 
 			// set attacker's face to happy (taunt!)
-			if(From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
+			if(!(DamageFlag & DAMAGE_NO_EMOTE) && From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
 			{
 				CCharacter *pChr = GameServer()->m_apPlayers[From]->GetCharacter();
 				if(pChr)
@@ -1217,7 +1217,9 @@ void CCharacter::HandleTiles(int Index)
 	if(tcp)
 		m_TeleCheckpoint = tcp;
 
-	Controller()->OnInternalCharacterTile(this, Index);
+	if(Controller()->OnInternalCharacterTile(this, Index))
+		return;
+
 	// freeze
 	if(((m_TileIndex == TILE_FREEZE) || (m_TileFIndex == TILE_FREEZE)) && !m_Super && !m_DeepFreeze)
 	{
