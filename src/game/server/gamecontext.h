@@ -413,10 +413,13 @@ public:
 
 	int m_ChatResponseTargetID;
 	int m_ChatPrintCBIndex;
+
+	static int64 ms_TeamMask[3];
 };
 
 inline int64 CmaskAll() { return -1LL; }
 inline int64 CmaskOne(int ClientID) { return 1LL << ClientID; }
+inline int64 CmaskTeam(int Team) { return CGameContext::ms_TeamMask[Team + 1]; }
 inline int64 CmaskUnset(int64 Mask, int ClientID) { return Mask ^ CmaskOne(ClientID); }
 inline int64 CmaskAllExceptOne(int ClientID) { return CmaskUnset(CmaskAll(), ClientID); }
 inline bool CmaskIsSet(int64 Mask, int ClientID) { return (Mask & CmaskOne(ClientID)) != 0; }

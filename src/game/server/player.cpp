@@ -825,6 +825,14 @@ void CPlayer::SetTeam(int Team)
 	m_LastActionTick = Server()->Tick();
 	m_SpectatorID = SPEC_FREEVIEW;
 
+	for(int i = 0; i < 3; i++)
+	{
+		if(i == Team + 1)
+			CGameContext::ms_TeamMask[i] |= CmaskOne(m_ClientID);
+		else
+			CGameContext::ms_TeamMask[i] &= ~CmaskOne(m_ClientID);
+	}
+
 	protocol7::CNetMsg_Sv_Team Msg;
 	Msg.m_ClientID = m_ClientID;
 	Msg.m_Team = m_Team;
