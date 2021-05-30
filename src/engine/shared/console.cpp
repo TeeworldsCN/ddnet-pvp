@@ -417,7 +417,7 @@ char *CConsole::Format(char *pBuf, int Size, const char *pFrom, const char *pStr
 	return pBuf;
 }
 
-void CConsole::Print(int Level, const char *pFrom, const char *pStr, ColorRGBA PrintColor)
+void CConsole::Print(int Level, const char *pFrom, const char *pStr)
 {
 	dbg_msg(pFrom, "%s", pStr);
 	char aBuf[1024];
@@ -426,7 +426,7 @@ void CConsole::Print(int Level, const char *pFrom, const char *pStr, ColorRGBA P
 	{
 		if(Level <= m_aPrintCB[i].m_OutputLevel && m_aPrintCB[i].m_pfnPrintCallback)
 		{
-			m_aPrintCB[i].m_pfnPrintCallback(aBuf, m_aPrintCB[i].m_pPrintCallbackUserdata, PrintColor);
+			m_aPrintCB[i].m_pfnPrintCallback(aBuf, m_aPrintCB[i].m_pPrintCallbackUserdata);
 		}
 	}
 }

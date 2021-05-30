@@ -24,8 +24,6 @@ static const unsigned char s_VersionTickCompression = 5; // demo files with this
 static const int s_LengthOffset = 152;
 static const int s_NumMarkersOffset = 176;
 
-static const ColorRGBA gs_DemoPrintColor{0.7f, 0.7f, 0.7f, 1.0f};
-
 CDemoRecorder::CDemoRecorder(class CSnapshotDelta *pSnapshotDelta, bool NoMapData)
 {
 	m_File = 0;
@@ -53,7 +51,7 @@ int CDemoRecorder::Start(class IStorage *pStorage, class IConsole *pConsole, con
 		{
 			char aBuf[256];
 			str_format(aBuf, sizeof(aBuf), "Unable to open '%s' for recording", pFilename);
-			m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "demo_recorder", aBuf, gs_DemoPrintColor);
+			m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "demo_recorder", aBuf);
 		}
 		return -1;
 	}
@@ -109,7 +107,7 @@ int CDemoRecorder::Start(class IStorage *pStorage, class IConsole *pConsole, con
 			{
 				char aBuf[256];
 				str_format(aBuf, sizeof(aBuf), "Unable to open mapfile '%s'", pMap);
-				m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "demo_recorder", aBuf, gs_DemoPrintColor);
+				m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "demo_recorder", aBuf);
 			}
 			return -1;
 		}
@@ -177,7 +175,7 @@ int CDemoRecorder::Start(class IStorage *pStorage, class IConsole *pConsole, con
 	{
 		char aBuf[256];
 		str_format(aBuf, sizeof(aBuf), "Recording to '%s'", pFilename);
-		m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "demo_recorder", aBuf, gs_DemoPrintColor);
+		m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "demo_recorder", aBuf);
 	}
 	m_File = DemoFile;
 	str_copy(m_aCurrentFilename, pFilename, sizeof(m_aCurrentFilename));
@@ -375,7 +373,7 @@ int CDemoRecorder::Stop()
 	io_close(m_File);
 	m_File = 0;
 	if(m_pConsole)
-		m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "demo_recorder", "Stopped recording", gs_DemoPrintColor);
+		m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "demo_recorder", "Stopped recording");
 
 	return 0;
 }
@@ -396,7 +394,7 @@ void CDemoRecorder::AddDemoMarker()
 	m_aTimelineMarkers[m_NumTimelineMarkers++] = m_LastTickMarker;
 
 	if(m_pConsole)
-		m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "demo_recorder", "Added timeline marker", gs_DemoPrintColor);
+		m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "demo_recorder", "Added timeline marker");
 }
 
 CDemoPlayer::CDemoPlayer(class CSnapshotDelta *pSnapshotDelta)

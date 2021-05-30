@@ -404,8 +404,6 @@ IGameController::IGameController()
 	m_pInstanceConsole->Chain("roundlimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("player_slots", ConchainVoteUpdate, this);
 
-	m_pInstanceConsole->Chain("cmdlist", ConchainReplyOnly, this);
-
 	m_pInstanceConsole->Register("shuffle_teams", "", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConShuffleTeams, this, "Shuffle the current teams");
 	m_pInstanceConsole->Register("swap_teams", "", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConSwapTeams, this, "Swap the current teams");
 	m_pInstanceConsole->Register("map", "?r[name]", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConChangeMap, this, "Change map");
@@ -2715,7 +2713,7 @@ void IGameController::SendKillMsg(int Killer, int Victim, int Weapon, int ModeSp
 	}
 }
 
-void IGameController::InstanceConsolePrint(const char *pStr, void *pUser, ColorRGBA PrintColor)
+void IGameController::InstanceConsolePrint(const char *pStr, void *pUser)
 {
 	IGameController *pController = (IGameController *)pUser;
 	const char *pLineOrig = pStr;
@@ -2736,13 +2734,6 @@ void IGameController::InstanceConsolePrint(const char *pStr, void *pUser, ColorR
 	char aBufInstance[32];
 	str_format(aBufInstance, sizeof(aBufInstance), "instance %d", pController->GameWorld()->Team());
 	pController->GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, aBufInstance, aBuf);
-}
-
-void IGameController::ConchainReplyOnly(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
-{
-	IGameController *pThis = static_cast<IGameController *>(pUserData);
-	pThis->GameServer()->m_ChatResponseTargetID = pResult->m_ClientID;
-	pfnCallback(pResult, pCallbackUserData);
 }
 
 void IGameController::IntVariableCommand(IConsole::IResult *pResult, void *pUserData)

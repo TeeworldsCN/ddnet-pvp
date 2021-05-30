@@ -403,8 +403,7 @@ public:
 	bool IsDDNetTile(int Index) const;
 
 	// Instance Config
-	static void InstanceConsolePrint(const char *pStr, void *pUser, ColorRGBA PrintColor);
-	static void ConchainReplyOnly(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+	static void InstanceConsolePrint(const char *pStr, void *pUser);
 	static void IntVariableCommand(IConsole::IResult *pResult, void *pUserData);
 	static void ColVariableCommand(IConsole::IResult *pResult, void *pUserData);
 	static void StrVariableCommand(IConsole::IResult *pResult, void *pUserData);
