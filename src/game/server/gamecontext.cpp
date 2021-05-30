@@ -1945,6 +1945,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					{
 						m_ChatResponseTargetID = ClientID;
 						Console()->ExecuteLine(aCmd, ClientID);
+						m_ChatResponseTargetID = -1;
 					}
 					else
 						CallVote(ClientID, aDesc, aCmd, aReason, aChatmsg, aSixupDesc[0] ? aSixupDesc : 0);
@@ -2851,9 +2852,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 
 	DeleteTempfile();
 
-	//if(!data) // only load once
-	//data = load_data_from_memory(internal_data);
-
 	for(int i = 0; i < NUM_NETOBJTYPES; i++)
 		Server()->SnapSetStaticsize(i, m_NetObjHandler.GetObjSize(i));
 
@@ -2865,10 +2863,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	SHA256_DIGEST MapSha256;
 	int MapCrc;
 	Server()->GetMapInfo(aMapName, sizeof(aMapName), &MapSize, &MapSha256, &MapCrc);
-
-	// reset everything here
-	//world = new GAMEWORLD;
-	//players = new CPlayer[MAX_CLIENTS];
 
 	// Reset Tunezones
 	CTuningParams TuningParams;
@@ -3060,6 +3054,8 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		}
 	}
 #endif
+
+	m_aVoteCommand[0] = 0;
 }
 
 void CGameContext::DeleteTempfile()
