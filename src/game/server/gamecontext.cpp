@@ -122,6 +122,19 @@ int CGameContext::GetPlayerDDRTeam(int ClientID)
 	return Teams()->m_Core.Team(ClientID);
 }
 
+bool CGameContext::ChangePlayerReadyState(CPlayer *pPlayer)
+{
+	if(pPlayer->m_LastReadyChangeTick && pPlayer->m_LastReadyChangeTick + Server()->TickSpeed() > Server()->Tick())
+		return false;
+
+	pPlayer->m_LastReadyChangeTick = Server()->Tick();
+	SGameInstance Instance = PlayerGameInstance(pPlayer->GetCID());
+	if(Instance.m_Init)
+		Instance.m_pController->OnPlayerReadyChange(pPlayer);
+
+	return true;
+}
+
 void CGameContext::FillAntibot(CAntibotRoundData *pData)
 {
 	if(!pData->m_Map.m_pTiles)
@@ -1401,6 +1414,11 @@ void *CGameContext::PreProcessMsg(int *MsgID, CUnpacker *pUnpacker, int ClientID
 			if(!pPlayer->SetSpectatorID(pMsg7->m_SpecMode, pMsg7->m_SpectatorID) && Instance.m_Init)
 				Instance.m_pController->SendGameMsg(GAMEMSG_SPEC_INVALIDID, ClientID);
 			return 0;
+		}
+		else if(*MsgID == protocol7::NETMSGTYPE_CL_READYCHANGE)
+		{
+			if(!ChangePlayerReadyState(pPlayer))
+				return 0;
 		}
 		else if(*MsgID == protocol7::NETMSGTYPE_CL_SETTEAM)
 		{
@@ -3169,11 +3187,6 @@ void CGameContext::OnPostSnap()
 bool CGameContext::IsClientReadyToEnter(int ClientID) const
 {
 	return m_apPlayers[ClientID] && m_apPlayers[ClientID]->m_IsReadyToEnter ? true : false;
-}
-
-bool CGameContext::IsClientReadyToPlay(int ClientID) const
-{
-	return m_apPlayers[ClientID] && m_apPlayers[ClientID]->m_IsReadyToPlay ? true : false;
 }
 
 bool CGameContext::IsClientPlayer(int ClientID) const

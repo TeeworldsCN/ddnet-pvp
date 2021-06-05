@@ -31,6 +31,8 @@ CHAT_COMMAND("create", "?r[gametype]", CFGFLAG_CHAT | CFGFLAG_SERVER | CFGFLAG_N
 CHAT_COMMAND("lock", "?i['0'|'1']", CFGFLAG_CHAT | CFGFLAG_SERVER | CFGFLAG_NO_CONSENT, ConLockTeam, this, "Toggle team lock so no one else can join and so the team restarts when a player dies. /lock 0 to unlock, /lock 1 to lock.")
 CHAT_COMMAND("unlock", "", CFGFLAG_CHAT | CFGFLAG_SERVER | CFGFLAG_NO_CONSENT, ConUnlockTeam, this, "Unlock a team")
 CHAT_COMMAND("invite", "r[player name]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConInviteTeam, this, "Invite a person to a locked team")
+CHAT_COMMAND("ready", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConReady, this, "Toggle ready state")
+CHAT_COMMAND("r", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConReady, this, "Toggle ready state")
 
 CHAT_COMMAND("showothers", "?i['0'|'1'|'2']", CFGFLAG_CHAT | CFGFLAG_SERVER | CFGFLAG_NO_CONSENT, ConShowOthers, this, "Whether to show other teams by default, (2 = with distracting stuff)")
 // CHAT_COMMAND("specteam", "?i['0'|'1']", CFGFLAG_CHAT | CFGFLAG_SERVER, ConSpecTeam, this, "Whether to show players in other rooms when spectating (on by default), optional i = 0 for off else for on")

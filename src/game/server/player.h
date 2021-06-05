@@ -207,6 +207,7 @@ public:
 	int64 m_LastRoomChange;
 	int64 m_LastRoomCreation;
 	int64 m_LastRoomInfoChange;
+	int64 m_LastReadyChangeTick;
 	int m_ShowOthers;
 	int ShowOthersMode() { return m_DeadSpecMode ? 0 : m_ShowOthers; }
 	vec2 m_ShowDistance;

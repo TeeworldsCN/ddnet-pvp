@@ -110,6 +110,7 @@ class IGameController
 	{
 		int m_LastGameState;
 		int m_LastTimer;
+		int m_LastPlayerNotReady;
 		int m_NextBroadcastTick;
 		bool m_LastDeadSpec;
 		int m_DisableUntil;
@@ -128,6 +129,7 @@ protected:
 	};
 	int m_aTeamSize[2];
 	int m_UnbalancedTick;
+	int m_NumPlayerNotReady;
 
 	void CheckTeamBalance();
 
@@ -282,6 +284,7 @@ public:
 	int m_TeambalanceTime;
 	int m_KillDelay;
 	int m_PlayerSlots;
+	int m_PlayerReadyMode;
 
 	// mega map stuff
 	char m_aMap[128];
@@ -295,7 +298,7 @@ public:
 	void OnInternalCharacterSpawn(class CCharacter *pChr);
 	bool OnInternalCharacterTile(class CCharacter *pChr, int MapIndex);
 	void OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags, int MegaMapIndex, int Number);
-
+	void OnPlayerReadyChange(class CPlayer *pPlayer);
 	void OnReset();
 
 	// game

@@ -164,6 +164,7 @@ public:
 	SGameInstance GameInstance(int Team);
 	SGameInstance PlayerGameInstance(int ClientID);
 	int GetPlayerDDRTeam(int ClientID);
+	bool ChangePlayerReadyState(CPlayer *pPlayer);
 
 	// voting
 	void StartVote(const char *pDesc, const char *pCommand, const char *pReason, const char *pSixupDesc);
@@ -254,7 +255,6 @@ public:
 	virtual void OnClientEngineDrop(int ClientID, const char *pReason);
 
 	virtual bool IsClientReadyToEnter(int ClientID) const;
-	virtual bool IsClientReadyToPlay(int ClientID) const;
 	virtual bool IsClientPlayer(int ClientID) const;
 	virtual bool IsClientActivePlayer(int ClientID) const;
 
@@ -364,6 +364,8 @@ private:
 
 	static void ConList(IConsole::IResult *pResult, void *pUserData);
 	static void ConUninvite(IConsole::IResult *pResult, void *pUserData);
+
+	static void ConReady(IConsole::IResult *pResult, void *pUserData);
 
 	// instance console
 	static void ConInstanceCommand(IConsole::IResult *pResult, void *pUserData);
