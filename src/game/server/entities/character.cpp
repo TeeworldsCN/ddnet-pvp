@@ -1103,10 +1103,11 @@ void CCharacter::HandleSkippableTiles(int Index)
 	if((GameServer()->Collision()->GetCollisionAt(m_Pos.x + GetProximityRadius() / 3.f, m_Pos.y - GetProximityRadius() / 3.f) == TILE_DEATH ||
 		   GameServer()->Collision()->GetCollisionAt(m_Pos.x + GetProximityRadius() / 3.f, m_Pos.y + GetProximityRadius() / 3.f) == TILE_DEATH ||
 		   GameServer()->Collision()->GetCollisionAt(m_Pos.x - GetProximityRadius() / 3.f, m_Pos.y - GetProximityRadius() / 3.f) == TILE_DEATH ||
+		   GameServer()->Collision()->GetCollisionAt(m_Pos.x - GetProximityRadius() / 3.f, m_Pos.y + GetProximityRadius() / 3.f) == TILE_DEATH ||
 		   GameServer()->Collision()->GetFCollisionAt(m_Pos.x + GetProximityRadius() / 3.f, m_Pos.y - GetProximityRadius() / 3.f) == TILE_DEATH ||
 		   GameServer()->Collision()->GetFCollisionAt(m_Pos.x + GetProximityRadius() / 3.f, m_Pos.y + GetProximityRadius() / 3.f) == TILE_DEATH ||
 		   GameServer()->Collision()->GetFCollisionAt(m_Pos.x - GetProximityRadius() / 3.f, m_Pos.y - GetProximityRadius() / 3.f) == TILE_DEATH ||
-		   GameServer()->Collision()->GetCollisionAt(m_Pos.x - GetProximityRadius() / 3.f, m_Pos.y + GetProximityRadius() / 3.f) == TILE_DEATH) &&
+		   GameServer()->Collision()->GetFCollisionAt(m_Pos.x - GetProximityRadius() / 3.f, m_Pos.y + GetProximityRadius() / 3.f) == TILE_DEATH) &&
 		!m_Super) // && !(Team() && Teams()->TeeFinished(m_pPlayer->GetCID())))
 	{
 		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
@@ -1119,13 +1120,22 @@ void CCharacter::HandleSkippableTiles(int Index)
 		return;
 	}
 
+	vec2 aOffsets[4] = {
+		vec2(GetProximityRadius() / 3.f, -GetProximityRadius() / 3.f),
+		vec2(GetProximityRadius() / 3.f, GetProximityRadius() / 3.f),
+		vec2(-GetProximityRadius() / 3.f, -GetProximityRadius() / 3.f),
+		vec2(-GetProximityRadius() / 3.f, GetProximityRadius() / 3.f),
+	};
+
+	for(int i = 0; i < 4; i++)
+	{
+		if(Controller()->OnCharacterProximateTile(this, GameServer()->Collision()->GetPureMapIndex(m_Pos + aOffsets[i])))
+			return;
+		if(!m_Alive)
+			return;
+	}
+
 	if(Index < 0)
-		return;
-
-	if(Controller()->OnCharacterProximateTile(this, Index))
-		return;
-
-	if(!m_Alive)
 		return;
 
 	// handle speedup tiles
