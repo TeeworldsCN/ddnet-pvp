@@ -483,18 +483,17 @@ void IGameController::StartController()
 
 bool IGameController::GetPlayersReadyState(int WithoutID)
 {
-	bool IsReady = true;
+	m_NumPlayerNotReady = 0;
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
+		if(i == WithoutID)
+			continue;
+
 		CPlayer *pPlayer = GetPlayerIfInRoom(i);
 		if(pPlayer && pPlayer->GetTeam() != TEAM_SPECTATORS && !pPlayer->m_IsReadyToPlay)
-		{
-			if(i != WithoutID)
-				IsReady = false;
 			m_NumPlayerNotReady++;
-		}
 	}
-	return IsReady;
+	return m_NumPlayerNotReady == 0;
 }
 
 void IGameController::SetPlayersReadyState(bool ReadyState)
@@ -529,7 +528,6 @@ void IGameController::CheckReadyStates(int WithoutID)
 		case IGS_START_COUNTDOWN:
 		case IGS_END_MATCH:
 		case IGS_END_ROUND:
-			// not affected
 			break;
 		}
 	}
@@ -1112,7 +1110,7 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, int Type)
 			SendChatTarget(-1, aBuf);
 		}
 	}
-
+	GetPlayersReadyState(-1);
 	OnPlayerJoin(pPlayer);
 
 	m_VoteUpdate = true;
@@ -1578,18 +1576,18 @@ void IGameController::FakeClientBroadcast(int SnappingClient)
 	case IGS_WARMUP_USER:
 		if(m_GameStateTimer == TIMER_INFINITE)
 		{
-			// char aBuf[128];
-			// if(IsPlayerReadyMode() && m_NumPlayerNotReady > 0)
-			// {
-			// 	if(m_NumPlayerNotReady == 1)
-			// 		str_format(aBuf, sizeof(aBuf), "%d player not ready\nWaiting for more players", m_NumPlayerNotReady);
-			// 	else
-			// 		str_format(aBuf, sizeof(aBuf), "%d players not ready\nWaiting for more players", m_NumPlayerNotReady);
+			char aBuf[128];
+			if(IsPlayerReadyMode() && m_NumPlayerNotReady > 0)
+			{
+				if(m_NumPlayerNotReady == 1)
+					str_format(aBuf, sizeof(aBuf), "%d player not ready\nWaiting for more players", m_NumPlayerNotReady);
+				else
+					str_format(aBuf, sizeof(aBuf), "%d players not ready\nWaiting for more players", m_NumPlayerNotReady);
 
-			// 	GameServer()->SendBroadcast(aBuf, SnappingClient, false);
-			// }
-			// else
-			GameServer()->SendBroadcast("Waiting for more players", SnappingClient, false);
+				GameServer()->SendBroadcast(aBuf, SnappingClient, false);
+			}
+			else
+				GameServer()->SendBroadcast("Waiting for more players", SnappingClient, false);
 		}
 		pState->m_NextBroadcastTick = Server()->Tick() + 5 * Server()->TickSpeed();
 		break;
