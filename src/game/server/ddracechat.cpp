@@ -313,6 +313,13 @@ void CGameContext::ConLockTeam(IConsole::IResult *pResult, void *pUserData)
 	}
 	else
 	{
+		if(g_Config.m_SvLock == 0)
+		{
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "lock",
+				"Lock is disabled");
+			return;
+		}
+
 		pSelf->Teams()->SetTeamLock(Team, true);
 
 		str_format(aBuf, sizeof(aBuf), "'%s' locked your room.", pSelf->Server()->ClientName(pResult->m_ClientID));
