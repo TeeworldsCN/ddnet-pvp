@@ -15,6 +15,8 @@ public:
 	// event
 	virtual void OnCharacterSpawn(class CCharacter *pChr) override;
 	virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon) override;
+
+	virtual bool IsDisruptiveLeave(class CPlayer *pPlayer) const;
 };
 
 #endif

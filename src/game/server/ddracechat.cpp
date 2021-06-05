@@ -492,13 +492,13 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 	{
 		pSelf->m_ChatResponseTargetID = RespondingID;
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
-			"You can\'t change rooms that fast!");
+			"You can't change rooms that fast!");
 	}
 	else if(!pSelf->Teams()->CanSwitchTeam(pPlayer->GetCID()))
 	{
 		pSelf->m_ChatResponseTargetID = RespondingID;
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
-			"You can\'t change rooms at this time.");
+			"You can't change rooms at this time.");
 	}
 	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->Teams()->TeamLocked(Team) && !pSelf->Teams()->IsInvited(Team, pResult->m_ClientID))
 	{
@@ -570,13 +570,13 @@ void CGameContext::ConCreateTeam(IConsole::IResult *pResult, void *pUserData)
 	{
 		pSelf->m_ChatResponseTargetID = RespondingID;
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
-			"You can\'t change rooms that fast!");
+			"You can't change rooms that fast!");
 	}
 	else if(!pSelf->Teams()->CanSwitchTeam(pPlayer->GetCID()))
 	{
 		pSelf->m_ChatResponseTargetID = RespondingID;
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
-			"You can\'t change rooms at this time.");
+			"You can't change rooms at this time.");
 	}
 	else if(Team > 0 && Team < MAX_CLIENTS && pSelf->Teams()->TeamLocked(Team) && !pSelf->Teams()->IsInvited(Team, pResult->m_ClientID))
 	{
@@ -800,7 +800,7 @@ void CGameContext::ConInstanceCommand(IConsole::IResult *pResult, void *pUserDat
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			aInstanceBuf,
-			"You cannot execute command in lobby room / room 0");
+			"You can't execute command in lobby room / room 0");
 		return;
 	}
 
@@ -835,11 +835,11 @@ void CGameContext::ConInstanceCommand(IConsole::IResult *pResult, void *pUserDat
 			{
 				if(pSelf->m_VoteCloseTime > 0)
 				{
-					str_format(aBuf, sizeof(aBuf), "You can not call a setting vote now, because a server vote is in progress.");
+					str_format(aBuf, sizeof(aBuf), "You can't call a setting vote now, because a server vote is in progress.");
 					pSelf->Console()->Print(
 						IConsole::OUTPUT_LEVEL_STANDARD,
 						aInstanceBuf,
-						"You cannot execute command in lobby room / room 0");
+						"You can't execute command in lobby room / room 0");
 				}
 				else
 				{

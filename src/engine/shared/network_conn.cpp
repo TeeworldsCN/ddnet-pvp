@@ -40,6 +40,7 @@ void CNetConnection::Reset(bool Rejoin)
 
 	//mem_zero(&m_PeerAddr, sizeof(m_PeerAddr));
 	m_UnknownSeq = false;
+	m_DisruptiveLeave = false;
 
 	m_Buffer.Init();
 
@@ -302,11 +303,6 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 				{
 					// set the error string
 					SetError(aStr);
-				}
-
-				if(m_DisruptiveLeave)
-				{
-					SetError("Ragequit");
 				}
 
 				if(g_Config.m_Debug)

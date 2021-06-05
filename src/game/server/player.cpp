@@ -275,12 +275,6 @@ void CPlayer::Tick()
 	if(m_ChatScore > 0)
 		m_ChatScore--;
 
-	SGameInstance Instance = GameServer()->PlayerGameInstance(m_ClientID);
-	if(Instance.m_Init && Instance.m_pController->IsDisruptiveLeave(this))
-		Server()->SetDisruptiveLeave(m_ClientID, true);
-	else
-		Server()->SetDisruptiveLeave(m_ClientID, false);
-
 	Server()->SetClientScore(m_ClientID, m_Score);
 
 	if(m_Moderating && m_Afk)
@@ -316,8 +310,7 @@ void CPlayer::Tick()
 	if(Server()->GetNetErrorString(m_ClientID)[0])
 	{
 		m_Afk = true;
-
-		if(Server()->GetNetErrorString(m_ClientID)[0] != 'R')
+		if(!Server()->HasLeftDisruptively(m_ClientID))
 		{
 			char aBuf[512];
 			str_format(aBuf, sizeof(aBuf), "'%s' would have timed out, but can use timeout protection now", Server()->ClientName(m_ClientID));
@@ -326,7 +319,7 @@ void CPlayer::Tick()
 		}
 		else
 		{
-			Server()->SetLeftDisruptively(m_ClientID);
+			Server()->MarkDisruptiveLeave(m_ClientID);
 		}
 	}
 

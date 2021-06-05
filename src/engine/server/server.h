@@ -197,7 +197,7 @@ public:
 		std::shared_ptr<CHostLookup> m_pDnsblLookup;
 
 		bool m_Sixup;
-		bool m_HasLeftDisruptively;
+		bool m_DisruptiveLeave;
 	};
 
 	CClient m_aClients[MAX_CLIENTS];
@@ -313,6 +313,7 @@ public:
 	static int DelClientCallback(int ClientID, const char *pReason, void *pUser);
 
 	static int ClientRejoinCallback(int ClientID, void *pUser);
+	static int ClientCheckDisruptive(int ClientID, void *pUser);
 
 	void SendRconType(int ClientID, bool UsernameReq);
 	void SendCapabilities(int ClientID);
@@ -457,9 +458,9 @@ public:
 	void ResetNetErrorString(int ClientID) { m_NetServer.ResetErrorString(ClientID); };
 	bool SetTimedOut(int ClientID, int OrigID);
 	void SetTimeoutProtected(int ClientID) { m_NetServer.SetTimeoutProtected(ClientID); };
-	void SetDisruptiveLeave(int ClientID, bool Disruptive) { m_NetServer.SetDisruptiveLeave(ClientID, Disruptive); };
-	bool HasLeftDisruptively(int ClientID) { return m_aClients[ClientID].m_HasLeftDisruptively; };
-	void SetLeftDisruptively(int ClientID) { m_aClients[ClientID].m_HasLeftDisruptively = true; };
+	bool HasLeftDisruptively(int ClientID) { return m_NetServer.HasLeftDisruptively(ClientID); };
+	bool HasMarkedDisruptiveLeave(int ClientID) { return m_aClients[ClientID].m_DisruptiveLeave; };
+	void MarkDisruptiveLeave(int ClientID) { m_aClients[ClientID].m_DisruptiveLeave = true; };
 
 	void SendMsgRaw(int ClientID, const void *pData, int Size, int Flags);
 

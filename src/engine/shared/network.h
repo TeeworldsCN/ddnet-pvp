@@ -109,6 +109,7 @@ typedef int (*NETFUNC_NEWCLIENT_CON)(int ClientID, void *pUser);
 typedef int (*NETFUNC_NEWCLIENT)(int ClientID, void *pUser, bool Sixup);
 typedef int (*NETFUNC_NEWCLIENT_NOAUTH)(int ClientID, void *pUser);
 typedef int (*NETFUNC_CLIENTREJOIN)(int ClientID, void *pUser);
+typedef int (*NETFUNC_CLIENTCHECKDISRUPTIVE)(int ClientID, void *pUser);
 
 struct CNetChunk
 {
@@ -191,7 +192,6 @@ private:
 
 	//
 	void ResetStats();
-	void SetError(const char *pString);
 	void AckChunks(int Ack);
 
 	int QueueChunkEx(int Flags, int DataSize, const void *pData, int Sequence);
@@ -220,8 +220,10 @@ public:
 	int State() const { return m_State; }
 	const NETADDR *PeerAddress() const { return &m_PeerAddr; }
 
+	void SetError(const char *pString);
 	void ResetErrorString() { m_aErrorString[0] = 0; }
 	const char *ErrorString() const { return m_aErrorString; }
+	const bool HasLeftDisruptively() const { return m_DisruptiveLeave; }
 
 	// Needed for GotProblems in NetClient
 	int64 LastRecvTime() const { return m_LastRecvTime; }
@@ -319,6 +321,7 @@ class CNetServer
 	NETFUNC_NEWCLIENT_NOAUTH m_pfnNewClientNoAuth;
 	NETFUNC_DELCLIENT m_pfnDelClient;
 	NETFUNC_CLIENTREJOIN m_pfnClientRejoin;
+	NETFUNC_CLIENTCHECKDISRUPTIVE m_pfnClientCheckDisruptive;
 	void *m_pUser;
 
 	int m_NumConAttempts; // log flooding attacks
@@ -348,7 +351,7 @@ class CNetServer
 
 public:
 	int SetCallbacks(NETFUNC_NEWCLIENT pfnNewClient, NETFUNC_DELCLIENT pfnDelClient, void *pUser);
-	int SetCallbacks(NETFUNC_NEWCLIENT pfnNewClient, NETFUNC_NEWCLIENT_NOAUTH pfnNewClientNoAuth, NETFUNC_CLIENTREJOIN pfnClientRejoin, NETFUNC_DELCLIENT pfnDelClient, void *pUser);
+	int SetCallbacks(NETFUNC_NEWCLIENT pfnNewClient, NETFUNC_NEWCLIENT_NOAUTH pfnNewClientNoAuth, NETFUNC_CLIENTREJOIN pfnClientRejoin, NETFUNC_DELCLIENT pfnDelClient, NETFUNC_CLIENTCHECKDISRUPTIVE pfnClientIsDisruptive, void *pUser);
 
 	//
 	bool Open(NETADDR BindAddr, class CNetBan *pNetBan, int MaxClients, int MaxClientsPerIP, int Flags);
@@ -378,10 +381,10 @@ public:
 	void SetMaxClientsPerIP(int Max);
 	bool SetTimedOut(int ClientID, int OrigID);
 	void SetTimeoutProtected(int ClientID);
-	void SetDisruptiveLeave(int ClientID, bool Disruptive);
 
 	int ResetErrorString(int ClientID);
 	const char *ErrorString(int ClientID);
+	const bool HasLeftDisruptively(int ClientID);
 
 	// anti spoof
 	SECURITY_TOKEN GetToken(const NETADDR &Addr);

@@ -92,12 +92,13 @@ int CNetServer::SetCallbacks(NETFUNC_NEWCLIENT pfnNewClient, NETFUNC_DELCLIENT p
 	return 0;
 }
 
-int CNetServer::SetCallbacks(NETFUNC_NEWCLIENT pfnNewClient, NETFUNC_NEWCLIENT_NOAUTH pfnNewClientNoAuth, NETFUNC_CLIENTREJOIN pfnClientRejoin, NETFUNC_DELCLIENT pfnDelClient, void *pUser)
+int CNetServer::SetCallbacks(NETFUNC_NEWCLIENT pfnNewClient, NETFUNC_NEWCLIENT_NOAUTH pfnNewClientNoAuth, NETFUNC_CLIENTREJOIN pfnClientRejoin, NETFUNC_DELCLIENT pfnDelClient, NETFUNC_CLIENTCHECKDISRUPTIVE pfnClientIsDisruptive, void *pUser)
 {
 	m_pfnNewClient = pfnNewClient;
 	m_pfnNewClientNoAuth = pfnNewClientNoAuth;
 	m_pfnClientRejoin = pfnClientRejoin;
 	m_pfnDelClient = pfnDelClient;
+	m_pfnClientCheckDisruptive = pfnClientIsDisruptive;
 	m_pUser = pUser;
 	return 0;
 }
@@ -132,11 +133,20 @@ int CNetServer::Update()
 	{
 		m_aSlots[i].m_Connection.Update();
 		if(m_aSlots[i].m_Connection.State() == NET_CONNSTATE_ERROR &&
-			!m_aSlots[i].m_Connection.m_DisruptiveLeave &&
 			(!m_aSlots[i].m_Connection.m_TimeoutProtected ||
 				!m_aSlots[i].m_Connection.m_TimeoutSituation))
 		{
-			Drop(i, m_aSlots[i].m_Connection.ErrorString());
+			bool IsDisruptive = m_pfnClientCheckDisruptive(i, m_pUser);
+			if(IsDisruptive && !m_aSlots[i].m_Connection.m_DisruptiveLeave)
+			{
+				m_aSlots[i].m_Connection.SetError("Ragequit");
+				m_aSlots[i].m_Connection.m_DisruptiveLeave = true;
+			}
+
+			if(!IsDisruptive)
+			{
+				Drop(i, m_aSlots[i].m_Connection.ErrorString());
+			}
 		}
 	}
 
@@ -816,11 +826,6 @@ void CNetServer::SetTimeoutProtected(int ClientID)
 	m_aSlots[ClientID].m_Connection.m_TimeoutProtected = true;
 }
 
-void CNetServer::SetDisruptiveLeave(int ClientID, bool Disruptive)
-{
-	m_aSlots[ClientID].m_Connection.m_DisruptiveLeave = Disruptive;
-}
-
 int CNetServer::ResetErrorString(int ClientID)
 {
 	m_aSlots[ClientID].m_Connection.ResetErrorString();
@@ -830,4 +835,9 @@ int CNetServer::ResetErrorString(int ClientID)
 const char *CNetServer::ErrorString(int ClientID)
 {
 	return m_aSlots[ClientID].m_Connection.ErrorString();
+}
+
+const bool CNetServer::HasLeftDisruptively(int ClientID)
+{
+	return m_aSlots[ClientID].m_Connection.HasLeftDisruptively();
 }

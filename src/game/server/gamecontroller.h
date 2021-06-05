@@ -84,6 +84,7 @@ enum
 	INSTANCE_CONNECTION_SERVER,
 	INSTANCE_CONNECTION_CREATE,
 	INSTANCE_CONNECTION_RELOAD,
+	INSTANCE_CONNECTION_FORCED,
 };
 
 /*
@@ -695,6 +696,8 @@ public:
 	/*
 		Function: OnCharacterTile
 			Called when a CCharacter intersects with a tile.
+			All tiles intersects the path between ticks will be handled
+			Does not account for ProximityRadius.
 
 		Arguments:
 			pChr - The CCharacter that is touching the tile.
@@ -706,6 +709,23 @@ public:
 				if set to true.
 	*/
 	virtual bool OnCharacterTile(class CCharacter *pChr, int MapIndex) { return false; };
+
+	/*
+		Function: OnCharacterProximateTile
+			Called when a CCharacter proximate a tile.
+			Only the discrete position is checked.
+			Account for ProximityRadius, but the tile may be skipped due to high speed or ninja.
+
+		Arguments:
+			pChr - The CCharacter that is touching the tile.
+			MapIndex - Use GameServer()->Collison() to find more
+				information about the tile.
+
+		Return:
+			bool - any internal handling of the tile (speedup tiles) will be skipped
+				if set to true
+	*/
+	virtual bool OnCharacterProximateTile(class CCharacter *pChr, int MapIndex) { return false; };
 
 	/*
 		Function: OnEntity

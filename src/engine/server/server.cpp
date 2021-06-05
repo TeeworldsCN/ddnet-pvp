@@ -523,7 +523,7 @@ int CServer::Init()
 		Client.m_AuthKey = -1;
 		Client.m_Latency = 0;
 		Client.m_Sixup = false;
-		Client.m_HasLeftDisruptively = false;
+		Client.m_DisruptiveLeave = false;
 	}
 
 	m_CurrentGameTick = 0;
@@ -1006,7 +1006,7 @@ int CServer::NewClientNoAuthCallback(int ClientID, void *pUser)
 	pThis->m_aClients[ClientID].m_AuthTries = 0;
 	pThis->m_aClients[ClientID].m_pRconCmdToSend = 0;
 	pThis->m_aClients[ClientID].m_ShowIps = false;
-	pThis->m_aClients[ClientID].m_HasLeftDisruptively = false;
+	pThis->m_aClients[ClientID].m_DisruptiveLeave = false;
 	pThis->m_aClients[ClientID].Reset();
 
 	pThis->SendCapabilities(ClientID);
@@ -1033,7 +1033,7 @@ int CServer::NewClientCallback(int ClientID, void *pUser, bool Sixup)
 	pThis->m_aClients[ClientID].m_Traffic = 0;
 	pThis->m_aClients[ClientID].m_TrafficSince = 0;
 	pThis->m_aClients[ClientID].m_ShowIps = false;
-	pThis->m_aClients[ClientID].m_HasLeftDisruptively = false;
+	pThis->m_aClients[ClientID].m_DisruptiveLeave = false;
 	memset(&pThis->m_aClients[ClientID].m_Addr, 0, sizeof(NETADDR));
 	pThis->m_aClients[ClientID].Reset();
 
@@ -1045,6 +1045,14 @@ int CServer::NewClientCallback(int ClientID, void *pUser, bool Sixup)
 #if defined(CONF_FAMILY_UNIX)
 	pThis->SendConnLoggingCommand(OPEN_SESSION, pThis->m_NetServer.ClientAddr(ClientID));
 #endif
+	return 0;
+}
+
+int CServer::ClientCheckDisruptive(int ClientID, void *pUser)
+{
+	CServer *pThis = (CServer *)pUser;
+	if(pThis->GameServer()->CheckDisruptiveLeave(ClientID))
+		return 1;
 	return 0;
 }
 
@@ -1118,7 +1126,7 @@ int CServer::DelClientCallback(int ClientID, const char *pReason, void *pUser)
 	pThis->m_aClients[ClientID].m_Traffic = 0;
 	pThis->m_aClients[ClientID].m_TrafficSince = 0;
 	pThis->m_aClients[ClientID].m_ShowIps = false;
-	pThis->m_aClients[ClientID].m_HasLeftDisruptively = false;
+	pThis->m_aClients[ClientID].m_DisruptiveLeave = false;
 	pThis->m_aPrevStates[ClientID] = CClient::STATE_EMPTY;
 	pThis->m_aClients[ClientID].m_Snapshots.PurgeAll();
 	pThis->m_aClients[ClientID].m_Sixup = false;
@@ -2439,7 +2447,7 @@ int CServer::Run()
 	m_UPnP.Open(BindAddr);
 #endif
 
-	m_NetServer.SetCallbacks(NewClientCallback, NewClientNoAuthCallback, ClientRejoinCallback, DelClientCallback, this);
+	m_NetServer.SetCallbacks(NewClientCallback, NewClientNoAuthCallback, ClientRejoinCallback, DelClientCallback, ClientCheckDisruptive, this);
 
 	m_Econ.Init(Config(), Console(), &m_ServerBan);
 
@@ -3701,18 +3709,22 @@ bool CServer::SetTimedOut(int ClientID, int OrigID)
 	{
 		LogoutClient(ClientID, "Timeout Protection");
 	}
-	if(g_Config.m_SvRagequitBanTime > 0 && HasLeftDisruptively(ClientID))
+	if(g_Config.m_SvRagequitBanTime > 0 && HasMarkedDisruptiveLeave(ClientID))
 	{
 		Ban(OrigID, g_Config.m_SvRagequitBanTime * 60, "Leave abuse");
 		Ban(ClientID, g_Config.m_SvRagequitBanTime * 60, "Leave abuse");
 	}
 	else
 	{
-		DelClientCallback(OrigID, "Timeout Protection used", this);
+		if(HasMarkedDisruptiveLeave(ClientID))
+			DelClientCallback(OrigID, "Rejoined", this);
+		else
+			DelClientCallback(OrigID, "Timeout Protection used", this);
 	}
 
 	m_aClients[ClientID].m_Authed = AUTHED_NO;
 	m_aClients[ClientID].m_Flags = m_aClients[OrigID].m_Flags;
+	m_aClients[ClientID].m_DisruptiveLeave = false;
 	return true;
 }
 

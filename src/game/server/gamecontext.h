@@ -117,6 +117,7 @@ class CGameContext : public IGameServer
 	static void ConVoteNo(IConsole::IResult *pResult, void *pUserData);
 	static void ConDumpAntibot(IConsole::IResult *pResult, void *pUserData);
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+	static void ConchainUpdateRoomVotes(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	// pvp commands
 	static void ConClearGameTypes(IConsole::IResult *pResult, void *pUserData);
@@ -256,6 +257,8 @@ public:
 	virtual bool IsClientReadyToPlay(int ClientID) const;
 	virtual bool IsClientPlayer(int ClientID) const;
 	virtual bool IsClientActivePlayer(int ClientID) const;
+
+	virtual bool CheckDisruptiveLeave(int ClientID);
 	virtual int PersistentClientDataSize() const { return sizeof(CPersistentClientData); }
 
 	virtual CUuid GameUuid() const;

@@ -358,15 +358,20 @@ void CGameWorld::CreateHammerHit(vec2 Pos, int64 Mask)
 	}
 }
 
-void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int WeaponID, int MaxDamage, bool NoKnockback, int64 Mask)
+void CGameWorld::CreateExplosionParticle(vec2 Pos, int64 Mask)
 {
-	// create the event
 	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), Mask);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
 		pEvent->m_Y = (int)Pos.y;
 	}
+}
+
+void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int WeaponID, int MaxDamage, bool NoKnockback, int64 Mask)
+{
+	// create the event
+	CreateExplosionParticle(Pos, Mask);
 
 	CCharacter *apEnts[MAX_CLIENTS];
 	float Radius = 135.0f;
@@ -393,7 +398,10 @@ void CGameWorld::CreateExplosion(vec2 Pos, int Owner, int Weapon, int WeaponID, 
 		if(int(Knockback) == 0 && int(Dmg) == 0)
 			continue;
 
-		apEnts[i]->TakeDamage(ForceDir * Knockback * 2, (int)Dmg, Owner, Weapon, WeaponID, true);
+		if(NoKnockback)
+			apEnts[i]->TakeDamage({0.0f, 0.0f}, (int)Dmg, Owner, Weapon, WeaponID, true);
+		else
+			apEnts[i]->TakeDamage(ForceDir * Knockback * 2, (int)Dmg, Owner, Weapon, WeaponID, true);
 	}
 }
 

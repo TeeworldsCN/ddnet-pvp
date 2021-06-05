@@ -237,9 +237,8 @@ public:
 	virtual void ResetNetErrorString(int ClientID) = 0;
 	virtual bool SetTimedOut(int ClientID, int OrigID) = 0;
 	virtual void SetTimeoutProtected(int ClientID) = 0;
-	virtual void SetDisruptiveLeave(int ClientID, bool Disruptive) = 0;
 	virtual bool HasLeftDisruptively(int ClientID) = 0;
-	virtual void SetLeftDisruptively(int ClientID) = 0;
+	virtual void MarkDisruptiveLeave(int ClientID) = 0;
 
 	virtual void SetErrorShutdown(const char *pReason) = 0;
 	virtual void ExpireServerInfo() = 0;
@@ -313,6 +312,9 @@ public:
 	virtual void OnClientEngineDrop(int ClientID, const char *pReason) = 0;
 
 	virtual void FillAntibot(CAntibotRoundData *pData) = 0;
+
+	// PvP
+	virtual bool CheckDisruptiveLeave(int ClientID) = 0;
 };
 
 extern IGameServer *CreateGameServer();

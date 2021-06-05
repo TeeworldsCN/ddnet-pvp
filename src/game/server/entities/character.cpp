@@ -1122,6 +1122,12 @@ void CCharacter::HandleSkippableTiles(int Index)
 	if(Index < 0)
 		return;
 
+	if(Controller()->OnCharacterProximateTile(this, Index))
+		return;
+
+	if(!m_Alive)
+		return;
+
 	// handle speedup tiles
 	if(GameServer()->Collision()->IsSpeedup(Index))
 	{

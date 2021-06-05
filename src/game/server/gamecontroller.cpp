@@ -77,6 +77,18 @@ static void ConRestart(IConsole::IResult *pResult, void *pUserData)
 		pSelf->DoWarmup(Seconds);
 }
 
+static void ConSay(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	pSelf->SendChatTarget(-1, pResult->GetString(0));
+}
+
+static void ConBroadcast(IConsole::IResult *pResult, void *pUserData)
+{
+	IGameController *pSelf = (IGameController *)pUserData;
+	pSelf->SendBroadcast(pResult->GetString(0), -1);
+}
+
 static void ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
 {
 	IGameController *pSelf = (IGameController *)pUserData;
@@ -257,7 +269,10 @@ static void ConKick(IConsole::IResult *pResult, void *pUserData)
 	else
 	{
 		if(pSelf->GameServer()->Teams()->SetForcePlayerTeam(VictimID, 0, CGameTeams::TEAM_REASON_FORCE, nullptr))
+		{
+			pSelf->GameServer()->SendChatTarget(VictimID, "You have been moved to room 0");
 			pSelf->GameServer()->Teams()->SetClientInvited(pSelf->GameWorld()->Team(), VictimID, false);
+		}
 		else
 			pSelf->GameServer()->Console()->ExecuteLine(pResult->GetString(1));
 	}
@@ -403,6 +418,9 @@ IGameController::IGameController()
 	m_pInstanceConsole->Chain("timelimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("roundlimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("player_slots", ConchainVoteUpdate, this);
+
+	m_pInstanceConsole->Register("say", "?r[message]", CFGFLAG_INSTANCE, ConSay, this, "Say in chat in this room");
+	m_pInstanceConsole->Register("broadcast", "?r[message]", CFGFLAG_INSTANCE, ConBroadcast, this, "Broadcast message in this room");
 
 	m_pInstanceConsole->Register("shuffle_teams", "", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConShuffleTeams, this, "Shuffle the current teams");
 	m_pInstanceConsole->Register("swap_teams", "", CFGFLAG_CHAT | CFGFLAG_INSTANCE, ConSwapTeams, this, "Swap the current teams");
@@ -652,6 +670,9 @@ bool IGameController::OnInternalCharacterTile(CCharacter *pChr, int MapIndex)
 {
 	if(OnCharacterTile(pChr, MapIndex))
 		return true;
+
+	if(!pChr->IsAlive())
+		return false;
 
 	CPlayer *pPlayer = pChr->GetPlayer();
 	int ClientID = pPlayer->GetCID();
@@ -1110,6 +1131,14 @@ void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer, int Type)
 		{
 			char aBuf[128];
 			str_format(aBuf, sizeof(aBuf), "'%s' has left the room", Server()->ClientName(ClientID));
+			for(int i = 0; i < MAX_CLIENTS; i++)
+				if(GetPlayerIfInRoom(i) && i != pPlayer->GetCID())
+					GameServer()->SendChatTarget(i, aBuf);
+		}
+		else if(Type == INSTANCE_CONNECTION_FORCED)
+		{
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "'%s' has left the room (kicked)", Server()->ClientName(ClientID));
 			for(int i = 0; i < MAX_CLIENTS; i++)
 				if(GetPlayerIfInRoom(i) && i != pPlayer->GetCID())
 					GameServer()->SendChatTarget(i, aBuf);

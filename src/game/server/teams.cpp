@@ -77,6 +77,10 @@ const char *CGameTeams::SetPlayerTeam(int ClientID, int Team, const char *pGameT
 	if(m_Core.Team(ClientID) == Team)
 		return "You are in this room already";
 
+	SGameInstance Instance = GetPlayerGameInstance(ClientID);
+	if(Instance.m_Init && Instance.m_pController->IsDisruptiveLeave(GameServer()->m_apPlayers[ClientID]))
+		return "You can't change room right now";
+
 	CCharacter *pChar = GameServer()->GetPlayerChar(ClientID);
 	if(pChar)
 	{
@@ -113,8 +117,8 @@ bool CGameTeams::SetForcePlayerTeam(int ClientID, int Team, int State, const cha
 
 	if(Team != OldTeam && OldTeam != TEAM_SUPER && m_aTeamState[OldTeam] != TEAMSTATE_EMPTY)
 	{
-		if(State == TEAM_REASON_NORMAL && m_aTeamInstances[OldTeam].m_IsCreated)
-			m_aTeamInstances[OldTeam].m_pController->OnInternalPlayerLeave(GameServer()->m_apPlayers[ClientID], CreatingRoom ? INSTANCE_CONNECTION_CREATE : INSTANCE_CONNECTION_NORMAL);
+		if((State == TEAM_REASON_NORMAL || State == TEAM_REASON_FORCE) && m_aTeamInstances[OldTeam].m_IsCreated)
+			m_aTeamInstances[OldTeam].m_pController->OnInternalPlayerLeave(GameServer()->m_apPlayers[ClientID], State == TEAM_REASON_FORCE ? INSTANCE_CONNECTION_FORCED : (CreatingRoom ? INSTANCE_CONNECTION_CREATE : INSTANCE_CONNECTION_NORMAL));
 		if(Count(OldTeam) <= 1 && OldTeam != TEAM_FLOCK)
 		{
 			m_aTeamState[OldTeam] = TEAMSTATE_EMPTY;
@@ -449,6 +453,7 @@ void CGameTeams::OnTick()
 			{
 				m_aTeamReload[i] = RELOAD_TYPE_NO;
 				CreateGameInstance(i, m_apWantedGameType[i], -2);
+				UpdateVotes();
 			}
 			else if(m_aTeamReload[i] == RELOAD_TYPE_SOFT)
 			{
@@ -650,7 +655,7 @@ void CGameTeams::UpdateVotes()
 {
 	m_NumRooms = 0;
 
-	if(!g_Config.m_SvRoomVotes)
+	if(!g_Config.m_SvRoomVotes || g_Config.m_SvRoom == 0)
 	{
 		if(m_aRoomVotes[m_NumRooms][0])
 		{

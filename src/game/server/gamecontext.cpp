@@ -1772,7 +1772,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					return;
 				}
 				//else if(!g_Config.m_SvVoteKick)
-				else if(!g_Config.m_SvVoteKick && !Authed && !GetDDRaceTeam(ClientID)) // allow admins to call kick votes even if they are forbidden
+				else if((!g_Config.m_SvVoteKick || (g_Config.m_SvVoteKick == 2 && !GetDDRaceTeam(ClientID))) && !Authed) // allow admins to call kick votes even if they are forbidden
 				{
 					SendChatTarget(ClientID, "Server does not allow voting to kick players");
 					m_apPlayers[ClientID]->m_LastKickVote = time_get();
@@ -2016,6 +2016,10 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					Instance.m_pController->DoTeamChange(pPlayer, pMsg->m_Team);
 					pPlayer->m_TeamChangeTick = Server()->Tick();
 				}
+			}
+			else
+			{
+				SendChatTarget(ClientID, "You can't change your team due to balancing");
 			}
 		}
 		else if(MsgID == NETMSGTYPE_CL_ISDDNETLEGACY)
@@ -2785,6 +2789,16 @@ void CGameContext::ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *p
 	}
 }
 
+void CGameContext::ConchainUpdateRoomVotes(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	pfnCallback(pResult, pCallbackUserData);
+	if(pResult->NumArguments())
+	{
+		CGameContext *pSelf = (CGameContext *)pUserData;
+		pSelf->Teams()->UpdateVotes();
+	}
+}
+
 void CGameContext::OnConsoleInit()
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
@@ -2827,6 +2841,9 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("room_setting", "i[room] ?r[settings]", CFGFLAG_SERVER, ConRoomSetting, this, "Invoke a command in a specified room");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
+	Console()->Chain("sv_room", ConchainUpdateRoomVotes, this);
+	Console()->Chain("sv_roomlist_votes", ConchainUpdateRoomVotes, this);
+	Console()->Chain("sv_roomlist_vote_title", ConchainUpdateRoomVotes, this);
 
 #define CONSOLE_COMMAND(name, params, flags, callback, userdata, help) m_pConsole->Register(name, params, flags, callback, userdata, help);
 #include <game/ddracecommands.h>
@@ -3167,6 +3184,18 @@ bool CGameContext::IsClientPlayer(int ClientID) const
 bool CGameContext::IsClientActivePlayer(int ClientID) const
 {
 	return m_apPlayers[ClientID] && !m_apPlayers[ClientID]->m_Afk && m_apPlayers[ClientID]->GetTeam() != TEAM_SPECTATORS;
+}
+
+bool CGameContext::CheckDisruptiveLeave(int ClientID)
+{
+	if(m_apPlayers[ClientID])
+	{
+		SGameInstance Instance = PlayerGameInstance(ClientID);
+		if(Instance.m_Init)
+			return Instance.m_pController->IsDisruptiveLeave(m_apPlayers[ClientID]);
+	}
+
+	return false;
 }
 
 CUuid CGameContext::GameUuid() const { return m_GameUuid; }
@@ -3820,7 +3849,7 @@ void CGameContext::DoActivityCheck()
 		{
 			if(m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS)
 			{
-				if(Config()->m_SvInactiveKickSpec)
+				if(Config()->m_SvInactiveKickSpec && !Instance.m_pController->IsDisruptiveLeave(m_apPlayers[i]))
 					Server()->Kick(i, "Kicked for inactivity");
 			}
 			else
@@ -3830,14 +3859,16 @@ void CGameContext::DoActivityCheck()
 				case 0:
 				case 1:
 				{
-					// move player to spectator
-					Instance.m_pController->DoTeamChange(m_apPlayers[i], TEAM_SPECTATORS);
+					// move player to spectator if it is not disruptive
+					if(!Instance.m_pController->IsDisruptiveLeave(m_apPlayers[i]))
+						Instance.m_pController->DoTeamChange(m_apPlayers[i], TEAM_SPECTATORS);
 				}
 				break;
 				case 2:
 				{
 					// kick the player
-					Server()->Kick(i, "Kicked for inactivity");
+					if(!Instance.m_pController->IsDisruptiveLeave(m_apPlayers[i]))
+						Server()->Kick(i, "Kicked for inactivity");
 				}
 				}
 			}

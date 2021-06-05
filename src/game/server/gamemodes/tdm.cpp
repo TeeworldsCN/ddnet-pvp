@@ -41,3 +41,8 @@ int CGameControllerTDM::OnCharacterDeath(class CCharacter *pVictim, class CPlaye
 
 	return DEATH_NORMAL;
 }
+
+bool CGameControllerTDM::IsDisruptiveLeave(CPlayer *pPlayer) const
+{
+	return pPlayer->GetCharacter() ? true : false;
+}
