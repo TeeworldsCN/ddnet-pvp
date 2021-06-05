@@ -653,6 +653,9 @@ void CGameTeams::SetDefaultGameType(const char *pGameType, const char *pSettings
 
 void CGameTeams::UpdateVotes()
 {
+	if(!GameServer())
+		return;
+
 	m_NumRooms = 0;
 
 	if(!g_Config.m_SvRoomVotes || g_Config.m_SvRoom == 0)

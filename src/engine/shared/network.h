@@ -223,7 +223,7 @@ public:
 	void SetError(const char *pString);
 	void ResetErrorString() { m_aErrorString[0] = 0; }
 	const char *ErrorString() const { return m_aErrorString; }
-	const bool HasLeftDisruptively() const { return m_DisruptiveLeave; }
+	bool HasLeftDisruptively() const { return m_DisruptiveLeave; }
 
 	// Needed for GotProblems in NetClient
 	int64 LastRecvTime() const { return m_LastRecvTime; }
@@ -384,7 +384,7 @@ public:
 
 	int ResetErrorString(int ClientID);
 	const char *ErrorString(int ClientID);
-	const bool HasLeftDisruptively(int ClientID);
+	bool HasLeftDisruptively(int ClientID);
 
 	// anti spoof
 	SECURITY_TOKEN GetToken(const NETADDR &Addr);

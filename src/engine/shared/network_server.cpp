@@ -837,7 +837,7 @@ const char *CNetServer::ErrorString(int ClientID)
 	return m_aSlots[ClientID].m_Connection.ErrorString();
 }
 
-const bool CNetServer::HasLeftDisruptively(int ClientID)
+bool CNetServer::HasLeftDisruptively(int ClientID)
 {
 	return m_aSlots[ClientID].m_Connection.HasLeftDisruptively();
 }
