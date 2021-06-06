@@ -405,7 +405,6 @@ IGameController::IGameController()
 	INSTANCE_CONFIG_INT(&m_Warmup, "warmup", 10, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Number of seconds to do warmup before match starts");
 	INSTANCE_CONFIG_INT(&m_Countdown, "countdown", 0, -1000, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Number of seconds to freeze the game in a countdown before match starts, (-: for survival, +: for all")
 	INSTANCE_CONFIG_INT(&m_Teamdamage, "teamdamage", 0, 0, 2, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Team damage (1 = half damage, 2 = full damage)")
-	INSTANCE_CONFIG_INT(&m_RoundSwap, "round_swap", 1, 0, 2, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Swap teams between rounds (2 = shuffle team)")
 	INSTANCE_CONFIG_INT(&m_MatchSwap, "match_swap", 1, 0, 2, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Swap teams between matches (2 = shuffle team)")
 	INSTANCE_CONFIG_INT(&m_Powerups, "powerups", 1, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Allow powerups like ninja")
 	INSTANCE_CONFIG_INT(&m_Scorelimit, "scorelimit", 20, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Score limit (0 disables)")
@@ -414,7 +413,8 @@ IGameController::IGameController()
 	INSTANCE_CONFIG_INT(&m_TeambalanceTime, "teambalance_time", 1, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "How many minutes to wait before autobalancing teams")
 	INSTANCE_CONFIG_INT(&m_KillDelay, "kill_delay", 1, -1, 9999, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "The minimum time in seconds between kills (-1 = disable kill)")
 	INSTANCE_CONFIG_INT(&m_PlayerSlots, "player_slots", MAX_CLIENTS, 2, MAX_CLIENTS, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Maximum room size (from 2 to 64)")
-	INSTANCE_CONFIG_INT(&m_PlayerReadyMode, "player_ready_mode", 0, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "When enabled, players can pause/unpause the game and start the game on warmup via their ready state")
+	INSTANCE_CONFIG_INT(&m_PlayerReadyMode, "player_ready_mode", 0, 0, 3, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "1 = players can ready to start the game on warmup 2 = players can unready to pause the game, 3 = both")
+	INSTANCE_CONFIG_INT(&m_ResetOnMatchEnd, "reset_on_match_end", 0, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Whether to reset to the initial state (warmup or wait for ready) after a match.")
 
 	m_pInstanceConsole->Chain("scorelimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("timelimit", ConchainGameInfoUpdate, this);
@@ -517,9 +517,9 @@ void IGameController::CheckReadyStates(int WithoutID)
 		switch(m_GameState)
 		{
 		case IGS_WARMUP_USER:
-			// all players are ready -> end warmup
+			// all players are ready -> start actual warmup
 			if(AllReady)
-				SetGameState(IGS_WARMUP_USER, 0);
+				SetGameState(IGS_WARMUP_USER, m_Warmup);
 			break;
 		case IGS_GAME_PAUSED:
 			// all players are ready -> unpause the game
@@ -1179,7 +1179,6 @@ void IGameController::OnReset()
 				pPlayer->m_Score = 0;
 				pPlayer->m_ScoreStartTick = Server()->Tick();
 			}
-			pPlayer->m_IsReadyToPlay = true;
 		}
 	}
 
@@ -1292,7 +1291,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 				{
 					m_GameState = GameState;
 					m_GameStateTimer = TIMER_INFINITE;
-					if(m_PlayerReadyMode)
+					if(m_PlayerReadyMode & 1)
 					{
 						// run warmup till all players are ready
 						SetPlayersReadyState(false);
@@ -1300,6 +1299,8 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 				}
 				else if(Timer > 0)
 				{
+					// user warmup called, mark all player ready
+					SetPlayersReadyState(true);
 					// run warmup for a specific time intervall
 					m_GameState = GameState;
 					m_GameStateTimer = Timer * Server()->TickSpeed();
@@ -1436,6 +1437,33 @@ void IGameController::StartMatch()
 		SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
 }
 
+void IGameController::ResetMatch()
+{
+	ResetGame();
+	CheckGameInfo(false);
+
+	m_GameStartTick = Server()->Tick();
+	m_RoundCount = 0;
+	m_SuddenDeath = 0;
+
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+		UpdateGameInfo(i);
+
+	m_aTeamscore[TEAM_RED] = 0;
+	m_aTeamscore[TEAM_BLUE] = 0;
+
+	// default to wait for more players
+	SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
+
+	if(HasEnoughPlayers())
+	{
+		if(m_PlayerReadyMode & 1)
+			SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
+		else
+			SetGameState(IGS_WARMUP_USER, m_Warmup);
+	}
+}
+
 void IGameController::StartRound()
 {
 	// If we passed warmup and still not enough player, do infinite timer
@@ -1472,7 +1500,7 @@ void IGameController::StartRound()
 
 void IGameController::OnPlayerReadyChange(CPlayer *pPlayer)
 {
-	if(m_PlayerReadyMode && pPlayer->GetTeam() != TEAM_SPECTATORS && !pPlayer->m_DeadSpecMode)
+	if((IsPlayerReadyMode() || ((m_PlayerReadyMode & 2) && m_GameState == IGS_GAME_RUNNING)) && pPlayer->GetTeam() != TEAM_SPECTATORS && !pPlayer->m_DeadSpecMode)
 	{
 		// change players ready state
 		pPlayer->m_IsReadyToPlay ^= 1;
@@ -1573,25 +1601,26 @@ void IGameController::FakeClientBroadcast(int SnappingClient)
 	pState->m_LastPlayerNotReady = m_NumPlayerNotReady;
 	pState->m_LastDeadSpec = pPlayer->m_DeadSpecMode;
 
+	if(IsPlayerReadyMode() && m_NumPlayerNotReady > 0)
+	{
+		char aBuf[128];
+		if(m_NumPlayerNotReady == 1)
+			str_format(aBuf, sizeof(aBuf), "%s\n\n\n%d player not ready", pPlayer->m_IsReadyToPlay ? "" : "Say '/r' to ready", m_NumPlayerNotReady);
+		else
+			str_format(aBuf, sizeof(aBuf), "%s\n\n\n%d players not ready", pPlayer->m_IsReadyToPlay ? "" : "Say '/r' to ready", m_NumPlayerNotReady);
+		GameServer()->SendBroadcast(aBuf, SnappingClient, false);
+		pState->m_NextBroadcastTick = Server()->Tick() + 5 * Server()->TickSpeed();
+		return;
+	}
+
 	switch(m_GameState)
 	{
 	case IGS_WARMUP_GAME:
 	case IGS_WARMUP_USER:
 		if(m_GameStateTimer == TIMER_INFINITE)
-		{
-			char aBuf[128];
-			if(IsPlayerReadyMode() && m_NumPlayerNotReady > 0)
-			{
-				if(m_NumPlayerNotReady == 1)
-					str_format(aBuf, sizeof(aBuf), "%s%d player not ready\n%s", pPlayer->m_IsReadyToPlay ? "" : "Say '/r' to ready\n", m_NumPlayerNotReady, HasEnoughPlayers() ? "Warmup: ready to start" : "Waiting for more players");
-				else
-					str_format(aBuf, sizeof(aBuf), "%s%d players not ready\n%s", pPlayer->m_IsReadyToPlay ? "" : "Say '/r' to ready\n", m_NumPlayerNotReady, HasEnoughPlayers() ? "Warmup: ready to start" : "Waiting for more players");
-
-				GameServer()->SendBroadcast(aBuf, SnappingClient, false);
-			}
-			else
-				GameServer()->SendBroadcast("Waiting for more players", SnappingClient, false);
-		}
+			GameServer()->SendBroadcast("Waiting for more players", SnappingClient, false);
+		else
+			GameServer()->SendBroadcast(" ", SnappingClient, false);
 		pState->m_NextBroadcastTick = Server()->Tick() + 5 * Server()->TickSpeed();
 		break;
 	case IGS_START_COUNTDOWN:
@@ -1999,10 +2028,6 @@ void IGameController::Tick()
 				SetGameState(IGS_GAME_PAUSED, 0);
 				break;
 			case IGS_END_ROUND:
-				if(m_RoundSwap == 1)
-					SwapTeams();
-				if(m_RoundSwap == 2)
-					ShuffleTeams();
 				StartRound();
 				break;
 			case IGS_END_MATCH:
@@ -2010,7 +2035,10 @@ void IGameController::Tick()
 					SwapTeams();
 				if(m_MatchSwap == 2)
 					ShuffleTeams();
-				StartMatch();
+				if(m_ResetOnMatchEnd)
+					ResetMatch();
+				else
+					StartMatch();
 				break;
 			case IGS_WARMUP_GAME:
 			case IGS_GAME_RUNNING:
@@ -2025,8 +2053,8 @@ void IGameController::Tick()
 			{
 			case IGS_WARMUP_USER:
 				// check if player ready mode was disabled and it waits that all players are ready -> end warmup
-				if(!m_PlayerReadyMode && m_GameStateTimer == TIMER_INFINITE)
-					SetGameState(IGS_WARMUP_USER, 0);
+				if(!(m_PlayerReadyMode & 1) && m_GameStateTimer == TIMER_INFINITE)
+					SetGameState(IGS_WARMUP_USER, m_Warmup);
 				break;
 			case IGS_START_COUNTDOWN:
 			case IGS_GAME_PAUSED:
@@ -2111,7 +2139,7 @@ bool IGameController::IsFriendlyTeamFire(int Team1, int Team2) const
 
 bool IGameController::IsPlayerReadyMode() const
 {
-	return m_PlayerReadyMode != 0 && (m_GameStateTimer == TIMER_INFINITE && (m_GameState == IGS_WARMUP_USER || m_GameState == IGS_GAME_PAUSED));
+	return m_GameStateTimer == TIMER_INFINITE && ((m_PlayerReadyMode & 1) && m_GameState == IGS_WARMUP_USER || (m_PlayerReadyMode & 2) && m_GameState == IGS_GAME_PAUSED);
 }
 
 bool IGameController::IsTeamChangeAllowed() const

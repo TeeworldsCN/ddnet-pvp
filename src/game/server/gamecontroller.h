@@ -155,6 +155,7 @@ protected:
 	void ResetGame();
 	void SetGameState(EGameState GameState, int Timer = 0);
 	void StartMatch();
+	void ResetMatch();
 	void StartRound();
 
 	struct CSpawnEval
@@ -275,7 +276,6 @@ public:
 	int m_Warmup;
 	int m_Countdown;
 	int m_Teamdamage;
-	int m_RoundSwap;
 	int m_MatchSwap;
 	int m_Powerups;
 	int m_Scorelimit;
@@ -285,6 +285,7 @@ public:
 	int m_KillDelay;
 	int m_PlayerSlots;
 	int m_PlayerReadyMode;
+	int m_ResetOnMatchEnd;
 
 	// mega map stuff
 	char m_aMap[128];
