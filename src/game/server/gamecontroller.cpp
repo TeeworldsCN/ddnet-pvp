@@ -402,7 +402,7 @@ IGameController::IGameController()
 
 	m_pInstanceConsole->RegisterPrintCallback(IConsole::OUTPUT_LEVEL_STANDARD, InstanceConsolePrint, this);
 
-	INSTANCE_CONFIG_INT(&m_Warmup, "warmup", 10, -1, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Number of seconds to do warmup before match starts (-1 = all player ready)");
+	INSTANCE_CONFIG_INT(&m_Warmup, "warmup", 10, 0, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Number of seconds to do warmup before match starts");
 	INSTANCE_CONFIG_INT(&m_Countdown, "countdown", 0, -1000, 1000, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Number of seconds to freeze the game in a countdown before match starts, (-: for survival, +: for all")
 	INSTANCE_CONFIG_INT(&m_Teamdamage, "teamdamage", 0, 0, 2, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Team damage (1 = half damage, 2 = full damage)")
 	INSTANCE_CONFIG_INT(&m_RoundSwap, "round_swap", 1, 0, 2, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Swap teams between rounds (2 = shuffle team)")
@@ -468,14 +468,15 @@ void IGameController::StartController()
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 		UpdateGameInfo(i);
 
-	if(m_Warmup)
-		SetGameState(IGS_WARMUP_USER, m_Warmup);
-	else
+	// default to wait for more players
+	SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
+
+	if(HasEnoughPlayers())
 	{
-		if(HasEnoughPlayers())
-			SetGameState(IGS_WARMUP_GAME, 0);
+		if(m_PlayerReadyMode & 1)
+			SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
 		else
-			SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
+			SetGameState(IGS_WARMUP_USER, m_Warmup);
 	}
 
 	OnControllerStart();
@@ -504,6 +505,7 @@ void IGameController::SetPlayersReadyState(bool ReadyState)
 		if(pPlayer && GameServer()->IsClientPlayer(i) && (ReadyState || !pPlayer->m_DeadSpecMode))
 			pPlayer->m_IsReadyToPlay = ReadyState;
 	}
+	GetPlayersReadyState();
 }
 
 // to be called when a player changes state, spectates or disconnects
@@ -511,20 +513,21 @@ void IGameController::CheckReadyStates(int WithoutID)
 {
 	if(m_PlayerReadyMode)
 	{
+		bool AllReady = GetPlayersReadyState(WithoutID);
 		switch(m_GameState)
 		{
 		case IGS_WARMUP_USER:
 			// all players are ready -> end warmup
-			if(GetPlayersReadyState(WithoutID))
+			if(AllReady)
 				SetGameState(IGS_WARMUP_USER, 0);
 			break;
 		case IGS_GAME_PAUSED:
 			// all players are ready -> unpause the game
-			if(GetPlayersReadyState(WithoutID))
+			if(AllReady)
 				SetGameState(IGS_GAME_PAUSED, 0);
 			break;
-		case IGS_GAME_RUNNING:
 		case IGS_WARMUP_GAME:
+		case IGS_GAME_RUNNING:
 		case IGS_START_COUNTDOWN:
 		case IGS_END_MATCH:
 		case IGS_END_ROUND:
@@ -1061,11 +1064,11 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, int Type)
 		m_UnbalancedTick = TBALANCE_CHECK;
 		if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
 		{
-			// we got enough player, redo warmup if we have one, otherwise start the game
-			if(m_Warmup)
-				SetGameState(IGS_WARMUP_USER, m_Warmup);
+			// we got enough player, redo warmup
+			if(m_PlayerReadyMode & 1)
+				SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
 			else
-				SetGameState(IGS_WARMUP_GAME, 0);
+				SetGameState(IGS_WARMUP_USER, m_Warmup);
 		}
 	}
 
@@ -1430,7 +1433,7 @@ void IGameController::StartMatch()
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 	}
 	else
-		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
+		SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
 }
 
 void IGameController::StartRound()
@@ -1580,9 +1583,9 @@ void IGameController::FakeClientBroadcast(int SnappingClient)
 			if(IsPlayerReadyMode() && m_NumPlayerNotReady > 0)
 			{
 				if(m_NumPlayerNotReady == 1)
-					str_format(aBuf, sizeof(aBuf), "%d player not ready\nWaiting for more players", m_NumPlayerNotReady);
+					str_format(aBuf, sizeof(aBuf), "%s%d player not ready\n%s", pPlayer->m_IsReadyToPlay ? "" : "Say '/r' to ready\n", m_NumPlayerNotReady, HasEnoughPlayers() ? "Warmup: ready to start" : "Waiting for more players");
 				else
-					str_format(aBuf, sizeof(aBuf), "%d players not ready\nWaiting for more players", m_NumPlayerNotReady);
+					str_format(aBuf, sizeof(aBuf), "%s%d players not ready\n%s", pPlayer->m_IsReadyToPlay ? "" : "Say '/r' to ready\n", m_NumPlayerNotReady, HasEnoughPlayers() ? "Warmup: ready to start" : "Waiting for more players");
 
 				GameServer()->SendBroadcast(aBuf, SnappingClient, false);
 			}
@@ -2452,10 +2455,10 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 		if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
 		{
 			// we got enough player, redo warmup if we have one, otherwise start the game
-			if(m_Warmup)
-				SetGameState(IGS_WARMUP_USER, m_Warmup);
+			if(m_PlayerReadyMode & 1)
+				SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
 			else
-				SetGameState(IGS_WARMUP_GAME, 0);
+				SetGameState(IGS_WARMUP_USER, m_Warmup);
 		}
 		pPlayer->m_IsReadyToPlay = !IsPlayerReadyMode();
 		if(IsSurvival())

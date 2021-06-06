@@ -434,12 +434,33 @@ void CPlayer::Snap(int SnappingClient)
 	if(pSnappingPlayer->IsSpectating() && pSnappingPlayer->GetSpectatorID() > SPEC_FREEVIEW)
 		SnapAs = pSnappingPlayer->m_SpectatorID; // Snap as spectating player.
 
+	bool IsEndRound = false;
+	bool IsEndMatch = false;
+	bool IsReadyMode = false;
+	if(Controller())
+	{
+		if(Controller()->IsEndRound())
+			IsEndRound = true;
+		if(Controller()->IsEndMatch())
+			IsEndMatch = true;
+		if(Controller()->IsPlayerReadyMode())
+			IsReadyMode = true;
+	}
+
 	CNetObj_ClientInfo *pClientInfo = static_cast<CNetObj_ClientInfo *>(Server()->SnapNewItem(NETOBJTYPE_CLIENTINFO, MappedID, sizeof(CNetObj_ClientInfo)));
 	if(!pClientInfo)
 		return;
 
 	StrToInts(&pClientInfo->m_Name0, 4, Server()->ClientName(m_ClientID));
-	StrToInts(&pClientInfo->m_Clan0, 3, Server()->ClientClan(m_ClientID));
+	if(IsReadyMode)
+	{
+		if(m_IsReadyToPlay)
+			StrToInts(&pClientInfo->m_Clan0, 3, "READY");
+		else
+			StrToInts(&pClientInfo->m_Clan0, 3, "");
+	}
+	else
+		StrToInts(&pClientInfo->m_Clan0, 3, Server()->ClientClan(m_ClientID));
 	pClientInfo->m_Country = Server()->ClientCountry(m_ClientID);
 
 	StrToInts(&pClientInfo->m_Skin0, 6, m_TeeInfos.m_SkinName);
@@ -450,17 +471,6 @@ void CPlayer::Snap(int SnappingClient)
 	int SnappingClientVersion = SnappingClient >= 0 ? GameServer()->GetClientVersion(SnappingClient) : CLIENT_VERSIONNR;
 	int Latency = SnappingClient == -1 ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aActLatency[m_ClientID];
 	int Score = m_Score;
-	bool IsEndRound = false;
-	bool IsEndMatch = false;
-	SGameInstance Instance = GameServer()->PlayerGameInstance(m_ClientID);
-	if(Instance.m_Init)
-	{
-		if(Instance.m_pController->IsEndRound())
-			IsEndRound = true;
-		if(Instance.m_pController->IsEndMatch())
-			IsEndMatch = true;
-	}
-
 	if(SnappingClient < 0 || !Server()->IsSixup(SnappingClient))
 	{
 		CNetObj_PlayerInfo *pPlayerInfo = static_cast<CNetObj_PlayerInfo *>(Server()->SnapNewItem(NETOBJTYPE_PLAYERINFO, MappedID, sizeof(CNetObj_PlayerInfo)));
