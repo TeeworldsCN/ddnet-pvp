@@ -209,6 +209,7 @@ public:
 
 	// network
 	void CallVote(int ClientID, const char *aDesc, const char *aCmd, const char *pReason, const char *aChatmsg, const char *pSixupDesc = 0);
+	void SendChatLocalized(int To, const char *pText, int Flags = CHAT_SIX | CHAT_SIXUP);
 	void SendChatTarget(int To, const char *pText, int Flags = CHAT_SIX | CHAT_SIXUP);
 	void SendChat(int ClientID, int Team, const char *pText, int SpamProtectionClientID = -1, int Flags = CHAT_SIX | CHAT_SIXUP);
 	void SendEmoticon(int ClientID, int Emoticon);
@@ -289,6 +290,10 @@ public:
 
 	void SendClientInfo(int ClientID);
 	void SendSkinInfo(int ClientID);
+
+	// languages
+	void LoadLanguages();
+	void UnloadLanguages();
 
 private:
 	bool m_VoteWillPass;

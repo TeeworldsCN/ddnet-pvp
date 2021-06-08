@@ -8,26 +8,14 @@
 #include <engine/shared/linereader.h>
 #include <engine/storage.h>
 
-const char *Localize(const char *pStr, const char *pContext)
+const char *Localize(int LangFlagCode, const char *pStr, const char *pContext)
 {
-	const char *pNewStr = g_Localization.FindString(str_quickhash(pStr), str_quickhash(pContext));
-	return pNewStr ? pNewStr : pStr;
-}
-
-CLocConstString::CLocConstString(const char *pStr, const char *pContext)
-{
-	m_pDefaultStr = pStr;
-	m_Hash = str_quickhash(m_pDefaultStr);
-	m_Version = -1;
-}
-
-void CLocConstString::Reload()
-{
-	m_Version = g_Localization.Version();
-	const char *pNewStr = g_Localization.FindString(m_Hash, m_ContextHash);
-	m_pCurrentStr = pNewStr;
-	if(!m_pCurrentStr)
-		m_pCurrentStr = m_pDefaultStr;
+	if(g_Localization[LangFlagCode])
+	{
+		const char *pNewStr = g_Localization[LangFlagCode]->FindString(str_quickhash(pStr), str_quickhash(pContext));
+		return pNewStr ? pNewStr : pStr;
+	}
+	return pStr;
 }
 
 CLocalizationDatabase::CLocalizationDatabase()
@@ -144,4 +132,4 @@ const char *CLocalizationDatabase::FindString(unsigned Hash, unsigned ContextHas
 	return r.index(DefaultIndex).m_Replacement;
 }
 
-CLocalizationDatabase g_Localization;
+CLocalizationDatabase *g_Localization[1024] = {0};

@@ -69,7 +69,7 @@ def decode(fileobj, elements_per_key):
 
 def check_file(path):
 	with open(path) as fileobj:
-		matches = re.findall(r"Localize\s*\(\s*\"([^\"]+)\"(?:\s*,\s*\"([^\"]+)\")?\s*\)", fileobj.read())
+		matches = re.findall(r"Localize\s*\([^\"]+,\s*\"([^\"]+)\"(?:\s*,\s*\"([^\"]+)\")?\s*\)", fileobj.read())
 	return matches
 
 
@@ -86,7 +86,7 @@ def check_folder(path):
 
 
 def languages():
-	index = decode(open("data/languages/index.txt"), 2)
+	index = decode(open("data/languages/index.txt"), 3) # include lang code
 	langs = {"data/languages/"+key[0]+".txt" : [key[0]]+elements for key, elements in index.items()}
 	return langs
 

@@ -27,6 +27,8 @@
 #include "player.h"
 #include "teams.h"
 
+#include <game/localization.h>
+
 #define TESTTYPE_NAME "TestDDPvP"
 
 enum
@@ -1127,7 +1129,7 @@ void CGameContext::OnClientEnter(int ClientID)
 
 			const char *pName = pCmd->m_pName;
 			if(!str_comp(pCmd->m_pName, "r"))
-				pName = "rescue";
+				pName = "ready";
 
 			protocol7::CNetMsg_Sv_CommandInfo Msg;
 			Msg.m_Name = pName;
@@ -1135,24 +1137,6 @@ void CGameContext::OnClientEnter(int ClientID)
 			Msg.m_HelpText = pCmd->m_pHelp;
 			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
 		}
-	}
-
-	{
-		int Empty = -1;
-		for(int i = 0; i < MAX_CLIENTS; i++)
-		{
-			if(!Server()->ClientIngame(i))
-			{
-				Empty = i;
-				break;
-			}
-		}
-		CNetMsg_Sv_Chat Msg;
-		Msg.m_Team = 0;
-		Msg.m_ClientID = Empty;
-		Msg.m_pMessage = "Do you know someone who uses a bot? Please report them to the moderators.";
-		m_apPlayers[ClientID]->m_EligibleForFinishCheck = time_get();
-		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
 	}
 
 	if(!Server()->ClientPrevIngame(ClientID))

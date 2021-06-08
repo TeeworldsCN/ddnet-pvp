@@ -20,8 +20,8 @@ class CLocalizationDatabase
 		bool operator<=(const CString &Other) const { return m_Hash < Other.m_Hash || (m_Hash == Other.m_Hash && m_ContextHash <= Other.m_ContextHash); }
 		bool operator==(const CString &Other) const { return m_Hash == Other.m_Hash && m_ContextHash == Other.m_ContextHash; }
 	};
-
 	sorted_array<CString> m_Strings;
+	char m_BufferString;
 	int m_VersionCounter;
 	int m_CurrentVersion;
 
@@ -36,28 +36,8 @@ public:
 	const char *FindString(unsigned Hash, unsigned ContextHash);
 };
 
-extern CLocalizationDatabase g_Localization;
+extern CLocalizationDatabase *g_Localization[1024];
 
-class CLocConstString
-{
-	const char *m_pDefaultStr;
-	const char *m_pCurrentStr;
-	unsigned m_Hash;
-	unsigned m_ContextHash;
-	int m_Version;
-
-public:
-	CLocConstString(const char *pStr, const char *pContext = "");
-	void Reload();
-
-	inline operator const char *()
-	{
-		if(m_Version != g_Localization.Version())
-			Reload();
-		return m_pCurrentStr;
-	}
-};
-
-extern const char *Localize(const char *pStr, const char *pContext = "")
-	GNUC_ATTRIBUTE((format_arg(1)));
+extern const char *Localize(int LangFlagCode, const char *pStr, const char *pContext = "")
+	GNUC_ATTRIBUTE((format_arg(2)));
 #endif

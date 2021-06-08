@@ -23,6 +23,7 @@
 #include <game/layers.h>
 
 #include <engine/server/server.h>
+#include <game/localization.h>
 
 // MYTODO: clean up these static methods
 static void ConchainUpdateCountdown(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
