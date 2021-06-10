@@ -184,7 +184,7 @@ private:
 	int m_OverrideEmoteReset;
 	bool m_Halloween;
 
-	int m_SpecMode;
+	ESpecMode m_SpecMode;
 	int m_SpectatorID;
 	void SetSpectatorID(int ClientID);
 

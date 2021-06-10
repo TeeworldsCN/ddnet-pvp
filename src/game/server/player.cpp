@@ -146,7 +146,8 @@ void CPlayer::GameReset()
 	m_IsReadyToPlay = false;
 	m_DeadSpecMode = false;
 	m_Score = 0;
-	SetSpecMode(FREEVIEW);
+	m_SpecMode = ESpecMode::FREEVIEW;
+	SetSpectatorID(SPEC_FREEVIEW);
 }
 static int PlayerFlags_SevenToSix(int Flags)
 {
@@ -174,10 +175,11 @@ static int PlayerFlags_SixToSeven(int Flags)
 
 void CPlayer::SetSpectatorID(int ClientID)
 {
+	int64 Mask = CmaskOne(m_ClientID);
+
 	// unset prev spectating mask
 	if(m_SpectatorID >= 0)
 	{
-		int64 Mask = CmaskOne(m_SpectatorID);
 		CGameContext::ms_SpectatorMask[m_SpectatorID] &= ~Mask;
 		int SpecTeam = GameServer()->m_apPlayers[m_SpectatorID] ? GameServer()->m_apPlayers[m_SpectatorID]->GetTeam() : TEAM_SPECTATORS;
 		if(SpecTeam != TEAM_SPECTATORS)
@@ -189,8 +191,7 @@ void CPlayer::SetSpectatorID(int ClientID)
 	// set new spectating mask
 	if(m_SpectatorID >= 0)
 	{
-		int64 Mask = CmaskOne(m_SpectatorID);
-		CGameContext::ms_SpectatorMask[ClientID] |= Mask;
+		CGameContext::ms_SpectatorMask[m_SpectatorID] |= Mask;
 		int SpecTeam = GameServer()->m_apPlayers[m_SpectatorID] ? GameServer()->m_apPlayers[m_SpectatorID]->GetTeam() : TEAM_SPECTATORS;
 		if(SpecTeam != TEAM_SPECTATORS)
 			CGameContext::ms_TeamSpectatorMask[SpecTeam] |= Mask;
@@ -279,7 +280,7 @@ void CPlayer::UpdateDeadSpecMode()
 	{
 		if(GameServer()->m_apPlayers[i] && DeadCanFollow(GameServer()->m_apPlayers[i]))
 		{
-			SetSpecMode(PLAYER, i);
+			SetSpecMode(ESpecMode::PLAYER, i);
 			return;
 		}
 	}
@@ -853,7 +854,7 @@ void CPlayer::SetTeam(int Team)
 	m_Team = Team;
 	m_LastSetTeam = Server()->Tick();
 	m_LastActionTick = Server()->Tick();
-	SetSpecMode(FREEVIEW);
+	SetSpecMode(ESpecMode::FREEVIEW);
 
 	for(int i = 0; i < 3; i++)
 	{
@@ -877,7 +878,7 @@ void CPlayer::SetTeam(int Team)
 		{
 			// cancel specatating
 			if(pPlayer && pPlayer->m_SpectatorID == m_ClientID)
-				pPlayer->SetSpecMode(FREEVIEW);
+				pPlayer->SetSpecMode(ESpecMode::FREEVIEW);
 		}
 		else
 		{
@@ -1141,7 +1142,7 @@ void CPlayer::SpectatePlayerName(const char *pName)
 	{
 		if(i != m_ClientID && Server()->ClientIngame(i) && !str_comp(pName, Server()->ClientName(i)))
 		{
-			SetSpecMode(PLAYER, i);
+			SetSpecMode(ESpecMode::PLAYER, i);
 			return;
 		}
 	}

@@ -426,7 +426,7 @@ public:
 
 inline int64 CmaskAll() { return -1LL; }
 inline int64 CmaskOne(int ClientID) { return 1LL << ClientID; }
-inline int64 CmaskViewer(int ClientID) { CGameContext::ms_SpectatorMask[ClientID]; }
+inline int64 CmaskViewer(int ClientID) { return CGameContext::ms_SpectatorMask[ClientID]; }
 inline int64 CmaskOneAndViewer(int ClientID) { return 1LL << ClientID | CmaskViewer(ClientID); }
 inline int64 CmaskTeam(int Team) { return CGameContext::ms_TeamMask[Team + 1]; }
 inline int64 CmaskTeamViewer(int Team) { return CGameContext::ms_TeamSpectatorMask[Team]; }

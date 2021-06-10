@@ -155,7 +155,7 @@ protected:
 
 	bool HasEnoughPlayers() const
 	{
-		return m_MinimumPlayers > 0 && (IsTeamplay() && m_aTeamSize[TEAM_RED] > 0 && m_aTeamSize[TEAM_BLUE] > 0 && m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] >= m_MinimumPlayers) || (!IsTeamplay() && m_aTeamSize[TEAM_RED] >= m_MinimumPlayers);
+		return m_MinimumPlayers > 0 && ((IsTeamplay() && m_aTeamSize[TEAM_RED] > 0 && m_aTeamSize[TEAM_BLUE] > 0 && m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] >= m_MinimumPlayers) || (!IsTeamplay() && m_aTeamSize[TEAM_RED] >= m_MinimumPlayers));
 	}
 	void ResetGame();
 	void SetGameState(EGameState GameState, int Timer = 0);

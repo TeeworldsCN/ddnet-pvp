@@ -1258,11 +1258,6 @@ void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 	if(((CServer *)Server())->m_aClients[ClientID].m_State == CServer::CClient::STATE_INGAME)
 		Teams()->OnPlayerDisconnect(m_apPlayers[ClientID], pReason);
 
-	int Team = m_apPlayers[ClientID]->GetTeam();
-
-	delete m_apPlayers[ClientID];
-	m_apPlayers[ClientID] = 0;
-
 	//(void)m_pController->CheckTeamBalance();
 	m_VoteUpdate = true;
 
@@ -1271,9 +1266,12 @@ void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 	{
 		if(pPlayer && pPlayer->GetSpectatorID() == ClientID)
 		{
-			pPlayer->SetSpecMode(CPlayer::FREEVIEW);
+			pPlayer->SetSpecMode(CPlayer::ESpecMode::FREEVIEW);
 		}
 	}
+
+	delete m_apPlayers[ClientID];
+	m_apPlayers[ClientID] = 0;
 
 	// update conversation targets
 	for(auto &pPlayer : m_apPlayers)
@@ -2104,7 +2102,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			pPlayer->UpdatePlaytime();
 
 			SGameInstance Instance = PlayerGameInstance(ClientID);
-			if(!pPlayer->SetSpecMode(pMsg->m_SpectatorID == -1 ? CPlayer::FREEVIEW : CPlayer::PLAYER, pMsg->m_SpectatorID) && Instance.m_Init)
+			if(!pPlayer->SetSpecMode(pMsg->m_SpectatorID == -1 ? CPlayer::ESpecMode::FREEVIEW : CPlayer::ESpecMode::PLAYER, pMsg->m_SpectatorID) && Instance.m_Init)
 			{
 				if(pMsg->m_SpectatorID == -1 && !Server()->IsSixup(ClientID))
 					SendChatTarget(ClientID, "You can't freeview right now");

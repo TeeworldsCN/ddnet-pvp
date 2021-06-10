@@ -2170,7 +2170,7 @@ bool IGameController::IsFriendlyTeamFire(int Team1, int Team2) const
 
 bool IGameController::IsPlayerReadyMode() const
 {
-	return m_GameStateTimer == TIMER_INFINITE && ((m_PlayerReadyMode & 1) && m_GameState == IGS_WARMUP_USER || (m_PlayerReadyMode & 2) && m_GameState == IGS_GAME_PAUSED);
+	return m_GameStateTimer == TIMER_INFINITE && (((m_PlayerReadyMode & 1) && m_GameState == IGS_WARMUP_USER) || ((m_PlayerReadyMode & 2) && m_GameState == IGS_GAME_PAUSED));
 }
 
 bool IGameController::IsTeamChangeAllowed() const
