@@ -725,12 +725,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int Weapo
 		// do damage Hit sound
 		if(From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
 		{
-			int64 Mask = CmaskOne(From);
-			for(int i = 0; i < MAX_CLIENTS; i++)
-			{
-				if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->IsSpectating() && GameServer()->m_apPlayers[i]->GetSpectatorID() == From)
-					Mask |= CmaskOne(i);
-			}
+			int64 Mask = CmaskOneAndViewer(From);
 			GameWorld()->CreateSound(GameServer()->m_apPlayers[From]->m_ViewPos, SOUND_HIT, Mask);
 		}
 	}
