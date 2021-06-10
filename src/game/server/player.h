@@ -225,6 +225,7 @@ public:
 	vec2 m_ShowDistance;
 	bool m_SpecTeam;
 	bool m_Afk;
+	int m_PauseCount;
 
 	int m_ChatScore;
 

@@ -370,7 +370,6 @@ IGameController::IGameController()
 	m_GameStartTick = 0;
 	m_RoundCount = 0;
 	m_SuddenDeath = 0;
-	mem_zero(m_aNumClientPause, sizeof(m_aNumClientPause));
 
 	// info
 	m_GameFlags = 0;
@@ -521,7 +520,7 @@ void IGameController::CheckReadyStates(int WithoutID)
 		{
 		case IGS_WARMUP_USER:
 			// all players are ready -> start actual warmup
-			if(AllReady)
+			if(AllReady && m_GameStateTimer == TIMER_INFINITE)
 				SetGameState(IGS_WARMUP_USER, m_Warmup);
 			break;
 		case IGS_GAME_PAUSED:
@@ -1041,8 +1040,7 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, int Type)
 	pPlayer->m_RespawnDisabled = GetStartRespawnState();
 	pPlayer->m_Vote = 0;
 	pPlayer->m_VotePos = 0;
-
-	m_aNumClientPause[ClientID] = 0;
+	pPlayer->m_PauseCount = 0;
 
 	// clear vote options for joining player
 	CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;
@@ -1067,14 +1065,6 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, int Type)
 		++m_aTeamSize[Team];
 		dbg_msg("game", "team size increased to %d, team='%d', ddrteam='%d'", m_aTeamSize[Team], Team, GameWorld()->Team());
 		m_UnbalancedTick = TBALANCE_CHECK;
-		if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
-		{
-			// we got enough player, redo warmup
-			if(m_PlayerReadyMode & 1)
-				SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
-			else
-				SetGameState(IGS_WARMUP_USER, m_Warmup);
-		}
 	}
 
 	// sixup: update team info for fake spectators
@@ -1118,8 +1108,10 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, int Type)
 			SendChatTarget(-1, aBuf);
 		}
 	}
+
 	GetPlayersReadyState(-1);
 	OnPlayerJoin(pPlayer);
+	TryStartWarmup();
 
 	m_VoteUpdate = true;
 }
@@ -1167,6 +1159,7 @@ void IGameController::OnInternalPlayerLeave(CPlayer *pPlayer, int Type)
 		EndVote(true);
 	}
 	m_VoteUpdate = true;
+	TryStartWarmup(true);
 }
 
 void IGameController::OnReset()
@@ -1409,6 +1402,13 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 
 void IGameController::TryStartWarmup(bool FallbackToWarmup)
 {
+	// no player is playing. reset the entire match
+	if(m_GameState != IGS_WARMUP_GAME && HasNoPlayers())
+	{
+		ResetMatch();
+		return;
+	}
+
 	if((m_GameState != IGS_WARMUP_GAME && m_GameState != IGS_WARMUP_USER) || m_GameStateTimer != TIMER_INFINITE)
 		return;
 
@@ -1442,11 +1442,15 @@ void IGameController::StartMatch()
 	m_SuddenDeath = 0;
 	m_GameInfo.m_MatchCurrent = m_RoundCount + 1;
 	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		CPlayer *pPlayer = GetPlayerIfInRoom(i);
+		if(pPlayer)
+			pPlayer->m_PauseCount = 0;
 		UpdateGameInfo(i);
+	}
 
 	m_aTeamscore[TEAM_RED] = 0;
 	m_aTeamscore[TEAM_BLUE] = 0;
-	mem_zero(m_aNumClientPause, sizeof(m_aNumClientPause));
 
 	if(HasEnoughPlayers())
 	{
@@ -1526,14 +1530,14 @@ void IGameController::OnPlayerReadyChange(CPlayer *pPlayer)
 
 			if(m_PausePerMatch)
 			{
-				if(m_aNumClientPause[ClientID] >= m_PausePerMatch)
+				if(pPlayer->m_PauseCount >= m_PausePerMatch)
 				{
 					SendChatTarget(ClientID, "You can't pause the match anymore");
 					return;
 				}
 			}
 
-			m_aNumClientPause[ClientID]++;
+			pPlayer->m_PauseCount++;
 			SetGameState(IGS_GAME_PAUSED, TIMER_INFINITE);
 			SendGameMsg(GAMEMSG_GAME_PAUSED, -1, &ClientID);
 		}
@@ -2511,14 +2515,6 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 		++m_aTeamSize[Team];
 		dbg_msg("game", "team size increased to %d, team='%d', ddrteam='%d'", m_aTeamSize[Team], Team, GameWorld()->Team());
 		m_UnbalancedTick = TBALANCE_CHECK;
-		if(m_GameState == IGS_WARMUP_GAME && HasEnoughPlayers())
-		{
-			// we got enough player, redo warmup if we have one, otherwise start the game
-			if(m_PlayerReadyMode & 1)
-				SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
-			else
-				SetGameState(IGS_WARMUP_USER, m_Warmup);
-		}
 		pPlayer->m_IsReadyToPlay = !IsPlayerReadyMode();
 		if(IsSurvival())
 			pPlayer->m_RespawnDisabled = GetStartRespawnState();
@@ -2526,6 +2522,7 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 
 	CheckReadyStates();
 	OnPlayerChangeTeam(pPlayer, OldTeam, Team);
+	TryStartWarmup(true);
 
 	// reset inactivity counter when joining the game
 	if(OldTeam == TEAM_SPECTATORS)

@@ -118,8 +118,6 @@ class IGameController
 	SBroadcastState m_aFakeClientBroadcast[MAX_CLIENTS];
 	void FakeClientBroadcast(int SnappingClient);
 
-	int m_aNumClientPause[MAX_CLIENTS];
-
 protected:
 	bool m_Started;
 
@@ -157,6 +155,7 @@ protected:
 	{
 		return m_MinimumPlayers > 0 && ((IsTeamplay() && m_aTeamSize[TEAM_RED] > 0 && m_aTeamSize[TEAM_BLUE] > 0 && m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] >= m_MinimumPlayers) || (!IsTeamplay() && m_aTeamSize[TEAM_RED] >= m_MinimumPlayers));
 	}
+	bool HasNoPlayers() const { return m_aTeamSize[TEAM_RED] == 0 && m_aTeamSize[TEAM_BLUE] == 0; }
 	void ResetGame();
 	void SetGameState(EGameState GameState, int Timer = 0);
 	void StartMatch();
