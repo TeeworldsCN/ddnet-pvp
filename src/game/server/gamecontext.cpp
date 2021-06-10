@@ -35,7 +35,9 @@ enum
 	NO_RESET
 };
 
-int64 CGameContext::ms_TeamMask[3] = {0, 0, 0};
+int64 CGameContext::ms_TeamMask[3] = {0};
+int64 CGameContext::ms_SpectatorMask[MAX_CLIENTS] = {0};
+int64 CGameContext::ms_TeamSpectatorMask[2] = {0};
 
 void CGameContext::Construct(int Resetting)
 {
@@ -1256,6 +1258,8 @@ void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 	if(((CServer *)Server())->m_aClients[ClientID].m_State == CServer::CClient::STATE_INGAME)
 		Teams()->OnPlayerDisconnect(m_apPlayers[ClientID], pReason);
 
+	int Team = m_apPlayers[ClientID]->GetTeam();
+
 	delete m_apPlayers[ClientID];
 	m_apPlayers[ClientID] = 0;
 
@@ -1265,8 +1269,10 @@ void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 	// update spectator modes
 	for(auto &pPlayer : m_apPlayers)
 	{
-		if(pPlayer && pPlayer->m_SpectatorID == ClientID)
-			pPlayer->m_SpectatorID = SPEC_FREEVIEW;
+		if(pPlayer && pPlayer->GetSpectatorID() == ClientID)
+		{
+			pPlayer->SetSpecMode(CPlayer::FREEVIEW);
+		}
 	}
 
 	// update conversation targets
@@ -1411,7 +1417,7 @@ void *CGameContext::PreProcessMsg(int *MsgID, CUnpacker *pUnpacker, int ClientID
 			pPlayer->m_LastSetSpectatorMode = Server()->Tick();
 			pPlayer->UpdatePlaytime();
 			SGameInstance Instance = PlayerGameInstance(ClientID);
-			if(!pPlayer->SetSpectatorID(pMsg7->m_SpecMode, pMsg7->m_SpectatorID) && Instance.m_Init)
+			if(!pPlayer->SetSpecMode((CPlayer::ESpecMode)pMsg7->m_SpecMode, pMsg7->m_SpectatorID) && Instance.m_Init)
 				Instance.m_pController->SendGameMsg(GAMEMSG_SPEC_INVALIDID, ClientID);
 			return 0;
 		}
@@ -2098,7 +2104,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			pPlayer->UpdatePlaytime();
 
 			SGameInstance Instance = PlayerGameInstance(ClientID);
-			if(!pPlayer->SetSpectatorID(pMsg->m_SpectatorID == -1 ? CPlayer::SPECMODE_FREEVIEW : CPlayer::SPECMODE_PLAYER, pMsg->m_SpectatorID) && Instance.m_Init)
+			if(!pPlayer->SetSpecMode(pMsg->m_SpectatorID == -1 ? CPlayer::FREEVIEW : CPlayer::PLAYER, pMsg->m_SpectatorID) && Instance.m_Init)
 			{
 				if(pMsg->m_SpectatorID == -1 && !Server()->IsSixup(ClientID))
 					SendChatTarget(ClientID, "You can't freeview right now");

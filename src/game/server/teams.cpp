@@ -537,8 +537,8 @@ void CGameTeams::OnSnap(int SnappingClient)
 	int ShowOthers = pPlayer->ShowOthersMode() || (m_Core.Team(SnappingClient) == 0 && g_Config.m_SvRoom == 2);
 
 	int SnapAs = SnappingClient;
-	if(pPlayer->IsSpectating() && pPlayer->m_SpectatorID != SPEC_FREEVIEW)
-		SnapAs = pPlayer->m_SpectatorID;
+	if(pPlayer->IsSpectating() && pPlayer->GetSpectatorID() >= 0)
+		SnapAs = pPlayer->GetSpectatorID();
 
 	int SnapAsTeam = m_Core.Team(SnapAs);
 

@@ -420,12 +420,19 @@ public:
 	int m_ChatPrintCBIndex;
 
 	static int64 ms_TeamMask[3];
+	static int64 ms_SpectatorMask[MAX_CLIENTS];
+	static int64 ms_TeamSpectatorMask[2];
 };
 
 inline int64 CmaskAll() { return -1LL; }
 inline int64 CmaskOne(int ClientID) { return 1LL << ClientID; }
+inline int64 CmaskViewer(int ClientID) { CGameContext::ms_SpectatorMask[ClientID]; }
+inline int64 CmaskOneAndViewer(int ClientID) { return 1LL << ClientID | CmaskViewer(ClientID); }
 inline int64 CmaskTeam(int Team) { return CGameContext::ms_TeamMask[Team + 1]; }
-inline int64 CmaskUnset(int64 Mask, int ClientID) { return Mask ^ CmaskOne(ClientID); }
-inline int64 CmaskAllExceptOne(int ClientID) { return CmaskUnset(CmaskAll(), ClientID); }
+inline int64 CmaskTeamViewer(int Team) { return CGameContext::ms_TeamSpectatorMask[Team]; }
+inline int64 CmaskTeamAndViewer(int Team) { return CGameContext::ms_TeamMask[Team + 1] | CmaskTeamViewer(Team); }
+inline int64 CmaskSet(int64 Mask, int ClientID) { return Mask | CmaskOne(ClientID); }
+inline int64 CmaskUnset(int64 Mask, int ClientID) { return Mask & ~CmaskOne(ClientID); }
+inline int64 CmaskAllExceptOne(int ClientID) { return ~CmaskOne(ClientID); }
 inline bool CmaskIsSet(int64 Mask, int ClientID) { return (Mask & CmaskOne(ClientID)) != 0; }
 #endif

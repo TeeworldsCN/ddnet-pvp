@@ -78,8 +78,16 @@ public:
 	int m_aActLatency[MAX_CLIENTS];
 
 	// used for spectator mode
+	enum ESpecMode
+	{
+		FREEVIEW = 0,
+		PLAYER,
+		FLAGRED, // SIXUP only
+		FLAGBLUE, // SIXUP only
+		NUM_SPECMODES
+	};
 	int GetSpectatorID() const { return m_SpectatorID; }
-	bool SetSpectatorID(int SpecMode, int SpectatorID);
+	bool SetSpecMode(ESpecMode SpecMode, int SpectatorID = -1);
 	bool m_DeadSpecMode;
 	bool DeadCanFollow(CPlayer *pPlayer) const;
 	void UpdateDeadSpecMode();
@@ -176,6 +184,10 @@ private:
 	int m_OverrideEmoteReset;
 	bool m_Halloween;
 
+	int m_SpecMode;
+	int m_SpectatorID;
+	void SetSpectatorID(int ClientID);
+
 public:
 	enum
 	{
@@ -242,17 +254,6 @@ public:
 	bool m_NotEligibleForFinish;
 	int64 m_EligibleForFinishCheck;
 
-	// used for spectator mode
-	enum
-	{
-		SPECMODE_FREEVIEW,
-		SPECMODE_PLAYER,
-		SPECMODE_FLAGRED, // SIXUP only
-		SPECMODE_FLAGBLUE, // SIXUP only
-		NUM_SPECMODES
-	};
-	int m_SpecMode;
-	int m_SpectatorID;
 	class CFlag *m_pSpecFlag;
 	bool m_ActiveSpecSwitch;
 };

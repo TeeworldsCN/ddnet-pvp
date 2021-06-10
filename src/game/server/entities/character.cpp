@@ -728,7 +728,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int Weapo
 			int64 Mask = CmaskOne(From);
 			for(int i = 0; i < MAX_CLIENTS; i++)
 			{
-				if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->IsSpectating() && GameServer()->m_apPlayers[i]->m_SpectatorID == From)
+				if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->IsSpectating() && GameServer()->m_apPlayers[i]->GetSpectatorID() == From)
 					Mask |= CmaskOne(i);
 			}
 			GameWorld()->CreateSound(GameServer()->m_apPlayers[From]->m_ViewPos, SOUND_HIT, Mask);
@@ -832,7 +832,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int MappedID)
 	}
 
 	if(m_pPlayer->GetCID() == SnappingClient || SnappingClient == -1 ||
-		(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCID() == GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID))
+		(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCID() == GameServer()->m_apPlayers[SnappingClient]->GetSpectatorID()))
 	{
 		Health = m_Health;
 		Armor = m_Armor;

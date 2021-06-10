@@ -183,7 +183,7 @@ void CGameContext::ConTogglePause(IConsole::IResult *pResult, void *pUserData)
 	bool PlayerPaused = pPlayer->IsPaused();
 	if(pResult->NumArguments() > 0)
 	{
-		if(PlayerPaused && pPlayer->m_SpectatorID != pResult->m_ClientID && pServ->ClientIngame(pPlayer->m_SpectatorID) && !str_comp(pServ->ClientName(pPlayer->m_SpectatorID), pResult->GetString(0)))
+		if(PlayerPaused && pPlayer->GetSpectatorID() != pResult->m_ClientID && pServ->ClientIngame(pPlayer->GetSpectatorID()) && !str_comp(pServ->ClientName(pPlayer->GetSpectatorID()), pResult->GetString(0)))
 		{
 			pPlayer->Pause(false, false);
 		}

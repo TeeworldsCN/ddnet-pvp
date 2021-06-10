@@ -145,18 +145,18 @@ void CPickup::Snap(int SnappingClient, int OtherMode)
 	if(SnappingClient > -1)
 	{
 		bool isSpectating = (GameServer()->m_apPlayers[SnappingClient]->GetTeam() == -1 || GameServer()->m_apPlayers[SnappingClient]->IsPaused());
-		bool isFreeViewing = isSpectating && GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID == SPEC_FREEVIEW;
+		bool isFreeViewing = isSpectating && GameServer()->m_apPlayers[SnappingClient]->GetSpectatorID() == SPEC_FREEVIEW;
 		if(isSpectating && !isFreeViewing)
 		{
-			SnapPlayer = GameServer()->m_apPlayers[GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID];
+			SnapPlayer = GameServer()->m_apPlayers[GameServer()->m_apPlayers[SnappingClient]->GetSpectatorID()];
 		}
 
 		if(!isFreeViewing || (SnappingPlayer && SnappingPlayer->m_SpecTeam))
 		{
 			int SnapCID = SnapPlayer->GetCID();
-			bool isSoloActive = Teams()->m_Core.GetSolo(SnapCID) && (m_SoloSpawnTick[SnapCID] < 0);
-			bool isTeamActive = !Teams()->m_Core.GetSolo(SnapCID) && m_SpawnTick < 0;
-			if(!isSoloActive && !isTeamActive)
+			bool isActiveInSolo = Teams()->m_Core.GetSolo(SnapCID) && (m_SoloSpawnTick[SnapCID] < 0);
+			bool isActiveInWorld = !Teams()->m_Core.GetSolo(SnapCID) && m_SpawnTick < 0;
+			if(!isActiveInSolo && !isActiveInWorld)
 				return;
 		}
 	}
