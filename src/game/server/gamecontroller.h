@@ -118,6 +118,8 @@ class IGameController
 	SBroadcastState m_aFakeClientBroadcast[MAX_CLIENTS];
 	void FakeClientBroadcast(int SnappingClient);
 
+	int m_aNumClientPause[MAX_CLIENTS];
+
 protected:
 	bool m_Started;
 
@@ -151,7 +153,10 @@ protected:
 	EGameState m_GameState;
 	int m_GameStateTimer;
 
-	bool HasEnoughPlayers() const { return (IsTeamplay() && m_aTeamSize[TEAM_RED] > 0 && m_aTeamSize[TEAM_BLUE] > 0) || (!IsTeamplay() && m_aTeamSize[TEAM_RED] > 1); }
+	bool HasEnoughPlayers() const
+	{
+		return m_MinimumPlayers > 0 && (IsTeamplay() && m_aTeamSize[TEAM_RED] > 0 && m_aTeamSize[TEAM_BLUE] > 0 && m_aTeamSize[TEAM_RED] + m_aTeamSize[TEAM_BLUE] >= m_MinimumPlayers) || (!IsTeamplay() && m_aTeamSize[TEAM_RED] >= m_MinimumPlayers);
+	}
 	void ResetGame();
 	void SetGameState(EGameState GameState, int Timer = 0);
 	void StartMatch();
@@ -286,6 +291,8 @@ public:
 	int m_PlayerSlots;
 	int m_PlayerReadyMode;
 	int m_ResetOnMatchEnd;
+	int m_PausePerMatch;
+	int m_MinimumPlayers;
 
 	// mega map stuff
 	char m_aMap[128];
@@ -309,6 +316,7 @@ public:
 		TIMER_END = 10,
 	};
 
+	void TryStartWarmup(bool FallbackToWarmup = false);
 	void DoPause(int Seconds) { SetGameState(IGS_GAME_PAUSED, Seconds); }
 	void DoWarmup(int Seconds) { SetGameState(IGS_WARMUP_USER, Seconds); }
 	void AbortWarmup()

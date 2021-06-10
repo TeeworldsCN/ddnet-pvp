@@ -24,6 +24,13 @@
 
 #include <engine/server/server.h>
 
+static void ConchainTryStartWarmup(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	pfnCallback(pResult, pCallbackUserData);
+	IGameController *pThis = static_cast<IGameController *>(pUserData);
+	pThis->TryStartWarmup(true);
+}
+
 static void ConchainVoteUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
 {
 	pfnCallback(pResult, pCallbackUserData);
@@ -363,8 +370,7 @@ IGameController::IGameController()
 	m_GameStartTick = 0;
 	m_RoundCount = 0;
 	m_SuddenDeath = 0;
-	m_aTeamscore[TEAM_RED] = 0;
-	m_aTeamscore[TEAM_BLUE] = 0;
+	mem_zero(m_aNumClientPause, sizeof(m_aNumClientPause));
 
 	// info
 	m_GameFlags = 0;
@@ -415,11 +421,14 @@ IGameController::IGameController()
 	INSTANCE_CONFIG_INT(&m_PlayerSlots, "player_slots", MAX_CLIENTS, 2, MAX_CLIENTS, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Maximum room size (from 2 to 64)")
 	INSTANCE_CONFIG_INT(&m_PlayerReadyMode, "player_ready_mode", 0, 0, 3, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "1 = players can ready to start the game on warmup 2 = players can unready to pause the game, 3 = both")
 	INSTANCE_CONFIG_INT(&m_ResetOnMatchEnd, "reset_on_match_end", 0, 0, 1, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Whether to reset to the initial state (warmup or wait for ready) after a match.")
+	INSTANCE_CONFIG_INT(&m_PausePerMatch, "pause_per_match", 0, 0, 10, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Number of pause (using ready state) allowed per player per match")
+	INSTANCE_CONFIG_INT(&m_MinimumPlayers, "minimum_players", 1, 0, MAX_CLIENTS, CFGFLAG_CHAT | CFGFLAG_INSTANCE, "Number of players required to start a match, (0 = the game can't start)")
 
 	m_pInstanceConsole->Chain("scorelimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("timelimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("roundlimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("player_slots", ConchainVoteUpdate, this);
+	m_pInstanceConsole->Chain("minimum_players", ConchainTryStartWarmup, this);
 
 	m_pInstanceConsole->Register("say", "?r[message]", CFGFLAG_INSTANCE, ConSay, this, "Say in chat in this room");
 	m_pInstanceConsole->Register("broadcast", "?r[message]", CFGFLAG_INSTANCE, ConBroadcast, this, "Broadcast message in this room");
@@ -471,13 +480,7 @@ void IGameController::StartController()
 	// default to wait for more players
 	SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
 
-	if(HasEnoughPlayers())
-	{
-		if(m_PlayerReadyMode & 1)
-			SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
-		else
-			SetGameState(IGS_WARMUP_USER, m_Warmup);
-	}
+	TryStartWarmup();
 
 	OnControllerStart();
 }
@@ -1039,6 +1042,8 @@ void IGameController::OnInternalPlayerJoin(CPlayer *pPlayer, int Type)
 	pPlayer->m_Vote = 0;
 	pPlayer->m_VotePos = 0;
 
+	m_aNumClientPause[ClientID] = 0;
+
 	// clear vote options for joining player
 	CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;
 	Server()->SendPackMsg(&VoteClearOptionsMsg, MSGFLAG_VITAL, pPlayer->GetCID());
@@ -1402,6 +1407,24 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 	}
 }
 
+void IGameController::TryStartWarmup(bool FallbackToWarmup)
+{
+	if((m_GameState != IGS_WARMUP_GAME && m_GameState != IGS_WARMUP_USER) || m_GameStateTimer != TIMER_INFINITE)
+		return;
+
+	if(HasEnoughPlayers())
+	{
+		if(m_PlayerReadyMode & 1)
+			SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
+		else
+			SetGameState(IGS_WARMUP_USER, m_Warmup);
+	}
+	else if(FallbackToWarmup)
+	{
+		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
+	}
+}
+
 void IGameController::StartMatch()
 {
 	// If we passed warmup and still not enough player, do infinite timer
@@ -1423,6 +1446,7 @@ void IGameController::StartMatch()
 
 	m_aTeamscore[TEAM_RED] = 0;
 	m_aTeamscore[TEAM_BLUE] = 0;
+	mem_zero(m_aNumClientPause, sizeof(m_aNumClientPause));
 
 	if(HasEnoughPlayers())
 	{
@@ -1455,13 +1479,7 @@ void IGameController::ResetMatch()
 	// default to wait for more players
 	SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
 
-	if(HasEnoughPlayers())
-	{
-		if(m_PlayerReadyMode & 1)
-			SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
-		else
-			SetGameState(IGS_WARMUP_USER, m_Warmup);
-	}
+	TryStartWarmup();
 }
 
 void IGameController::StartRound()
@@ -1502,14 +1520,27 @@ void IGameController::OnPlayerReadyChange(CPlayer *pPlayer)
 {
 	if((IsPlayerReadyMode() || ((m_PlayerReadyMode & 2) && m_GameState == IGS_GAME_RUNNING)) && pPlayer->GetTeam() != TEAM_SPECTATORS && !pPlayer->m_DeadSpecMode)
 	{
-		// change players ready state
-		pPlayer->m_IsReadyToPlay ^= 1;
-
-		if(m_GameState == IGS_GAME_RUNNING && !pPlayer->m_IsReadyToPlay)
+		if(m_GameState == IGS_GAME_RUNNING && pPlayer->m_IsReadyToPlay)
 		{
-			SetGameState(IGS_GAME_PAUSED, TIMER_INFINITE); // one player isn't ready -> pause the game
 			int ClientID = pPlayer->GetCID();
+
+			if(m_PausePerMatch)
+			{
+				if(m_aNumClientPause[ClientID] >= m_PausePerMatch)
+				{
+					SendChatTarget(ClientID, "You can't pause the match anymore");
+					return;
+				}
+			}
+
+			m_aNumClientPause[ClientID]++;
+			SetGameState(IGS_GAME_PAUSED, TIMER_INFINITE);
 			SendGameMsg(GAMEMSG_GAME_PAUSED, -1, &ClientID);
+		}
+		else
+		{
+			// change players ready state
+			pPlayer->m_IsReadyToPlay ^= 1;
 		}
 
 		CheckReadyStates();
