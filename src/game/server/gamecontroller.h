@@ -316,6 +316,7 @@ public:
 	};
 
 	void TryStartWarmup(bool FallbackToWarmup = false);
+	void DoCountdown(int Seconds) { SetGameState(IGS_START_COUNTDOWN, Seconds); }
 	void DoPause(int Seconds) { SetGameState(IGS_GAME_PAUSED, Seconds); }
 	void DoWarmup(int Seconds) { SetGameState(IGS_WARMUP_USER, Seconds); }
 	void AbortWarmup()
@@ -358,6 +359,7 @@ public:
 	int IsWarmup() const { return !m_Started || m_GameState == IGS_WARMUP_GAME || m_GameState == IGS_WARMUP_USER; }
 	int IsCountdown() const { return m_GameState == IGS_START_COUNTDOWN; }
 	int IsRunning() const { return m_GameState == IGS_GAME_RUNNING; }
+	int GetGameStateTimer() const { return m_GameStateTimer; }
 
 	// spawn
 	bool CanSpawn(int Team, vec2 *pPos) const;

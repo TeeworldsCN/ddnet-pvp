@@ -24,6 +24,18 @@
 
 #include <engine/server/server.h>
 
+// MYTODO: clean up these static methods
+static void ConchainUpdateCountdown(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	pfnCallback(pResult, pCallbackUserData);
+	if(pResult->NumArguments() >= 1)
+	{
+		IGameController *pThis = static_cast<IGameController *>(pUserData);
+		if(pThis->GetGameStateTimer() > pThis->m_Countdown * pThis->Server()->TickSpeed())
+			pThis->DoCountdown(pThis->m_Countdown);
+	}
+}
+
 static void ConchainTryStartWarmup(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
 {
 	pfnCallback(pResult, pCallbackUserData);
@@ -428,6 +440,7 @@ IGameController::IGameController()
 	m_pInstanceConsole->Chain("roundlimit", ConchainGameInfoUpdate, this);
 	m_pInstanceConsole->Chain("player_slots", ConchainVoteUpdate, this);
 	m_pInstanceConsole->Chain("minimum_players", ConchainTryStartWarmup, this);
+	m_pInstanceConsole->Chain("countdown", ConchainUpdateCountdown, this);
 
 	m_pInstanceConsole->Register("say", "?r[message]", CFGFLAG_INSTANCE, ConSay, this, "Say in chat in this room");
 	m_pInstanceConsole->Register("broadcast", "?r[message]", CFGFLAG_INSTANCE, ConBroadcast, this, "Broadcast message in this room");
