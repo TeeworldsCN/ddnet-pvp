@@ -131,6 +131,7 @@ protected:
 	int m_aTeamSize[2];
 	int m_UnbalancedTick;
 	int m_NumPlayerNotReady;
+	bool m_PauseRequested;
 
 	void CheckTeamBalance();
 
@@ -551,6 +552,18 @@ public:
 
 	*/
 	virtual bool CanDeadPlayerFollow(const class CPlayer *pSpectator, const class CPlayer *pTarget);
+
+	/*
+		Function: CanPause
+			Whether a game is allowed to be paused. Player can call pause anytime
+				but the game will only pause after this has been true
+				This will be called every tick starting from a player calling pause
+				And will stop being called after pause
+		
+		Return:
+			bool - true if can pause
+	*/
+	virtual bool CanPause() { return true; }
 
 	// =============
 	//   GAME CORE

@@ -1328,6 +1328,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 					}
 				}
 				GameWorld()->m_Paused = false;
+				m_PauseRequested = false;
 				m_SuddenDeath = 0;
 			}
 			else
@@ -1361,6 +1362,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 			m_GameStateTimer = TIMER_INFINITE;
 			SetPlayersReadyState(true);
 			GameWorld()->m_Paused = false;
+			m_PauseRequested = false;
 		}
 		break;
 	case IGS_GAME_PAUSED:
@@ -1394,6 +1396,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 		break;
 	case IGS_END_ROUND:
 	case IGS_END_MATCH:
+		m_PauseRequested = false;
 		if(GameState == IGS_END_ROUND)
 		{
 			DoWincheckMatch();
@@ -1543,20 +1546,24 @@ void IGameController::OnPlayerReadyChange(CPlayer *pPlayer)
 	{
 		if(m_GameState == IGS_GAME_RUNNING && pPlayer->m_IsReadyToPlay)
 		{
-			int ClientID = pPlayer->GetCID();
-
-			if(m_PausePerMatch)
+			if(!m_PauseRequested)
 			{
-				if(pPlayer->m_PauseCount >= m_PausePerMatch)
-				{
-					SendChatTarget(ClientID, "You can't pause the match anymore");
-					return;
-				}
-			}
+				int ClientID = pPlayer->GetCID();
 
-			pPlayer->m_PauseCount++;
-			SetGameState(IGS_GAME_PAUSED, TIMER_INFINITE);
-			SendGameMsg(GAMEMSG_GAME_PAUSED, -1, &ClientID);
+				if(m_PausePerMatch)
+				{
+					if(pPlayer->m_PauseCount >= m_PausePerMatch)
+					{
+						SendChatTarget(ClientID, "You can't pause the match anymore");
+						return;
+					}
+				}
+
+				pPlayer->m_PauseCount++;
+				m_PauseRequested = true;
+				// SetGameState(IGS_GAME_PAUSED, TIMER_INFINITE);
+				SendGameMsg(GAMEMSG_GAME_PAUSED, -1, &ClientID);
+			}
 		}
 		else
 		{
@@ -1899,6 +1906,12 @@ void IGameController::Snap(int SnappingClient)
 
 void IGameController::Tick()
 {
+	if(m_PauseRequested && CanPause())
+	{
+		SetGameState(IGS_GAME_PAUSED, TIMER_INFINITE);
+		m_PauseRequested = false;
+	}
+
 	if(m_ResendVotes)
 	{
 		// reset sending of vote options
@@ -2619,6 +2632,7 @@ void IGameController::InitController(class CGameContext *pGameServer, class CGam
 	m_pWorld = pWorld;
 	m_GameStartTick = m_pServer->Tick();
 	m_pInstanceConsole->InitNoConfig(m_pGameServer->Storage());
+	m_PauseRequested = false;
 
 	// game
 	m_aTeamscore[TEAM_RED] = 0;
