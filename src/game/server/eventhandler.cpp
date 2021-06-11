@@ -15,9 +15,10 @@ CEventHandler::CEventHandler()
 	Clear();
 }
 
-void CEventHandler::SetGameServer(CGameContext *pGameServer)
+void CEventHandler::SetGameServer(CGameContext *pGameServer, IGameController *pController)
 {
 	m_pGameServer = pGameServer;
+	m_pController = pController;
 }
 
 void *CEventHandler::Create(int Type, int Size, int64 Mask)
@@ -50,15 +51,15 @@ void CEventHandler::Snap(int SnappingClient)
 		if(SnappingClient == -1 || CmaskIsSet(m_aClientMasks[i], SnappingClient))
 		{
 			CNetEvent_Common *ev = (CNetEvent_Common *)&m_aData[m_aOffsets[i]];
+			int Type = m_aTypes[i];
+			int Size = m_aSizes[i];
+			const char *Data = &m_aData[m_aOffsets[i]];
+			if(OverrideEvent(SnappingClient, &Type, &Size, &Data))
+				return;
+
 			// larger clip for events (especially for sounds), to provides full spatial sounds
 			if(!NetworkPointClipped(GameServer(), SnappingClient, vec2(ev->m_X, ev->m_Y), vec2(1800.0f, 1800.0f)))
 			{
-				int Type = m_aTypes[i];
-				int Size = m_aSizes[i];
-				const char *Data = &m_aData[m_aOffsets[i]];
-				if(GameServer()->Server()->IsSixup(SnappingClient))
-					EventToSixup(&Type, &Size, &Data);
-
 				void *d = GameServer()->Server()->SnapNewItem(Type, i, Size);
 				if(d)
 					mem_copy(d, Data, Size);
@@ -67,10 +68,12 @@ void CEventHandler::Snap(int SnappingClient)
 	}
 }
 
-void CEventHandler::EventToSixup(int *Type, int *Size, const char **pData)
+bool CEventHandler::OverrideEvent(int SnappingClient, int *Type, int *Size, const char **pData)
 {
 	static char s_aEventStore[128];
-	if(*Type == NETEVENTTYPE_DAMAGEIND)
+	int Sixup = GameServer()->Server()->IsSixup(SnappingClient);
+
+	if(*Type == NETEVENTTYPE_DAMAGEIND && Sixup)
 	{
 		const CNetEvent_DamageInd *pEvent = (const CNetEvent_DamageInd *)(*pData);
 		protocol7::CNetEvent_Damage *pEvent7 = (protocol7::CNetEvent_Damage *)s_aEventStore;
@@ -86,19 +89,36 @@ void CEventHandler::EventToSixup(int *Type, int *Size, const char **pData)
 		pEvent7->m_HealthAmount = 1;
 
 		*pData = s_aEventStore;
+		return false;
 	}
-	else if(*Type == NETEVENTTYPE_SOUNDGLOBAL) // No more global sounds for the server
+	else if(*Type == NETEVENTTYPE_SOUNDGLOBAL) // Fake sound global event
 	{
 		const CNetEvent_SoundGlobal *pEvent = (const CNetEvent_SoundGlobal *)(*pData);
-		protocol7::CNetEvent_SoundWorld *pEvent7 = (protocol7::CNetEvent_SoundWorld *)s_aEventStore;
+		int SoundID = pEvent->m_SoundID;
 
-		*Type = -protocol7::NETEVENTTYPE_SOUNDWORLD;
-		*Size = sizeof(*pEvent7);
+		if(Sixup)
+		{
+			CPlayer *pPlayer = Controller()->GetPlayerIfInRoom(SnappingClient);
+			if(!pPlayer)
+				return true;
 
-		pEvent7->m_SoundID = pEvent->m_SoundID;
-		pEvent7->m_X = pEvent->m_X;
-		pEvent7->m_Y = pEvent->m_Y;
+			protocol7::CNetEvent_SoundWorld *pEvent7 = (protocol7::CNetEvent_SoundWorld *)s_aEventStore;
+			*Type = -protocol7::NETEVENTTYPE_SOUNDWORLD;
+			*Size = sizeof(*pEvent7);
 
-		*pData = s_aEventStore;
+			pEvent7->m_X = round_to_int(pPlayer->m_ViewPos.x);
+			pEvent7->m_Y = round_to_int(pPlayer->m_ViewPos.y);
+			pEvent7->m_SoundID = SoundID;
+			*pData = s_aEventStore;
+			return false;
+		}
+		else
+		{
+			CNetMsg_Sv_SoundGlobal Msg;
+			Msg.m_SoundID = SoundID;
+			GameServer()->Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, SnappingClient);
+			return true;
+		}
 	}
+	return false;
 }

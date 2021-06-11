@@ -1434,6 +1434,7 @@ void IGameController::TryStartWarmup(bool FallbackToWarmup)
 	}
 	else if(FallbackToWarmup)
 	{
+		SetPlayersReadyState(true);
 		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
 	}
 }

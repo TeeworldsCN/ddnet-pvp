@@ -195,9 +195,7 @@ public:
 	void CreatePlayerSpawn(vec2 Pos, int64 Mask = -1LL);
 	void CreateDeath(vec2 Pos, int Who, int64 Mask = -1LL);
 	void CreateSound(vec2 Pos, int Sound, int64 Mask = -1LL);
-
-	// deprecated: you shouldn't send global sound anymore
-	void CreateSoundGlobal(int Sound, int Target = -1LL);
+	void CreateSoundGlobal(int Sound, int64 Mask = -1LL);
 };
 
 #endif

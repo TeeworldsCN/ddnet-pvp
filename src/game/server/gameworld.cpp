@@ -21,7 +21,7 @@ CGameWorld::CGameWorld(int Team, CGameContext *pGameServer, IGameController *pCo
 	m_pController = pController;
 	m_pConfig = m_pGameServer->Config();
 	m_pServer = m_pGameServer->Server();
-	m_Events.SetGameServer(pGameServer);
+	m_Events.SetGameServer(pGameServer, pController);
 
 	m_Paused = false;
 	m_ResetRequested = false;
@@ -462,20 +462,27 @@ void CGameWorld::CreateSound(vec2 Pos, int Sound, int64 Mask)
 	}
 }
 
-void CGameWorld::CreateSoundGlobal(int Sound, int Target)
+void CGameWorld::CreateSoundGlobal(int Sound, int64 Mask)
 {
 	if(Sound < 0)
 		return;
 
-	CNetMsg_Sv_SoundGlobal Msg;
-	Msg.m_SoundID = Sound;
-	if(Target == -2)
-		Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, -1);
-	else
+	// create a sound
+	CNetEvent_SoundGlobal *pEvent = (CNetEvent_SoundGlobal *)m_Events.Create(NETEVENTTYPE_SOUNDGLOBAL, sizeof(CNetEvent_SoundGlobal), Mask);
+	if(pEvent)
 	{
-		int Flag = MSGFLAG_VITAL;
-		if(Target != -1)
-			Flag |= MSGFLAG_NORECORD;
-		Server()->SendPackMsg(&Msg, Flag, Target);
+		pEvent->m_SoundID = Sound;
 	}
+
+	// CNetMsg_Sv_SoundGlobal Msg;
+	// Msg.m_SoundID = Sound;
+	// if(Target == -2)
+	// 	Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, -1);
+	// else
+	// {
+	// 	int Flag = MSGFLAG_VITAL;
+	// 	if(Target != -1)
+	// 		Flag |= MSGFLAG_NORECORD;
+	// 	Server()->SendPackMsg(&Msg, Flag, Target);
+	// }
 }

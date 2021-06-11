@@ -18,20 +18,22 @@ class CEventHandler
 	char m_aData[MAX_DATASIZE];
 
 	class CGameContext *m_pGameServer;
+	class IGameController *m_pController;
 
 	int m_CurrentOffset;
 	int m_NumEvents;
 
 public:
 	CGameContext *GameServer() const { return m_pGameServer; }
-	void SetGameServer(CGameContext *pGameServer);
+	IGameController *Controller() const { return m_pController; }
+	void SetGameServer(CGameContext *pGameServer, IGameController *pController);
 
 	CEventHandler();
 	void *Create(int Type, int Size, int64 Mask = -1LL);
 	void Clear();
 	void Snap(int SnappingClient);
 
-	void EventToSixup(int *Type, int *Size, const char **Data);
+	bool OverrideEvent(int SnappingClient, int *Type, int *Size, const char **Data);
 };
 
 #endif
