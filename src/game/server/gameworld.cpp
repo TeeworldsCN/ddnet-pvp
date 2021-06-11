@@ -14,10 +14,11 @@
 //////////////////////////////////////////////////
 // game world
 //////////////////////////////////////////////////
-CGameWorld::CGameWorld(int Team, CGameContext *pGameServer)
+CGameWorld::CGameWorld(int Team, CGameContext *pGameServer, IGameController *pController)
 {
 	m_ResponsibleTeam = Team;
 	m_pGameServer = pGameServer;
+	m_pController = pController;
 	m_pConfig = m_pGameServer->Config();
 	m_pServer = m_pGameServer->Server();
 	m_Events.SetGameServer(pGameServer);
@@ -160,7 +161,7 @@ void CGameWorld::Reset()
 		}
 	RemoveEntities();
 
-	GameServer()->GameInstance(m_ResponsibleTeam).m_pController->OnReset();
+	Controller()->OnReset();
 	RemoveEntities();
 
 	m_ResetRequested = false;
@@ -328,7 +329,7 @@ void CGameWorld::ReleaseHooked(int ClientID)
 	}
 }
 
-void CGameWorld::CreateDamageInd(vec2 Pos, float Angle, int Amount, int64 Mask)
+void CGameWorld::CreateDamageIndCircle(vec2 Pos, float Angle, int Amount, int Total, int64 Mask)
 {
 	float a = 3 * 3.14159f / 2 + Angle;
 	//float a = get_angle(dir);
@@ -340,9 +341,27 @@ void CGameWorld::CreateDamageInd(vec2 Pos, float Angle, int Amount, int64 Mask)
 		CNetEvent_DamageInd *pEvent = (CNetEvent_DamageInd *)m_Events.Create(NETEVENTTYPE_DAMAGEIND, sizeof(CNetEvent_DamageInd), Mask);
 		if(pEvent)
 		{
-			pEvent->m_X = (int)Pos.x;
-			pEvent->m_Y = (int)Pos.y;
-			pEvent->m_Angle = (int)(f * 256.0f);
+			pEvent->m_X = round_to_int(Pos.x);
+			pEvent->m_Y = round_to_int(Pos.y);
+			pEvent->m_Angle = 256.0f;
+		}
+	}
+}
+
+void CGameWorld::CreateDamageInd(vec2 Pos, float Angle, int Amount, int64 Mask)
+{
+	float a = 3 * pi / 2 + Angle;
+	int s = round_to_int((a - pi / 3) * 256.0f);
+	int e = round_to_int((a + pi / 3) * 256.0f);
+	for(int i = 0; i < Amount; i++)
+	{
+		int f = mix(s, e, float(i + 1) / float(Amount + 1));
+		CNetEvent_DamageInd *pEvent = (CNetEvent_DamageInd *)m_Events.Create(NETEVENTTYPE_DAMAGEIND, sizeof(CNetEvent_DamageInd), Mask);
+		if(pEvent)
+		{
+			pEvent->m_X = round_to_int(Pos.x);
+			pEvent->m_Y = round_to_int(Pos.y);
+			pEvent->m_Angle = f;
 		}
 	}
 }
@@ -353,8 +372,8 @@ void CGameWorld::CreateHammerHit(vec2 Pos, int64 Mask)
 	CNetEvent_HammerHit *pEvent = (CNetEvent_HammerHit *)m_Events.Create(NETEVENTTYPE_HAMMERHIT, sizeof(CNetEvent_HammerHit), Mask);
 	if(pEvent)
 	{
-		pEvent->m_X = (int)Pos.x;
-		pEvent->m_Y = (int)Pos.y;
+		pEvent->m_X = round_to_int(Pos.x);
+		pEvent->m_Y = round_to_int(Pos.y);
 	}
 }
 
@@ -363,8 +382,8 @@ void CGameWorld::CreateExplosionParticle(vec2 Pos, int64 Mask)
 	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), Mask);
 	if(pEvent)
 	{
-		pEvent->m_X = (int)Pos.x;
-		pEvent->m_Y = (int)Pos.y;
+		pEvent->m_X = round_to_int(Pos.x);
+		pEvent->m_Y = round_to_int(Pos.y);
 	}
 }
 
@@ -411,8 +430,8 @@ void CGameWorld::CreatePlayerSpawn(vec2 Pos, int64 Mask)
 	CNetEvent_Spawn *ev = (CNetEvent_Spawn *)m_Events.Create(NETEVENTTYPE_SPAWN, sizeof(CNetEvent_Spawn), Mask);
 	if(ev)
 	{
-		ev->m_X = (int)Pos.x;
-		ev->m_Y = (int)Pos.y;
+		ev->m_X = round_to_int(Pos.x);
+		ev->m_Y = round_to_int(Pos.y);
 	}
 }
 
@@ -422,8 +441,8 @@ void CGameWorld::CreateDeath(vec2 Pos, int ClientID, int64 Mask)
 	CNetEvent_Death *pEvent = (CNetEvent_Death *)m_Events.Create(NETEVENTTYPE_DEATH, sizeof(CNetEvent_Death), Mask);
 	if(pEvent)
 	{
-		pEvent->m_X = (int)Pos.x;
-		pEvent->m_Y = (int)Pos.y;
+		pEvent->m_X = round_to_int(Pos.x);
+		pEvent->m_Y = round_to_int(Pos.y);
 		pEvent->m_ClientID = ClientID;
 	}
 }
@@ -437,8 +456,8 @@ void CGameWorld::CreateSound(vec2 Pos, int Sound, int64 Mask)
 	CNetEvent_SoundWorld *pEvent = (CNetEvent_SoundWorld *)m_Events.Create(NETEVENTTYPE_SOUNDWORLD, sizeof(CNetEvent_SoundWorld), Mask);
 	if(pEvent)
 	{
-		pEvent->m_X = (int)Pos.x;
-		pEvent->m_Y = (int)Pos.y;
+		pEvent->m_X = round_to_int(Pos.x);
+		pEvent->m_Y = round_to_int(Pos.y);
 		pEvent->m_SoundID = Sound;
 	}
 }

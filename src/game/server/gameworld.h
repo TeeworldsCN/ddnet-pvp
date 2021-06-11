@@ -45,11 +45,13 @@ private:
 	CEntity *m_apFirstEntityTypes[NUM_ENTTYPES];
 
 	class CGameContext *m_pGameServer;
+	class IGameController *m_pController;
 	class CConfig *m_pConfig;
 	class IServer *m_pServer;
 
 public:
 	class CGameContext *GameServer() { return m_pGameServer; }
+	class IGameController *Controller() { return m_pController; }
 	class CConfig *Config() { return m_pConfig; }
 	class IServer *Server() { return m_pServer; }
 
@@ -59,7 +61,7 @@ public:
 	bool m_Paused;
 	CWorldCore m_Core;
 
-	CGameWorld(int Team, CGameContext *pGameServer);
+	CGameWorld(int Team, CGameContext *pGameServer, IGameController *pController);
 	~CGameWorld();
 
 	CEntity *FindFirst(int Type);
@@ -185,6 +187,7 @@ public:
 	std::list<class CCharacter *> IntersectedCharacters(vec2 Pos0, vec2 Pos1, float Radius, class CEntity *pNotThis = 0, bool IgnoreSolo = true);
 
 	// helper functions
+	void CreateDamageIndCircle(vec2 Pos, float AngleMod, int Amount, int Total, int64 Mask = -1LL);
 	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, int64 Mask = -1LL);
 	void CreateExplosionParticle(vec2 Pos, int64 Mask = -1LL);
 	void CreateExplosion(vec2 Pos, int Owner, int Weapon, int WeaponType, int Damage, bool NoKnockback, int64 Mask = -1LL);
@@ -192,6 +195,8 @@ public:
 	void CreatePlayerSpawn(vec2 Pos, int64 Mask = -1LL);
 	void CreateDeath(vec2 Pos, int Who, int64 Mask = -1LL);
 	void CreateSound(vec2 Pos, int Sound, int64 Mask = -1LL);
+
+	// deprecated: you shouldn't send global sound anymore
 	void CreateSoundGlobal(int Sound, int Target = -1LL);
 };
 
