@@ -1561,6 +1561,7 @@ void IGameController::OnPlayerReadyChange(CPlayer *pPlayer)
 
 				pPlayer->m_PauseCount++;
 				m_PauseRequested = true;
+				m_PauseRequestedTicks = 0;
 				// SetGameState(IGS_GAME_PAUSED, TIMER_INFINITE);
 				SendGameMsg(GAMEMSG_GAME_PAUSED, -1, &ClientID);
 			}
@@ -1906,10 +1907,14 @@ void IGameController::Snap(int SnappingClient)
 
 void IGameController::Tick()
 {
-	if(m_PauseRequested && CanPause())
+	if(m_PauseRequested)
 	{
-		SetGameState(IGS_GAME_PAUSED, TIMER_INFINITE);
-		m_PauseRequested = false;
+		if(CanPause(m_PauseRequestedTicks))
+		{
+			SetGameState(IGS_GAME_PAUSED, TIMER_INFINITE);
+			m_PauseRequested = false;
+		}
+		m_PauseRequestedTicks++;
 	}
 
 	if(m_ResendVotes)

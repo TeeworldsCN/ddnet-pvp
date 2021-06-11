@@ -132,6 +132,7 @@ protected:
 	int m_UnbalancedTick;
 	int m_NumPlayerNotReady;
 	bool m_PauseRequested;
+	int m_PauseRequestedTicks;
 
 	void CheckTeamBalance();
 
@@ -560,10 +561,13 @@ public:
 				This will be called every tick starting from a player calling pause
 				And will stop being called after pause
 		
+		Arguments:
+			RequestedTicks - how long has the request been issued
+
 		Return:
 			bool - true if can pause
 	*/
-	virtual bool CanPause() { return true; }
+	virtual bool CanPause(int RequestedTicks) { return true; }
 
 	// =============
 	//   GAME CORE
