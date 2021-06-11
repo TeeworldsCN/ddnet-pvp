@@ -117,6 +117,7 @@ class IGameController
 	};
 	SBroadcastState m_aFakeClientBroadcast[MAX_CLIENTS];
 	void FakeClientBroadcast(int SnappingClient);
+	void FakeGameMsgSound(int SnappingClient, int SoundID);
 
 protected:
 	bool m_Started;

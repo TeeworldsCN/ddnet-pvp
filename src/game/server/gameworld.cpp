@@ -470,19 +470,5 @@ void CGameWorld::CreateSoundGlobal(int Sound, int64 Mask)
 	// create a sound
 	CNetEvent_SoundGlobal *pEvent = (CNetEvent_SoundGlobal *)m_Events.Create(NETEVENTTYPE_SOUNDGLOBAL, sizeof(CNetEvent_SoundGlobal), Mask);
 	if(pEvent)
-	{
 		pEvent->m_SoundID = Sound;
-	}
-
-	// CNetMsg_Sv_SoundGlobal Msg;
-	// Msg.m_SoundID = Sound;
-	// if(Target == -2)
-	// 	Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, -1);
-	// else
-	// {
-	// 	int Flag = MSGFLAG_VITAL;
-	// 	if(Target != -1)
-	// 		Flag |= MSGFLAG_NORECORD;
-	// 	Server()->SendPackMsg(&Msg, Flag, Target);
-	// }
 }

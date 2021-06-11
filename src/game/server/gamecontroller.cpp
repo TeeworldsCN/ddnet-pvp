@@ -1625,6 +1625,13 @@ void IGameController::ShuffleTeams()
 		DoTeamChange(aPlayer[i], i < (PlayerTeam + rnd) / 2 ? TEAM_RED : TEAM_BLUE, false);
 }
 
+void IGameController::FakeGameMsgSound(int SnappingClient, int SoundID)
+{
+	CNetMsg_Sv_SoundGlobal Msg;
+	Msg.m_SoundID = SoundID;
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, SnappingClient);
+}
+
 // for compatibility of 0.7's round ends and infinite warmup
 void IGameController::FakeClientBroadcast(int SnappingClient)
 {
@@ -2260,10 +2267,10 @@ void IGameController::SendGameMsg(int GameMsgID, int ClientID, int *i1, int *i2,
 				GameServer()->SendChatTarget(CID, "Teams have been balanced");
 				break;
 			case GAMEMSG_CTF_DROP:
-				GameWorld()->CreateSoundGlobal(SOUND_CTF_DROP, CID);
+				FakeGameMsgSound(CID, SOUND_CTF_DROP);
 				break;
 			case GAMEMSG_CTF_RETURN:
-				GameWorld()->CreateSoundGlobal(SOUND_CTF_RETURN, CID);
+				FakeGameMsgSound(CID, SOUND_CTF_RETURN);
 				break;
 			case GAMEMSG_TEAM_ALL:
 			{
@@ -2290,9 +2297,9 @@ void IGameController::SendGameMsg(int GameMsgID, int ClientID, int *i1, int *i2,
 					break;
 
 				if(pPlayer->GetTeam() == *i1)
-					GameWorld()->CreateSoundGlobal(SOUND_CTF_GRAB_PL, CID);
+					FakeGameMsgSound(CID, SOUND_CTF_GRAB_PL);
 				else
-					GameWorld()->CreateSoundGlobal(SOUND_CTF_GRAB_EN, CID);
+					FakeGameMsgSound(CID, SOUND_CTF_GRAB_EN);
 				break;
 			case GAMEMSG_CTF_CAPTURE:
 			{
@@ -2312,7 +2319,7 @@ void IGameController::SendGameMsg(int GameMsgID, int ClientID, int *i1, int *i2,
 					}
 				}
 				GameServer()->SendChatTarget(CID, aBuf);
-				GameWorld()->CreateSoundGlobal(SOUND_CTF_CAPTURE, CID);
+				FakeGameMsgSound(CID, SOUND_CTF_CAPTURE);
 				break;
 			}
 			case GAMEMSG_GAME_PAUSED:
