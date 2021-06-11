@@ -187,7 +187,7 @@ public:
 	std::list<class CCharacter *> IntersectedCharacters(vec2 Pos0, vec2 Pos1, float Radius, class CEntity *pNotThis = 0, bool IgnoreSolo = true);
 
 	// helper functions
-	void CreateDamageIndCircle(vec2 Pos, float AngleMod, int Amount, int Total, int64 Mask = -1LL);
+	void CreateDamageIndCircle(vec2 Pos, bool Clockwise, float AngleMod, int Amount, int Total, float RadiusScale = 1.0f, int64 Mask = -1LL);
 	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, int64 Mask = -1LL);
 	void CreateExplosionParticle(vec2 Pos, int64 Mask = -1LL);
 	void CreateExplosion(vec2 Pos, int Owner, int Weapon, int WeaponType, int Damage, bool NoKnockback, int64 Mask = -1LL);

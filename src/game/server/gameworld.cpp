@@ -329,21 +329,21 @@ void CGameWorld::ReleaseHooked(int ClientID)
 	}
 }
 
-void CGameWorld::CreateDamageIndCircle(vec2 Pos, float Angle, int Amount, int Total, int64 Mask)
+void CGameWorld::CreateDamageIndCircle(vec2 Pos, bool Clockwise, float Angle, int Amount, int Total, float RadiusScale, int64 Mask)
 {
-	float a = 3 * 3.14159f / 2 + Angle;
-	//float a = get_angle(dir);
-	float s = a - pi / 3;
-	float e = a + pi / 3;
+	float s = 3 * pi / 2 + Angle;
+	float e = s + 2 * pi;
 	for(int i = 0; i < Amount; i++)
 	{
-		float f = mix(s, e, float(i + 1) / float(Amount + 2));
+		float f = Clockwise ? mix(s, e, float(i) / float(Total)) : mix(e, s, float(i) / float(Total));
 		CNetEvent_DamageInd *pEvent = (CNetEvent_DamageInd *)m_Events.Create(NETEVENTTYPE_DAMAGEIND, sizeof(CNetEvent_DamageInd), Mask);
+		vec2 Dir = vec2(cosf(f), sinf(f)) * (1.0f - RadiusScale) * 75.0f;
+
 		if(pEvent)
 		{
-			pEvent->m_X = round_to_int(Pos.x);
-			pEvent->m_Y = round_to_int(Pos.y);
-			pEvent->m_Angle = 256.0f;
+			pEvent->m_X = round_to_int(Pos.x + Dir.x);
+			pEvent->m_Y = round_to_int(Pos.y + Dir.y);
+			pEvent->m_Angle = f * 256.0f;
 		}
 	}
 }
