@@ -479,15 +479,6 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 			"Rooms are disabled");
 		return;
 	}
-	else if(g_Config.m_SvRoom == 2 && pResult->GetInteger(0) == 0 && pPlayer->GetCharacter() && pPlayer->GetCharacter()->m_LastStartWarning < pSelf->Server()->Tick() - 3 * pSelf->Server()->TickSpeed())
-	{
-		pSelf->Console()->Print(
-			IConsole::OUTPUT_LEVEL_STANDARD,
-			"join",
-			"You must join a room and play with somebody or else you can\'t play");
-		pPlayer->GetCharacter()->m_LastStartWarning = pSelf->Server()->Tick();
-		return;
-	}
 
 	int NumArgs = pResult->NumArguments();
 
@@ -565,15 +556,15 @@ void CGameContext::ConCreateTeam(IConsole::IResult *pResult, void *pUserData)
 			"Rooms are disabled");
 		return;
 	}
-	else if(g_Config.m_SvRoom == 2 && pResult->GetInteger(0) == 0 && pPlayer->GetCharacter() && pPlayer->GetCharacter()->m_LastStartWarning < pSelf->Server()->Tick() - 3 * pSelf->Server()->TickSpeed())
-	{
-		pSelf->Console()->Print(
-			IConsole::OUTPUT_LEVEL_STANDARD,
-			"join",
-			"You must join a room and play with somebody or else you can\'t play");
-		pPlayer->GetCharacter()->m_LastStartWarning = pSelf->Server()->Tick();
-		return;
-	}
+	// else if(g_Config.m_SvRoom == 2 && pResult->GetInteger(0) == 0 && pPlayer->GetCharacter() && pPlayer->GetCharacter()->m_LastStartWarning < pSelf->Server()->Tick() - 3 * pSelf->Server()->TickSpeed())
+	// {
+	// 	pSelf->Console()->Print(
+	// 		IConsole::OUTPUT_LEVEL_STANDARD,
+	// 		"join",
+	// 		"You must join a room and play with somebody or else you can\'t play");
+	// 	pPlayer->GetCharacter()->m_LastStartWarning = pSelf->Server()->Tick();
+	// 	return;
+	// }
 
 	int Team = pSelf->Teams()->FindAEmptyTeam();
 	if(Team < 0)

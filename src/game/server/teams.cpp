@@ -472,8 +472,8 @@ void CGameTeams::OnTick()
 			else
 			{
 				m_aTeamInstances[i].m_pWorld->m_Core.m_Tuning = *GameServer()->Tuning();
-				m_aTeamInstances[i].m_pWorld->Tick();
 				m_aTeamInstances[i].m_pController->Tick();
+				m_aTeamInstances[i].m_pWorld->Tick();
 			}
 		}
 
@@ -534,7 +534,7 @@ void CGameTeams::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int MegaMap
 void CGameTeams::OnSnap(int SnappingClient)
 {
 	CPlayer *pPlayer = GameServer()->m_apPlayers[SnappingClient];
-	int ShowOthers = pPlayer->ShowOthersMode() || (m_Core.Team(SnappingClient) == 0 && g_Config.m_SvRoom == 2);
+	int ShowOthers = pPlayer->ShowOthersMode();
 
 	int SnapAs = SnappingClient;
 	if(pPlayer->IsSpectating() && pPlayer->GetSpectatorID() >= 0)
@@ -682,7 +682,7 @@ void CGameTeams::UpdateVotes()
 		int NumPlayersInRoom = m_Core.Count(i);
 		IGameController *pController = m_aTeamInstances[i].m_pController;
 
-		if(!pController || (NumPlayersInRoom == 0 && !(g_Config.m_SvRoom == 1 && i == 0)))
+		if(!pController || (NumPlayersInRoom == 0 && i != 0))
 			continue;
 
 		if(m_aTeamInstances[i].m_Creator[0])
@@ -692,8 +692,8 @@ void CGameTeams::UpdateVotes()
 		}
 		else
 		{
-			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "%s Room %d: ♙%d/%d [%s]", TeamLocked(i) ? "⨂" : "⨀", i, NumPlayersInRoom, TeamLocked(i) ? NumPlayersInRoom : minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom + 1), pController->GetGameType());
-			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "%s Room %d: ♙%d/%d [%s] ⬅", TeamLocked(i) ? "⨂" : "⨀", i, NumPlayersInRoom, TeamLocked(i) ? NumPlayersInRoom : minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom), pController->GetGameType());
+			str_format(m_aRoomVotes[m_NumRooms], sizeof(m_aRoomVotes[m_NumRooms]), "%s Room %d: ♙%d/%d [%s] 旁观房间", TeamLocked(i) ? "⨂" : "⨀", i, NumPlayersInRoom, TeamLocked(i) ? NumPlayersInRoom : minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom + 1), pController->GetGameType());
+			str_format(m_aRoomVotesJoined[m_NumRooms], sizeof(m_aRoomVotesJoined[m_NumRooms]), "%s Room %d: ♙%d/%d [%s] 旁观房间 ⬅", TeamLocked(i) ? "⨂" : "⨀", i, NumPlayersInRoom, TeamLocked(i) ? NumPlayersInRoom : minimum(pController->m_PlayerSlots, RemainingSlots + NumPlayersInRoom), pController->GetGameType());
 		}
 		m_RoomNumbers[m_NumRooms] = i;
 		m_NumRooms++;

@@ -1919,7 +1919,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					return;
 				}
 
-				if(!GetPlayerChar(ClientID) || !GetPlayerChar(SpectateID) || GetDDRaceTeam(ClientID) != GetDDRaceTeam(SpectateID))
+				if(GetDDRaceTeam(ClientID) != GetDDRaceTeam(SpectateID))
 				{
 					SendChatTarget(ClientID, "You can only move players in your room to spectators");
 					return;

@@ -509,19 +509,17 @@ void CPlayer::Snap(int SnappingClient)
 		pPlayerInfo->m_Local = (int)(m_ClientID == SnappingClient);
 		pPlayerInfo->m_Team = m_Team;
 
-		if(m_ClientID == SnappingClient && (m_Paused || (m_DeadSpecMode && !IsEndMatch) || ((!m_pCharacter || !m_pCharacter->IsAlive()) && Controller() && Controller()->IsGamePaused())))
+		bool DeadAndNoRespawn = m_RespawnDisabled && (!m_pCharacter || !m_pCharacter->IsAlive());
+		bool FakeSpectator = m_ClientID == SnappingClient && (m_Paused || (m_DeadSpecMode && !IsEndMatch) || ((!m_pCharacter || !m_pCharacter->IsAlive()) && IsEndRound));
+		FakeSpectator |= GameServer()->GetDDRaceTeam(SnapAs) != GameServer()->GetDDRaceTeam(m_ClientID) && !GameServer()->m_apPlayers[SnappingClient]->ShowOthersMode();
+		FakeSpectator |= !IsEndMatch && ((m_ClientID != SnappingClient || IsEndRound) && DeadAndNoRespawn);
+
+		if(FakeSpectator)
 		{
 			if(SnappingClientVersion < VERSION_DDNET_OLD)
 				pPlayerInfo->m_Local = false;
 			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 		}
-
-		if(GameServer()->GetDDRaceTeam(SnapAs) != GameServer()->GetDDRaceTeam(m_ClientID) && !GameServer()->m_apPlayers[SnappingClient]->ShowOthersMode())
-			pPlayerInfo->m_Team = TEAM_SPECTATORS;
-
-		bool DeadAndNoRespawn = m_RespawnDisabled && (!m_pCharacter || !m_pCharacter->IsAlive());
-		if(!IsEndMatch && ((m_ClientID != SnappingClient || IsEndRound) && DeadAndNoRespawn))
-			pPlayerInfo->m_Team = TEAM_SPECTATORS;
 	}
 	else
 	{
@@ -983,6 +981,13 @@ void CPlayer::TryRespawn()
 	m_pCharacter->Spawn(this, SpawnPos);
 	m_ViewPos = SpawnPos;
 	GameWorld()->CreatePlayerSpawn(SpawnPos);
+}
+
+int CPlayer::ShowOthersMode()
+{
+	if(g_Config.m_SvRoom == 2 && GameServer()->GetDDRaceTeam(m_ClientID) == TEAM_FLOCK)
+		return 1;
+	return m_DeadSpecMode ? 0 : m_ShowOthers;
 }
 
 bool CPlayer::AfkTimer(int NewTargetX, int NewTargetY)

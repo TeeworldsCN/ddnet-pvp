@@ -1428,7 +1428,10 @@ void IGameController::TryStartWarmup(bool FallbackToWarmup)
 	if(HasEnoughPlayers())
 	{
 		if(m_PlayerReadyMode & 1)
-			SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
+		{
+			if(m_GameState != IGS_WARMUP_USER)
+				SetGameState(IGS_WARMUP_USER, TIMER_INFINITE);
+		}
 		else
 			SetGameState(IGS_WARMUP_USER, m_Warmup);
 	}
@@ -1660,6 +1663,7 @@ void IGameController::FakeClientBroadcast(int SnappingClient)
 	if(IsPlayerReadyMode() && m_NumPlayerNotReady > 0)
 	{
 		char aBuf[128];
+		bool PlayerNeedToReady = pPlayer->GetTeam() != TEAM_SPECTATORS && pPlayer->m_IsReadyToPlay;
 		if(m_NumPlayerNotReady == 1)
 			str_format(aBuf, sizeof(aBuf), "%s\n\n\n%d player not ready", pPlayer->m_IsReadyToPlay ? "" : "Say '/r' to ready", m_NumPlayerNotReady);
 		else
@@ -1673,7 +1677,7 @@ void IGameController::FakeClientBroadcast(int SnappingClient)
 	{
 	case IGS_WARMUP_GAME:
 	case IGS_WARMUP_USER:
-		if(m_GameStateTimer == TIMER_INFINITE)
+		if(m_GameStateTimer == TIMER_INFINITE && pPlayer->GetTeam() != TEAM_SPECTATORS)
 			GameServer()->SendBroadcast("Waiting for more players", SnappingClient, false);
 		else
 			GameServer()->SendBroadcast(" ", SnappingClient, false);
@@ -1684,7 +1688,7 @@ void IGameController::FakeClientBroadcast(int SnappingClient)
 		if(m_GameStateTimer != TIMER_INFINITE)
 		{
 			char aBuf[128];
-			str_format(aBuf, sizeof(aBuf), "Game starts in %d", TimerNumber);
+			str_format(aBuf, sizeof(aBuf), "游戏即将开始 %d", TimerNumber);
 			GameServer()->SendBroadcast(aBuf, SnappingClient, false);
 		}
 		break;
@@ -1775,7 +1779,10 @@ void IGameController::Snap(int SnappingClient)
 
 		pGameInfoObj->m_GameFlags = MakeGameFlag(m_GameFlags);
 		pGameInfoObj->m_GameStateFlags = GameStateFlags;
-		pGameInfoObj->m_RoundStartTick = m_GameStartTick;
+		if(IsCountdown() && m_pWorld->m_Paused)
+			pGameInfoObj->m_RoundStartTick = m_GameStartTick - 2;
+		else
+			pGameInfoObj->m_RoundStartTick = m_GameStartTick;
 		pGameInfoObj->m_WarmupTimer = WarmupTimer;
 
 		pGameInfoObj->m_RoundNum = 0;
