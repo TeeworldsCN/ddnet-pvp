@@ -743,7 +743,7 @@ void CPlayer::OnPredictedEarlyInput(CNetObj_PlayerInput *NewInput)
 		if(!m_ActiveSpecSwitch)
 		{
 			m_ActiveSpecSwitch = true;
-			if(m_SpecMode == SPEC_FREEVIEW)
+			if(m_SpecMode == FREEVIEW)
 			{
 				CCharacter *pChar = (CCharacter *)GameWorld()->ClosestEntity(m_ViewPos, 6.0f * 32, CGameWorld::ENTTYPE_CHARACTER, 0);
 				CFlag *pFlag = (CFlag *)GameWorld()->ClosestEntity(m_ViewPos, 6.0f * 32, CGameWorld::ENTTYPE_FLAG, 0);

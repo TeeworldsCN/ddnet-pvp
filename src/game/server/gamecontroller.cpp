@@ -1696,7 +1696,7 @@ void IGameController::FakeClientBroadcast(int SnappingClient)
 		if(m_GameStateTimer != TIMER_INFINITE)
 		{
 			char aBuf[128];
-			str_format(aBuf, sizeof(aBuf), "游戏即将开始 %d", TimerNumber);
+			str_format(aBuf, sizeof(aBuf), "Game starts in %d", TimerNumber);
 			GameServer()->SendBroadcast(aBuf, SnappingClient, false);
 		}
 		break;
