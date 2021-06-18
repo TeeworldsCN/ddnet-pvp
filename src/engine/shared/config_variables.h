@@ -97,6 +97,7 @@ MACRO_CONFIG_INT(SvVoteMajority, sv_vote_majority, 1, 0, 1, CFGFLAG_SERVER, "Whe
 MACRO_CONFIG_INT(SvVoteMaxTotal, sv_vote_max_total, 0, 0, MAX_CLIENTS, CFGFLAG_SERVER, "How many people can participate in a vote at max (0 = no limit by default)")
 
 MACRO_CONFIG_INT(SvRoomSetting, sv_room_setting, 0, 0, 2, CFGFLAG_SERVER, "Whether to allow player in rooms to use /setting command (2 = call votes before executing)")
+MACRO_CONFIG_INT(SvRoomCommands, sv_room_commands, 0, 0, 2, CFGFLAG_SERVER, "Whether to allow player to use /create and /join to manage rooms")
 MACRO_CONFIG_INT(SvRoomVotes, sv_roomlist_votes, 0, 0, 1, CFGFLAG_SERVER, "Whether to list rooms in vote options")
 MACRO_CONFIG_STR(SvRoomVoteTitle, sv_roomlist_vote_title, 64, "=== ROOM LIST ===", CFGFLAG_SERVER, "The title of the vote votes")
 MACRO_CONFIG_STR(SvLobbyOverrideConfig, sv_lobby_override_config, 128, "", CFGFLAG_SERVER, "Config applied to lobby room on top of gamemode config")

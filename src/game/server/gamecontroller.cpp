@@ -2499,7 +2499,13 @@ bool IGameController::CanJoinTeam(int Team, int ClientID, bool SendReason) const
 	if(GameWorld()->Team() == 0 && Config()->m_SvRoom == 2)
 	{
 		if(SendReason)
-			GameServer()->SendBroadcast("You need to join a room to play. Use '/create' to create rooms.", ClientID);
+		{
+			if(Config()->m_SvRoomVotes)
+				GameServer()->SendBroadcast("You need to join a room to play. Check vote menu to join rooms.", ClientID);
+			else
+				GameServer()->SendBroadcast("You need to join a room to play.", ClientID);
+		}
+
 		return false;
 	}
 
