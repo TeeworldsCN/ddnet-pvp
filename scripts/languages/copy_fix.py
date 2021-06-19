@@ -5,7 +5,8 @@ import sys
 import twlang
 
 def copy_fix(infile, delete_unused, append_missing, delete_empty):
-	content = open(infile).readlines()
+	content = open(infile, encoding="utf-8").readlines()
+	content[0] = content[0].encode("utf-8").decode("utf-8-sig")
 	trans = twlang.translations(infile)
 	if delete_unused or append_missing:
 		local = twlang.localizes()
@@ -59,7 +60,7 @@ def main(argv):
 
 	content = copy_fix(infile, delete_unused, append_missing, delete_empty)
 
-	open(outfile, "w").write("".join(content))
+	open(outfile, "w", encoding="utf-8").write("".join(content))
 	print("Successfully created '" + outfile + "'.")
 
 if __name__ == '__main__':

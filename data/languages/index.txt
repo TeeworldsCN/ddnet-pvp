@@ -30,6 +30,11 @@ catalan
 == 906
 == ca
 
+chuvash
+== Чăвашла
+== 
+== cv
+
 czech
 == Česky
 == 203
@@ -59,6 +64,11 @@ german
 == Deutsch
 == 276,442,40,438,756
 == de
+
+greek
+== Ελληνικά
+== 300
+== el
 
 hungarian
 == Magyar
@@ -117,7 +127,7 @@ russian
 
 serbian
 == Srpski
-== -
+== 
 == srl
 
 serbian_cyrillic

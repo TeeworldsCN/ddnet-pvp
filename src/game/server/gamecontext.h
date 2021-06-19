@@ -10,6 +10,7 @@
 #include <game/layers.h>
 #include <game/server/teams.h>
 // #include <game/server/weapons.h>
+#include <game/localization.h>
 #include <game/voting.h>
 
 #include <base/tl/array.h>
@@ -19,6 +20,7 @@
 #include "gameworld.h"
 
 #include <memory>
+#include <stdarg.h>
 
 /*
 	Tick
@@ -131,7 +133,7 @@ class CGameContext : public IGameServer
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
 	void AddVote(const char *pDescription, const char *pCommand);
-	static int MapScan(const char *pName, int IsDir, int DirType, void *pUserData);
+	void LoadLanguageFiles();
 
 	bool m_Resetting;
 
@@ -205,11 +207,50 @@ public:
 
 		CHAT_SIX = 1 << 0,
 		CHAT_SIXUP = 1 << 1,
+		CHAT_SIXNUP = CHAT_SIX | CHAT_SIXUP,
+	};
+
+	// localize
+	char m_CodeLangMap[1024];
+	struct ContextualString
+	{
+		const char *m_pFormat;
+		const char *m_pContext;
+	};
+	void SendChatLocalizedVL(int To, int Flags, ContextualString String, va_list ap);
+	void SendChatLocalized(int To, int Flags, ContextualString String, ...)
+	{
+		va_list ap;
+		va_start(ap, String.m_pFormat);
+		SendChatLocalizedVL(To, Flags, String, ap);
+		va_end(ap);
+	}
+	void SendChatLocalized(int To, ContextualString String, ...)
+	{
+		va_list ap;
+		va_start(ap, String.m_pFormat);
+		SendChatLocalizedVL(To, CHAT_SIXNUP, {String.m_pFormat, String.m_pContext}, ap);
+		va_end(ap);
+	};
+	void SendChatLocalized(int To, int Flags, const char *pFormat, ...)
+		GNUC_ATTRIBUTE((format(printf, 3, 4)))
+	{
+		va_list ap;
+		va_start(ap, pFormat);
+		SendChatLocalizedVL(To, Flags, {pFormat, ""}, ap);
+		va_end(ap);
+	};
+	void SendChatLocalized(int To, const char *pFormat, ...)
+		GNUC_ATTRIBUTE((format(printf, 2, 3)))
+	{
+		va_list ap;
+		va_start(ap, pFormat);
+		SendChatLocalizedVL(To, CHAT_SIXNUP, {pFormat, ""}, ap);
+		va_end(ap);
 	};
 
 	// network
 	void CallVote(int ClientID, const char *aDesc, const char *aCmd, const char *pReason, const char *aChatmsg, const char *pSixupDesc = 0);
-	void SendChatLocalized(int To, const char *pText, int Flags = CHAT_SIX | CHAT_SIXUP);
 	void SendChatTarget(int To, const char *pText, int Flags = CHAT_SIX | CHAT_SIXUP);
 	void SendChat(int ClientID, int Team, const char *pText, int SpamProtectionClientID = -1, int Flags = CHAT_SIX | CHAT_SIXUP);
 	void SendEmoticon(int ClientID, int Emoticon);

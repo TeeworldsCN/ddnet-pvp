@@ -1138,6 +1138,26 @@ void str_truncate(char *dst, int dst_size, const char *src, int truncation_len);
 int str_length(const char *str);
 
 /*
+	Function: str_vformat
+		Performs printf formatting into a buffer.
+
+	Parameters:
+		buffer - Pointer to the buffer to receive the formatted string.
+		buffer_size - Size of the buffer.
+		format - printf formatting string.
+		args - Parameters for the formatting.
+
+	Returns:
+		Length of written string, even if it has been truncated
+
+	Remarks:
+		- See the C manual for syntax for the printf formatting string.
+		- The strings are treated as zero-terminated strings.
+		- Guarantees that dst string will contain zero-termination.
+*/
+int str_vformat(char *buffer, int buffer_size, const char *format, va_list ap);
+
+/*
 	Function: str_format
 		Performs printf formatting into a buffer.
 

@@ -56,10 +56,10 @@ def decode(fileobj, elements_per_key):
 			if current_key:
 				if len(data[current_key]) != 1+elements_per_key:
 					raise LanguageDecodeError("Wrong number of elements per key", fileobj.name, index)
-				data[current_key].append(index)
+				data[current_key].append(index if len(current_context) == 0 else (index-1))
 			if line in data:
 				raise LanguageDecodeError("Key defined multiple times: " + line, fileobj.name, index)
-			data[(line, current_context)] = [index]
+			data[(line, current_context)] = [index if len(current_context) == 0 else (index-1)]
 			current_key = (line, current_context)
 	if len(data[current_key]) != 1+elements_per_key:
 		raise LanguageDecodeError("Wrong number of elements per key", fileobj.name, index)
@@ -68,8 +68,11 @@ def decode(fileobj, elements_per_key):
 
 
 def check_file(path):
-	with open(path) as fileobj:
-		matches = re.findall(r"Localize\s*\([^\"]+,\s*\"([^\"]+)\"(?:\s*,\s*\"([^\"]+)\")?\s*\)", fileobj.read())
+	with open(path, encoding="utf-8") as fileobj:
+		content = fileobj.read()
+		matches = re.findall(r"Localize\s*\(\s*\"([^\"]+)\"(?:\s*,\s*\"([^\"]+)\")?\s*\)", content)
+		matches += re.findall(r"SendChatLocalized\(\s*[^\",]+\s*,\s*(?:[^\",]+\s*,\s*)?\"([^\"]*)\"\s*,[^)]*\)()", content)
+		matches += re.findall(r"SendChatLocalized\(\s*[^\",]+\s*,\s*(?:[^\",]+\s*,\s*)?\{\"([^\"]*)\"\s*,\s*\"([^\"]*)\"\}\s*,[^)]*\)", content)
 	return matches
 
 
@@ -86,13 +89,13 @@ def check_folder(path):
 
 
 def languages():
-	index = decode(open("data/languages/index.txt"), 3) # include lang code
+	index = decode(open("data/languages/index.txt", encoding="utf-8"), 3) # include lang code
 	langs = {"data/languages/"+key[0]+".txt" : [key[0]]+elements for key, elements in index.items()}
 	return langs
 
 
 def translations(filename):
-	return decode(open(filename), 1)
+	return decode(open(filename, encoding="utf-8"), 1)
 
 
 def localizes():

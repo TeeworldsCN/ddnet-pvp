@@ -5,39 +5,34 @@
 #include <base/tl/sorted_array.h>
 #include <base/tl/string.h>
 
+class CLocalizedString
+{
+public:
+	unsigned m_Hash;
+	unsigned m_ContextHash;
+	string m_Langs[64];
+
+	bool operator<(const CLocalizedString &Other) const { return m_Hash < Other.m_Hash || (m_Hash == Other.m_Hash && m_ContextHash < Other.m_ContextHash); }
+	bool operator<=(const CLocalizedString &Other) const { return m_Hash < Other.m_Hash || (m_Hash == Other.m_Hash && m_ContextHash <= Other.m_ContextHash); }
+	bool operator==(const CLocalizedString &Other) const { return m_Hash == Other.m_Hash && m_ContextHash == Other.m_ContextHash; }
+};
+
 class CLocalizationDatabase
 {
-	class CString
-	{
-	public:
-		unsigned m_Hash;
-		unsigned m_ContextHash;
-
-		// TODO: do this as an const char * and put everything on a incremental heap
-		string m_Replacement;
-
-		bool operator<(const CString &Other) const { return m_Hash < Other.m_Hash || (m_Hash == Other.m_Hash && m_ContextHash < Other.m_ContextHash); }
-		bool operator<=(const CString &Other) const { return m_Hash < Other.m_Hash || (m_Hash == Other.m_Hash && m_ContextHash <= Other.m_ContextHash); }
-		bool operator==(const CString &Other) const { return m_Hash == Other.m_Hash && m_ContextHash == Other.m_ContextHash; }
-	};
-	sorted_array<CString> m_Strings;
-	char m_BufferString;
-	int m_VersionCounter;
-	int m_CurrentVersion;
+	sorted_array<CLocalizedString> m_Strings;
+	char m_NumLanguages;
 
 public:
 	CLocalizationDatabase();
 
-	bool Load(const char *pFilename, class IStorage *pStorage, class IConsole *pConsole);
+	int Load(const char *pFilename, class IStorage *pStorage, class IConsole *pConsole);
 
-	int Version() { return m_CurrentVersion; }
-
-	void AddString(const char *pOrgStr, const char *pNewStr, const char *pContext);
-	const char *FindString(unsigned Hash, unsigned ContextHash);
+	void AddString(int Lang, unsigned Hash, unsigned ContextHash, const char *pOrigStr, const char *pNewStr);
+	CLocalizedString *FindString(unsigned Hash, unsigned ContextHash);
 };
 
-extern CLocalizationDatabase *g_Localization[1024];
+extern CLocalizationDatabase g_Localization;
 
-extern const char *Localize(int LangFlagCode, const char *pStr, const char *pContext = "")
-	GNUC_ATTRIBUTE((format_arg(2)));
+extern CLocalizedString *LocalizeServer(const char *pStr, const char *pContext = "")
+	GNUC_ATTRIBUTE((format_arg(1)));
 #endif

@@ -214,6 +214,45 @@ void CGameContext::CallVote(int ClientID, const char *pDesc, const char *pCmd, c
 	pPlayer->m_LastVoteCall = Now;
 }
 
+void CGameContext::SendChatLocalizedVL(int To, int Flags, ContextualString String, va_list ap)
+{
+	int Start = To;
+	int Limit = To + 1;
+	if(To < 0)
+	{
+		Start = 0;
+		Limit = MAX_CLIENTS;
+	}
+
+	char aBuf[512];
+	CLocalizedString *pString = LocalizeServer(String.m_pFormat, String.m_pContext);
+
+	if(!pString)
+		str_vformat(aBuf, sizeof(aBuf), String.m_pFormat, ap);
+
+	for(int i = Start; i < Limit; i++)
+	{
+		int Lang = 0;
+		if(pString)
+		{
+			if(pString->m_Langs[Lang])
+				str_vformat(aBuf, sizeof(aBuf), pString->m_Langs[Lang], ap);
+			else
+				str_vformat(aBuf, sizeof(aBuf), String.m_pFormat, ap);
+		}
+
+		if(!((Server()->IsSixup(To) && (Flags & CHAT_SIXUP)) ||
+			   (!Server()->IsSixup(To) && (Flags & CHAT_SIX))))
+			return;
+
+		CNetMsg_Sv_Chat Msg;
+		Msg.m_Team = 0;
+		Msg.m_ClientID = -1;
+		Msg.m_pMessage = aBuf;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, To);
+	}
+}
+
 void CGameContext::SendChatTarget(int To, const char *pText, int Flags)
 {
 	CNetMsg_Sv_Chat Msg;
@@ -252,14 +291,14 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText, in
 			return;
 
 	// prevent spoofing room number
-	if(ChatterClientID >= 0 && ChatterClientID < MAX_CLIENTS && str_startswith(pText, "[#"))
+	if(ChatterClientID >= 0 && ChatterClientID < MAX_CLIENTS && str_startswith(pText, "Test"))
 		return;
 
 	int Room = -1;
 	if(ChatterClientID >= 0 && ChatterClientID < MAX_CLIENTS)
 		Room = GetPlayerDDRTeam(ChatterClientID);
 
-	// leave space for room number in aText "[#00]: "
+	// leave space for room number in aText "Test00]: "
 	char aBuf[256], aText[256 - 7], aRoomedText[256];
 	str_utf8_copy(aText, pText, sizeof(aText));
 	if(ChatterClientID >= 0 && ChatterClientID < MAX_CLIENTS)
@@ -282,7 +321,7 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText, in
 		Msg.m_pMessage = aText;
 		if(Room >= 0)
 		{
-			str_format(aBuf, sizeof(aBuf), "[#%02d]: %s", Room, aText);
+			str_format(aBuf, sizeof(aBuf), "Test%02d]: %s", Room, aText);
 			str_utf8_copy(aRoomedText, aBuf, sizeof(aRoomedText));
 		}
 
@@ -1144,6 +1183,8 @@ void CGameContext::OnClientEnter(int ClientID)
 		if(g_Config.m_SvWelcome[0] != 0)
 			SendChatTarget(ClientID, g_Config.m_SvWelcome);
 
+		SendChatLocalized(ClientID, "This is a test %d", 1000);
+
 		IServer::CClientInfo Info;
 		Server()->GetClientInfo(ClientID, &Info);
 		if(Info.m_GotDDNetVersion)
@@ -1155,7 +1196,7 @@ void CGameContext::OnClientEnter(int ClientID)
 		if(g_Config.m_SvShowOthersDefault > 0)
 		{
 			if(g_Config.m_SvShowOthers)
-				SendChatTarget(ClientID, "You can see other players. To disable this use DDNet client and type /showothers .");
+				SendChatTarget(ClientID, "You can see other players. To disable this, type /showothers .");
 
 			m_apPlayers[ClientID]->m_ShowOthers = g_Config.m_SvShowOthersDefault;
 		}
@@ -2592,6 +2633,113 @@ void CGameContext::AddVote(const char *pDescription, const char *pCommand)
 	}
 }
 
+void CGameContext::LoadLanguageFiles()
+{
+	mem_zero(m_CodeLangMap, sizeof(m_CodeLangMap));
+
+	IOHANDLE File = Storage()->OpenFile("languages/index.txt", IOFLAG_READ, IStorage::TYPE_ALL);
+	if(!File)
+	{
+		Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "localization", "couldn't open index file");
+		return;
+	}
+
+	char aLang[128];
+	char aLangLocalized[128];
+	char aFlags[512];
+	char aCodes[64];
+	CLineReader LineReader;
+	LineReader.Init(File);
+	char *pLine;
+	while((pLine = LineReader.Get()))
+	{
+		if(!str_length(pLine) || pLine[0] == '#') // skip empty lines and comments
+			continue;
+
+		str_copy(aLang, pLine, sizeof(aLang));
+
+		pLine = LineReader.Get();
+		if(!pLine)
+		{
+			Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "localization", "unexpected end of index file");
+			break;
+		}
+
+		if(pLine[0] != '=' || pLine[1] != '=' || pLine[2] != ' ')
+		{
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "malform replacement for index '%s'", aLang);
+			Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "localization", aBuf);
+			(void)LineReader.Get();
+			continue;
+		}
+		str_copy(aLangLocalized, pLine + 3, sizeof(aLangLocalized));
+
+		pLine = LineReader.Get();
+		if(!pLine)
+		{
+			Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "localization", "unexpected end of index file");
+			break;
+		}
+
+		if(pLine[0] != '=' || pLine[1] != '=' || pLine[2] != ' ')
+		{
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "malform replacement for index '%s'", aLang);
+			Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "localization", aBuf);
+			(void)LineReader.Get();
+			continue;
+		}
+		str_copy(aFlags, pLine + 3, sizeof(aFlags));
+
+		pLine = LineReader.Get();
+		if(!pLine)
+		{
+			Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "localization", "unexpected end of index file");
+			break;
+		}
+
+		if(pLine[0] != '=' || pLine[1] != '=' || pLine[2] != ' ')
+		{
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "malform replacement for index '%s'", aLang);
+			Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "localization", aBuf);
+			continue;
+		}
+		str_copy(aCodes, pLine + 3, sizeof(aCodes));
+
+		char aFileName[128];
+		str_format(aFileName, sizeof(aFileName), "languages/%s.txt", aLang);
+		const int LangIndex = g_Localization.Load(aFileName, Storage(), Console());
+
+		char *pStart = aFlags;
+		while(*pStart != '\0')
+		{
+			char *pEnd = pStart;
+			while(*pEnd != '\0' && *pEnd != ',')
+				pEnd++;
+			if(pStart != pEnd)
+			{
+				if(*pEnd != '\0')
+				{
+					*pEnd = '\0';
+					m_CodeLangMap[str_toint(pStart)] = LangIndex;
+				}
+				else
+				{
+					m_CodeLangMap[str_toint(pStart)] = LangIndex;
+					pStart = pEnd;
+					break;
+				}
+			}
+			pStart = pEnd + 1;
+		}
+
+		// MYTODO: add /lang command with code
+	}
+	io_close(File);
+}
+
 void CGameContext::ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -2760,21 +2908,6 @@ struct CMapNameItem
 	bool operator<(const CMapNameItem &Other) const { return str_comp_nocase(m_aName, Other.m_aName) < 0; }
 };
 
-int CGameContext::MapScan(const char *pName, int IsDir, int DirType, void *pUserData)
-{
-	sorted_array<CMapNameItem> *pMapList = (sorted_array<CMapNameItem> *)pUserData;
-
-	if(IsDir || !str_endswith(pName, ".map"))
-		return 0;
-
-	CMapNameItem Item;
-	int Length = str_length(pName);
-	str_truncate(Item.m_aName, sizeof(Item.m_aName), pName, Length - 4);
-	pMapList->add(Item);
-
-	return 0;
-}
-
 void CGameContext::ConVote(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -2855,6 +2988,9 @@ void CGameContext::OnConsoleInit()
 #include <game/ddracecommands.h>
 #define CHAT_COMMAND(name, params, flags, callback, userdata, help) m_pConsole->Register(name, params, flags, callback, userdata, help);
 #include <game/ddracechat.h>
+
+	// load localization
+	LoadLanguageFiles();
 }
 
 void CGameContext::OnInit(/*class IKernel *pKernel*/)
