@@ -20,6 +20,7 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, bool AsSpec)
 	m_ClientID = ClientID;
 	m_Team = AsSpec ? TEAM_SPECTATORS : TEAM_RED; // controller will decide player's team again.
 	m_NumInputs = 0;
+	m_Lang = -1;
 	Reset();
 	GameServer()->Antibot()->OnPlayerInit(m_ClientID);
 }
@@ -353,10 +354,10 @@ void CPlayer::Tick()
 
 	if(Instance.m_Init && !Instance.m_pController->IsGamePaused())
 	{
-		if(!m_pCharacter && IsSpectating() && m_SpecMode == SPEC_FREEVIEW)
+		if(!m_pCharacter && IsSpectating() && m_SpecMode == FREEVIEW)
 			m_ViewPos -= vec2(clamp(m_ViewPos.x - m_LatestActivity.m_TargetX, -500.0f, 500.0f), clamp(m_ViewPos.y - m_LatestActivity.m_TargetY, -400.0f, 400.0f));
 
-		if(!m_pCharacter && IsSpectating() && m_SpecMode == SPEC_FREEVIEW)
+		if(!m_pCharacter && IsSpectating() && m_SpecMode == FREEVIEW)
 			m_ViewPos -= vec2(clamp(m_ViewPos.x - m_LatestActivity.m_TargetX, -500.0f, 500.0f), clamp(m_ViewPos.y - m_LatestActivity.m_TargetY, -400.0f, 400.0f));
 
 		if(!m_pCharacter && m_DieTick + Server()->TickSpeed() * 3 <= Server()->Tick() && !m_DeadSpecMode)
@@ -487,7 +488,7 @@ void CPlayer::Snap(int SnappingClient)
 	}
 	else
 		StrToInts(&pClientInfo->m_Clan0, 3, Server()->ClientClan(m_ClientID));
-	pClientInfo->m_Country = Server()->ClientCountry(m_ClientID);
+	pClientInfo->m_Flag = Server()->ClientFlag(m_ClientID);
 
 	StrToInts(&pClientInfo->m_Skin0, 6, m_TeeInfos.m_SkinName);
 	pClientInfo->m_UseCustomColor = m_TeeInfos.m_UseCustomColor;
@@ -683,7 +684,7 @@ void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 		NewInput->m_PlayerFlags = PlayerFlags_SevenToSix(NewInput->m_PlayerFlags);
 
 	if(NewInput->m_PlayerFlags)
-		Server()->SetClientFlags(m_ClientID, NewInput->m_PlayerFlags);
+		Server()->SetClientPlayerFlags(m_ClientID, NewInput->m_PlayerFlags);
 
 	if(AfkTimer(NewInput->m_TargetX, NewInput->m_TargetY))
 		return; // we must return if kicked, as player struct is already deleted

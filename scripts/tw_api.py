@@ -141,7 +141,7 @@ def get_server_info3(address):
 			player = {}
 			player["name"] = slots[10+i*5]
 			player["clan"] = slots[10+i*5+1]
-			player["country"] = int(slots[10+i*5+2])
+			player["flag"] = int(slots[10+i*5+2])
 			player["score"] = int(slots[10+i*5+3])
 			if int(slots[10+i*5+4]):
 				player["player"] = True

@@ -1674,9 +1674,9 @@ void IGameController::FakeClientBroadcast(int SnappingClient)
 		char aBuf[128];
 		bool PlayerNeedToReady = pPlayer->GetTeam() != TEAM_SPECTATORS && pPlayer->m_IsReadyToPlay;
 		if(m_NumPlayerNotReady == 1)
-			str_format(aBuf, sizeof(aBuf), "%s\n\n\n%d player not ready", pPlayer->m_IsReadyToPlay ? "" : "Say '/r' to ready", m_NumPlayerNotReady);
+			str_format(aBuf, sizeof(aBuf), "%s\n\n\n%d player not ready", PlayerNeedToReady ? "" : "Say '/r' to ready", m_NumPlayerNotReady);
 		else
-			str_format(aBuf, sizeof(aBuf), "%s\n\n\n%d players not ready", pPlayer->m_IsReadyToPlay ? "" : "Say '/r' to ready", m_NumPlayerNotReady);
+			str_format(aBuf, sizeof(aBuf), "%s\n\n\n%d players not ready", PlayerNeedToReady ? "" : "Say '/r' to ready", m_NumPlayerNotReady);
 		GameServer()->SendBroadcast(aBuf, SnappingClient, false);
 		pState->m_NextBroadcastTick = Server()->Tick() + 5 * Server()->TickSpeed();
 		return;

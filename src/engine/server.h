@@ -47,7 +47,7 @@ public:
 	virtual int DistinctClientCount() const = 0;
 	virtual const char *ClientName(int ClientID) const = 0;
 	virtual const char *ClientClan(int ClientID) const = 0;
-	virtual int ClientCountry(int ClientID) const = 0;
+	virtual int ClientFlag(int ClientID) const = 0;
 	virtual bool ClientIngame(int ClientID) const = 0;
 	virtual bool ClientAuthed(int ClientID) const = 0;
 	virtual int GetClientInfo(int ClientID, CClientInfo *pInfo) const = 0;
@@ -193,9 +193,9 @@ public:
 	virtual bool WouldClientNameChange(int ClientID, const char *pNameRequest) = 0;
 	virtual void SetClientName(int ClientID, char const *pName) = 0;
 	virtual void SetClientClan(int ClientID, char const *pClan) = 0;
-	virtual void SetClientCountry(int ClientID, int Country) = 0;
+	virtual void SetClientFlag(int ClientID, int Flag) = 0;
 	virtual void SetClientScore(int ClientID, int Score) = 0;
-	virtual void SetClientFlags(int ClientID, int Flags) = 0;
+	virtual void SetClientPlayerFlags(int ClientID, int Flags) = 0;
 
 	virtual int SnapNewID() = 0;
 	virtual void SnapFreeID(int ID) = 0;

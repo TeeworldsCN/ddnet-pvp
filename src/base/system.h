@@ -14,6 +14,7 @@
 #define __USE_GNU
 #endif
 
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <time.h>

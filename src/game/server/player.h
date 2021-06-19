@@ -65,6 +65,8 @@ public:
 	void SpectatePlayerName(const char *pName);
 	bool IsSpectating() { return m_Team == TEAM_SPECTATORS || m_Paused; }
 
+	int m_Lang;
+
 	//---------------------------------------------------------
 	// this is used for snapping so we know how we can clip the view for the player
 	vec2 m_ViewPos;

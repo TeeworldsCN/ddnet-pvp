@@ -114,7 +114,7 @@ CLocalizedString *CLocalizationDatabase::FindString(unsigned Hash, unsigned Cont
 
 	sorted_array<CLocalizedString>::range r = ::find_binary(m_Strings.all(), String);
 	if(r.empty())
-		return false;
+		return nullptr;
 
 	unsigned DefaultHash = str_quickhash("");
 	unsigned DefaultIndex = 0;

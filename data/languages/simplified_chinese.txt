@@ -16,5 +16,11 @@
 ##### translated strings #####
 
 
+Server language has been set to '%s'.
+== 服务器语言被设为了'%s'。
+
+Use /lang to change langauge.
+== 使用 /lang 指令更改语言。
+
 This is a test %d
 == 

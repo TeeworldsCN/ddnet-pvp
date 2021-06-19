@@ -11,5 +11,11 @@
 ##### translated strings #####
 
 
+Server language has been set to '%s'.
+== 
+
+Use /lang to change langauge.
+== 
+
 This is a test %d
 == 

@@ -167,7 +167,7 @@ public:
 
 		char m_aName[MAX_NAME_LENGTH];
 		char m_aClan[MAX_CLAN_LENGTH];
-		int m_Country;
+		int m_Flag;
 		int m_Score;
 		int m_Authed;
 		int m_AuthKey;
@@ -271,9 +271,9 @@ public:
 	virtual bool WouldClientNameChange(int ClientID, const char *pNameRequest);
 	virtual void SetClientName(int ClientID, const char *pName);
 	virtual void SetClientClan(int ClientID, char const *pClan);
-	virtual void SetClientCountry(int ClientID, int Country);
+	virtual void SetClientFlag(int ClientID, int Flag);
 	virtual void SetClientScore(int ClientID, int Score);
-	virtual void SetClientFlags(int ClientID, int Flags);
+	virtual void SetClientPlayerFlags(int ClientID, int Flags);
 
 	void Kick(int ClientID, const char *pReason);
 	void Ban(int ClientID, int Seconds, const char *pReason);
@@ -296,7 +296,7 @@ public:
 	void GetClientAddr(int ClientID, char *pAddrStr, int Size) const;
 	const char *ClientName(int ClientID) const;
 	const char *ClientClan(int ClientID) const;
-	int ClientCountry(int ClientID) const;
+	int ClientFlag(int ClientID) const;
 	bool ClientIngame(int ClientID) const;
 	bool ClientAuthed(int ClientID) const;
 	int Port() const;

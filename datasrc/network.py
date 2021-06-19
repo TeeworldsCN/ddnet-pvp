@@ -211,7 +211,7 @@ Objects = [
 		# 4*3 = 12 characters
 		NetIntAny("m_Clan0"), NetIntAny("m_Clan1"), NetIntAny("m_Clan2"),
 
-		NetIntAny("m_Country"),
+		NetIntAny("m_Flag"),
 
 		# 4*6 = 24 characters
 		NetIntAny("m_Skin0"), NetIntAny("m_Skin1"), NetIntAny("m_Skin2"),
@@ -392,7 +392,7 @@ Messages = [
 	NetMessage("Cl_StartInfo", [
 		NetStringStrict("m_pName"),
 		NetStringStrict("m_pClan"),
-		NetIntAny("m_Country"),
+		NetIntAny("m_Flag"),
 		NetStringStrict("m_pSkin"),
 		NetBool("m_UseCustomColor"),
 		NetIntAny("m_ColorBody"),
@@ -402,7 +402,7 @@ Messages = [
 	NetMessage("Cl_ChangeInfo", [
 		NetStringStrict("m_pName"),
 		NetStringStrict("m_pClan"),
-		NetIntAny("m_Country"),
+		NetIntAny("m_Flag"),
 		NetStringStrict("m_pSkin"),
 		NetBool("m_UseCustomColor"),
 		NetIntAny("m_ColorBody"),

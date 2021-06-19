@@ -437,12 +437,12 @@ void CServer::SetClientClan(int ClientID, const char *pClan)
 	str_copy(m_aClients[ClientID].m_aClan, pClan, MAX_CLAN_LENGTH);
 }
 
-void CServer::SetClientCountry(int ClientID, int Country)
+void CServer::SetClientFlag(int ClientID, int Flag)
 {
 	if(ClientID < 0 || ClientID >= MAX_CLIENTS || m_aClients[ClientID].m_State < CClient::STATE_READY)
 		return;
 
-	m_aClients[ClientID].m_Country = Country;
+	m_aClients[ClientID].m_Flag = Flag;
 }
 
 void CServer::SetClientScore(int ClientID, int Score)
@@ -456,7 +456,7 @@ void CServer::SetClientScore(int ClientID, int Score)
 	m_aClients[ClientID].m_Score = Score;
 }
 
-void CServer::SetClientFlags(int ClientID, int Flags)
+void CServer::SetClientPlayerFlags(int ClientID, int Flags)
 {
 	if(ClientID < 0 || ClientID >= MAX_CLIENTS || m_aClients[ClientID].m_State < CClient::STATE_READY)
 		return;
@@ -515,7 +515,7 @@ int CServer::Init()
 		Client.m_State = CClient::STATE_EMPTY;
 		Client.m_aName[0] = 0;
 		Client.m_aClan[0] = 0;
-		Client.m_Country = -1;
+		Client.m_Flag = -1;
 		Client.m_Snapshots.Init();
 		Client.m_Traffic = 0;
 		Client.m_TrafficSince = 0;
@@ -617,12 +617,12 @@ const char *CServer::ClientClan(int ClientID) const
 		return "";
 }
 
-int CServer::ClientCountry(int ClientID) const
+int CServer::ClientFlag(int ClientID) const
 {
 	if(ClientID < 0 || ClientID >= MAX_CLIENTS || m_aClients[ClientID].m_State == CServer::CClient::STATE_EMPTY)
 		return -1;
 	if(m_aClients[ClientID].m_State == CServer::CClient::STATE_INGAME)
-		return m_aClients[ClientID].m_Country;
+		return m_aClients[ClientID].m_Flag;
 	else
 		return -1;
 }
@@ -1000,7 +1000,7 @@ int CServer::NewClientNoAuthCallback(int ClientID, void *pUser)
 	pThis->m_aClients[ClientID].m_SupportsMapSha256 = false;
 	pThis->m_aClients[ClientID].m_aName[0] = 0;
 	pThis->m_aClients[ClientID].m_aClan[0] = 0;
-	pThis->m_aClients[ClientID].m_Country = -1;
+	pThis->m_aClients[ClientID].m_Flag = -1;
 	pThis->m_aClients[ClientID].m_Authed = AUTHED_NO;
 	pThis->m_aClients[ClientID].m_AuthKey = -1;
 	pThis->m_aClients[ClientID].m_AuthTries = 0;
@@ -1025,7 +1025,7 @@ int CServer::NewClientCallback(int ClientID, void *pUser, bool Sixup)
 	pThis->m_aClients[ClientID].m_DnsblState = CClient::DNSBL_STATE_NONE;
 	pThis->m_aClients[ClientID].m_aName[0] = 0;
 	pThis->m_aClients[ClientID].m_aClan[0] = 0;
-	pThis->m_aClients[ClientID].m_Country = -1;
+	pThis->m_aClients[ClientID].m_Flag = -1;
 	pThis->m_aClients[ClientID].m_Authed = AUTHED_NO;
 	pThis->m_aClients[ClientID].m_AuthKey = -1;
 	pThis->m_aClients[ClientID].m_AuthTries = 0;
@@ -1118,7 +1118,7 @@ int CServer::DelClientCallback(int ClientID, const char *pReason, void *pUser)
 	pThis->m_aClients[ClientID].m_SupportsMapSha256 = false;
 	pThis->m_aClients[ClientID].m_aName[0] = 0;
 	pThis->m_aClients[ClientID].m_aClan[0] = 0;
-	pThis->m_aClients[ClientID].m_Country = -1;
+	pThis->m_aClients[ClientID].m_Flag = -1;
 	pThis->m_aClients[ClientID].m_Authed = AUTHED_NO;
 	pThis->m_aClients[ClientID].m_AuthKey = -1;
 	pThis->m_aClients[ClientID].m_AuthTries = 0;
@@ -1992,7 +1992,7 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 			q.AddString(ClientName(i), MAX_NAME_LENGTH); // client name
 			q.AddString(ClientClan(i), MAX_CLAN_LENGTH); // client clan
 
-			ADD_INT(q, m_aClients[i].m_Country); // client country
+			ADD_INT(q, m_aClients[i].m_Flag); // client flag
 			ADD_INT(q, m_aClients[i].m_Score); // client score
 			ADD_INT(q, GameServer()->IsClientPlayer(i) ? 1 : 0); // is player?
 			if(Type == SERVERINFO_EXTENDED)
@@ -2074,7 +2074,7 @@ void CServer::CacheServerInfoSixup(CCache *pCache, bool SendClients)
 			{
 				Packer.AddString(ClientName(i), MAX_NAME_LENGTH); // client name
 				Packer.AddString(ClientClan(i), MAX_CLAN_LENGTH); // client clan
-				Packer.AddInt(m_aClients[i].m_Country); // client country
+				Packer.AddInt(m_aClients[i].m_Flag); // client flag
 				Packer.AddInt(m_aClients[i].m_Score); // client score
 				Packer.AddInt(GameServer()->IsClientPlayer(i) ? 0 : 1); // flag spectator=1, bot=2 (player=0)
 			}

@@ -20,7 +20,7 @@ public:
 class CLocalizationDatabase
 {
 	sorted_array<CLocalizedString> m_Strings;
-	char m_NumLanguages;
+	int m_NumLanguages;
 
 public:
 	CLocalizationDatabase();
@@ -33,6 +33,5 @@ public:
 
 extern CLocalizationDatabase g_Localization;
 
-extern CLocalizedString *LocalizeServer(const char *pStr, const char *pContext = "")
-	GNUC_ATTRIBUTE((format_arg(1)));
+extern CLocalizedString *LocalizeServer(const char *pStr, const char *pContext = "");
 #endif

@@ -214,6 +214,26 @@ void CGameContext::CallVote(int ClientID, const char *pDesc, const char *pCmd, c
 	pPlayer->m_LastVoteCall = Now;
 }
 
+void CGameContext::UpdatePlayerLang(int ClientID, int Lang, bool IsInfoUpdate)
+{
+	if(m_apPlayers[ClientID]->m_Lang == Lang)
+		return;
+	m_apPlayers[ClientID]->m_Lang = Lang;
+	char aBuf[256];
+	if(IsInfoUpdate)
+	{
+		if(Lang != 0)
+		{
+			str_format(aBuf, sizeof(aBuf), "Server language has been set to '%s'.", "Chinese");
+			SendChatTarget(ClientID, aBuf);
+			str_format(aBuf, sizeof(aBuf), "Use /lang to change langauge.");
+			SendChatTarget(ClientID, aBuf);
+		}
+		SendChatLocalized(ClientID, "Server language has been set to '%s'.", "简体中文");
+		SendChatLocalized(ClientID, "Use /lang to change langauge.");
+	}
+}
+
 void CGameContext::SendChatLocalizedVL(int To, int Flags, ContextualString String, va_list ap)
 {
 	int Start = To;
@@ -232,7 +252,12 @@ void CGameContext::SendChatLocalizedVL(int To, int Flags, ContextualString Strin
 
 	for(int i = Start; i < Limit; i++)
 	{
-		int Lang = 0;
+		if(!m_apPlayers[i])
+			return;
+		int Lang = m_apPlayers[i]->m_Lang;
+		if(Lang < 0 || Lang >= 1024)
+			Lang = 0;
+
 		if(pString)
 		{
 			if(pString->m_Langs[Lang])
@@ -462,7 +487,7 @@ void CGameContext::SendCurrentGameInfo(int ClientID, bool IsJoin)
 	NewClientInfoMsg.m_Team = pPlayer->GetTeam();
 	NewClientInfoMsg.m_pName = Server()->ClientName(ClientID);
 	NewClientInfoMsg.m_pClan = Server()->ClientClan(ClientID);
-	NewClientInfoMsg.m_Country = Server()->ClientCountry(ClientID);
+	NewClientInfoMsg.m_Flag = Server()->ClientFlag(ClientID);
 	NewClientInfoMsg.m_Silent = true;
 
 	for(int p = 0; p < 6; p++)
@@ -497,7 +522,7 @@ void CGameContext::SendCurrentGameInfo(int ClientID, bool IsJoin)
 			ClientInfoMsg.m_Team = pOtherPlayer->GetTeam();
 			ClientInfoMsg.m_pName = Server()->ClientName(i);
 			ClientInfoMsg.m_pClan = Server()->ClientClan(i);
-			ClientInfoMsg.m_Country = Server()->ClientCountry(i);
+			ClientInfoMsg.m_Flag = Server()->ClientFlag(i);
 			ClientInfoMsg.m_Silent = true;
 
 			if(GetDDRaceTeam(i) != GetDDRaceTeam(ClientID) && !pPlayer->ShowOthersMode())
@@ -1398,7 +1423,7 @@ void *CGameContext::PreProcessMsg(int *MsgID, CUnpacker *pUnpacker, int ClientID
 
 			pMsg->m_pName = pMsg7->m_pName;
 			pMsg->m_pClan = pMsg7->m_pClan;
-			pMsg->m_Country = pMsg7->m_Country;
+			pMsg->m_Flag = pMsg7->m_Flag;
 
 			CTeeInfo Info(pMsg7->m_apSkinPartNames, pMsg7->m_aUseCustomColors, pMsg7->m_aSkinPartColors);
 			Info.FromSixup();
@@ -2169,9 +2194,13 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				SixupNeedsUpdate = true;
 			Server()->SetClientClan(ClientID, pMsg->m_pClan);
 
-			if(Server()->ClientCountry(ClientID) != pMsg->m_Country)
+			if(Server()->ClientFlag(ClientID) != pMsg->m_Flag)
 				SixupNeedsUpdate = true;
-			Server()->SetClientCountry(ClientID, pMsg->m_Country);
+			Server()->SetClientFlag(ClientID, pMsg->m_Flag);
+			if(pMsg->m_Flag >= 0 && pMsg->m_Flag < 1024)
+				UpdatePlayerLang(ClientID, m_FlagLangMap[pMsg->m_Flag], true);
+			else
+				UpdatePlayerLang(ClientID, 0, true);
 
 			if(str_startswith(pMsg->m_pSkin, "x_") || str_find(pMsg->m_pSkin, "_x_"))
 				pPlayer->m_TeeInfos.m_SkinName[0] = 0;
@@ -2277,7 +2306,11 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		// set start infos
 		Server()->SetClientName(ClientID, pMsg->m_pName);
 		Server()->SetClientClan(ClientID, pMsg->m_pClan);
-		Server()->SetClientCountry(ClientID, pMsg->m_Country);
+		Server()->SetClientFlag(ClientID, pMsg->m_Flag);
+		if(pMsg->m_Flag >= 0 && pMsg->m_Flag < 1024)
+			UpdatePlayerLang(ClientID, m_FlagLangMap[pMsg->m_Flag], true);
+		else
+			UpdatePlayerLang(ClientID, 0, true);
 		if(str_startswith(pMsg->m_pSkin, "x_") || str_find(pMsg->m_pSkin, "_x_"))
 			pPlayer->m_TeeInfos.m_SkinName[0] = 0;
 		else
@@ -2635,7 +2668,7 @@ void CGameContext::AddVote(const char *pDescription, const char *pCommand)
 
 void CGameContext::LoadLanguageFiles()
 {
-	mem_zero(m_CodeLangMap, sizeof(m_CodeLangMap));
+	mem_zero(m_FlagLangMap, sizeof(m_FlagLangMap));
 
 	IOHANDLE File = Storage()->OpenFile("languages/index.txt", IOFLAG_READ, IStorage::TYPE_ALL);
 	if(!File)
@@ -2723,11 +2756,11 @@ void CGameContext::LoadLanguageFiles()
 				if(*pEnd != '\0')
 				{
 					*pEnd = '\0';
-					m_CodeLangMap[str_toint(pStart)] = LangIndex;
+					m_FlagLangMap[str_toint(pStart)] = LangIndex;
 				}
 				else
 				{
-					m_CodeLangMap[str_toint(pStart)] = LangIndex;
+					m_FlagLangMap[str_toint(pStart)] = LangIndex;
 					pStart = pEnd;
 					break;
 				}
@@ -4029,7 +4062,7 @@ void CGameContext::SendClientInfo(int ClientID)
 
 	Info.m_pName = Server()->ClientName(ClientID);
 	Info.m_pClan = Server()->ClientClan(ClientID);
-	Info.m_Country = Server()->ClientCountry(ClientID);
+	Info.m_Flag = Server()->ClientFlag(ClientID);
 	Info.m_Local = 0;
 	Info.m_Silent = true;
 	Info.m_Team = pPlayer->GetTeam();

@@ -211,7 +211,8 @@ public:
 	};
 
 	// localize
-	char m_CodeLangMap[1024];
+	char m_FlagLangMap[1024];
+	void UpdatePlayerLang(int ClientID, int Lang, bool IsInfoUpdate);
 	struct ContextualString
 	{
 		const char *m_pFormat;
@@ -221,19 +222,18 @@ public:
 	void SendChatLocalized(int To, int Flags, ContextualString String, ...)
 	{
 		va_list ap;
-		va_start(ap, String.m_pFormat);
+		va_start(ap, String);
 		SendChatLocalizedVL(To, Flags, String, ap);
 		va_end(ap);
 	}
 	void SendChatLocalized(int To, ContextualString String, ...)
 	{
 		va_list ap;
-		va_start(ap, String.m_pFormat);
+		va_start(ap, String);
 		SendChatLocalizedVL(To, CHAT_SIXNUP, {String.m_pFormat, String.m_pContext}, ap);
 		va_end(ap);
 	};
 	void SendChatLocalized(int To, int Flags, const char *pFormat, ...)
-		GNUC_ATTRIBUTE((format(printf, 3, 4)))
 	{
 		va_list ap;
 		va_start(ap, pFormat);
@@ -241,7 +241,6 @@ public:
 		va_end(ap);
 	};
 	void SendChatLocalized(int To, const char *pFormat, ...)
-		GNUC_ATTRIBUTE((format(printf, 2, 3)))
 	{
 		va_list ap;
 		va_start(ap, pFormat);
