@@ -534,9 +534,9 @@ void CGameContext::ConModerate(IConsole::IResult *pResult, void *pUserData)
 	pSelf->SendChat(-1, CHAT_ALL, aBuf, 0);
 
 	if(pPlayer->m_Moderating)
-		pSelf->SendChatTarget(pResult->m_ClientID, "Active moderator mode enabled for you.");
+		pSelf->SendChatLocalized(pResult->m_ClientID, "Active moderator mode enabled for you.");
 	else
-		pSelf->SendChatTarget(pResult->m_ClientID, "Active moderator mode disabled for you.");
+		pSelf->SendChatLocalized(pResult->m_ClientID, "Active moderator mode disabled for you.");
 }
 
 void CGameContext::ConUninvite(IConsole::IResult *pResult, void *pUserData)

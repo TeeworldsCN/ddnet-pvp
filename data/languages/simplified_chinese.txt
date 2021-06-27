@@ -22,5 +22,170 @@ Server language has been set to '%s'.
 Use /lang to change langauge.
 == 使用 /lang 指令更改语言。
 
-This is a test %d
-== 
+Active moderator mode enabled for you.
+== 已为你启用主动监管模式
+
+Active moderator mode disabled for you.
+== 已为你禁用主动监管模式
+
+You can see other players. To disable this, type /showothers .
+== 你可以看到其他房间的玩家，可以使用 /showothers 指令禁用。
+
+Room is not ready
+== 房间未准备完成
+
+Invalid option
+== 无效选项
+
+There's a %d second wait time between kick votes for each player please wait %d second(s)
+== 服务器设置了%d秒的踢除投票间隔，请等待%d秒再发起踢除投票
+
+Server does not allow voting to kick players
+== 服务器不允许发起踢除投票
+
+Kick voting requires %d players
+== 踢除投票需要有%d名玩家在场才可发起
+
+Invalid client id to kick
+== 无法踢除：无效的客户端ID
+
+You can't kick yourself
+== 无法踢除：你不能踢除自己
+
+You can't kick authorized players
+== 无法踢除：目标有管理权限
+
+'%s' called for vote to kick you
+== '%s' 发起投票想要踢除你
+
+You can only kick players in your room
+== 无法移除：你只能发起投票踢除同房间内的玩家
+
+Server does not allow voting to move players to spectators
+== 服务器禁用了移至旁观位的投票
+
+Invalid client id to move
+== 无法移除：无效的客户端ID
+
+You can't move yourself
+== 无法移除：你不能移除自己
+
+You can only move players in your room to spectators
+== 无法移除：你只能发起投票移动同房间内的玩家至旁观位
+
+You can't change your team before the room is ready
+== 房间初始化完成前不能更换队伍
+
+Use /pause first then you can kill
+== 请先用 /pause 取消暂停再进行重生类操作
+
+You can't change your team right now
+== 你现在不能更换队伍
+
+You can't freeview right now
+== 你现在不能使用自由视角
+
+'%s' was moved to spectator (%s)
+== '%s' 被移入旁观位
+
+Players are not allowed to chat from VPNs at this time
+== 使用VPN的玩家目前暂时不允许使用聊天
+
+You are not permitted to talk for the next %d seconds.
+== 你在%d秒内无权发言。
+
+Invalid whisper
+== 私聊无效
+
+No player with name '%s' found
+== 找不到名为 '%s' 的玩家
+
+You do not have an ongoing conversation. Whisper to someone to start one
+== 你现在没有和其他玩家的私聊对话。你可以使用 /w 指令发起私聊
+
+Listing players with '%s' in name:
+== 正在列出名字包含 '%s' 的玩家：
+
+Listing all players:
+== 正在列出所有玩家：
+
+%d players online
+== 目前有 %d 名在线玩家
+
+authorized player forced vote %s
+== 管理员强制投票
+
+Vote passed
+== 投票已通过
+
+Vote passed enforced by authorized player
+== 管理员强制通过了投票
+
+Vote failed enforced by authorized player
+== 管理员强制否决了投票
+
+Vote failed
+== 投票被否决
+
+You can only vote after logging in.
+== 只有管理员才可以发起投票
+
+You are not allowed to vote because we're currently checking for VPNs. Try again in ~30 seconds.
+== 现在不能发起投票，因为服务器正在检查VPN连接。请等待大约30秒后重试。
+
+You are not allowed to vote because you appear to be using a VPN. Try connecting without a VPN or contacting an admin if you think this is a mistake.
+== 你不能发起投票，因为服务器检测到你可能正在使用VPN。请关闭VPN重连。如果你认为系统判断出错，请联系服务器管理员。
+
+Wait for current vote to end before calling a new one.
+== 请等待当前的投票结束再发起新的投票。
+
+You must wait %d seconds before making your first vote.
+== 你需要等待%d秒才能发起你的第一个投票
+
+You must wait %d seconds before making another vote.
+== 你需要等待%d秒才能发起另一个投票
+
+You are not permitted to vote for the next %d seconds.
+== 你在%d秒内无权投票。
+
+You have been moved to room %d
+== 你被强制移动到了房间%d
+
+You are now in a solo part
+== 你进入了单人部分
+
+You are now out of the solo part
+== 你离开了单人部分
+
+Teams were swapped
+== 双方队伍已被交换
+
+You can't spectate this player
+== 你不能旁观这个玩家
+
+Teams were shuffled
+== 双方队伍已被随机重组
+
+Teams have been balanced
+== 双方队伍已被平衡分配
+
+All players were moved to the %s
+== 所有玩家被移入%s
+
+The %s flag was captured by '%s' (%d.%s%d seconds)
+== %s旗帜被 '%s' 夺取（%d.%s%d秒）
+
+The %s flag was captured by '%s'
+== %s旗帜被 '%s' 夺取
+
+'%s' initiated a pause
+== '%s' 发起了暂停
+
+[FLAG]
+blue
+== 蓝队
+
+[FLAG]
+red
+== 红队
+

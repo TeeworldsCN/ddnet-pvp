@@ -54,7 +54,6 @@ void CGameContext::Construct(int Resetting)
 	m_pVoteOptionFirst = 0;
 	m_pVoteOptionLast = 0;
 	m_NumVoteOptions = 0;
-	m_LastMapVote = 0;
 
 	if(Resetting == NO_RESET)
 	{
@@ -234,6 +233,20 @@ void CGameContext::UpdatePlayerLang(int ClientID, int Lang, bool IsInfoUpdate)
 	}
 }
 
+const char *CGameContext::LocalizeFor(int ClientID, const char *pString, const char *pContext)
+{
+	if(!m_apPlayers[ClientID])
+		return pString;
+
+	CLocalizedString *pLocString = LocalizeServer(pString, pContext);
+	int Lang = m_apPlayers[ClientID]->m_Lang;
+
+	if(pLocString && pLocString->m_Langs[Lang])
+		return pLocString->m_Langs[Lang];
+
+	return pString;
+}
+
 void CGameContext::SendChatLocalizedVL(int To, int Flags, ContextualString String, va_list ap)
 {
 	int Start = To;
@@ -245,10 +258,14 @@ void CGameContext::SendChatLocalizedVL(int To, int Flags, ContextualString Strin
 	}
 
 	char aBuf[512];
+	int CurLang = -1;
 	CLocalizedString *pString = LocalizeServer(String.m_pFormat, String.m_pContext);
 
 	if(!pString)
+	{
+		CurLang = 0;
 		str_vformat(aBuf, sizeof(aBuf), String.m_pFormat, ap);
+	}
 
 	for(int i = Start; i < Limit; i++)
 	{
@@ -258,7 +275,7 @@ void CGameContext::SendChatLocalizedVL(int To, int Flags, ContextualString Strin
 		if(Lang < 0 || Lang >= 1024)
 			Lang = 0;
 
-		if(pString)
+		if(pString && CurLang != Lang)
 		{
 			if(pString->m_Langs[Lang])
 				str_vformat(aBuf, sizeof(aBuf), pString->m_Langs[Lang], ap);
@@ -883,32 +900,28 @@ void CGameContext::OnTick()
 				Console()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
 				Server()->SetRconCID(IServer::RCON_CID_SERV);
 				EndVote();
-				SendChat(-1, CGameContext::CHAT_ALL, "Vote passed", -1, CHAT_SIX);
+				SendChatLocalized(-1, CHAT_SIX, "Vote passed");
 
 				if(m_apPlayers[m_VoteCreator] && !IsKickVote() && !IsSpecVote())
 					m_apPlayers[m_VoteCreator]->m_LastVoteCall = 0;
 			}
 			else if(m_VoteEnforce == VOTE_ENFORCE_YES_ADMIN)
 			{
-				char aBuf[64];
 				// silence voted command response
 				m_ChatResponseTargetID = -1;
-				str_format(aBuf, sizeof(aBuf), "Vote passed enforced by authorized player");
 				Console()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
-				SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CHAT_SIX);
+				SendChatLocalized(-1, CHAT_SIX, "Vote passed enforced by authorized player");
 				EndVote();
 			}
 			else if(m_VoteEnforce == VOTE_ENFORCE_NO_ADMIN)
 			{
-				char aBuf[64];
-				str_format(aBuf, sizeof(aBuf), "Vote failed enforced by authorized player");
 				EndVote();
-				SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, CHAT_SIX);
+				SendChatLocalized(-1, CHAT_SIX, "Vote failed enforced by authorized player");
 			}
 			else if(m_VoteEnforce == VOTE_ENFORCE_NO || (time_get() > m_VoteCloseTime && g_Config.m_SvVoteMajority))
 			{
 				EndVote();
-				SendChat(-1, CGameContext::CHAT_ALL, "Vote failed", -1, CHAT_SIX);
+				SendChatLocalized(-1, CHAT_SIX, "Vote failed");
 			}
 			else if(m_VoteUpdate)
 			{
@@ -1206,9 +1219,7 @@ void CGameContext::OnClientEnter(int ClientID)
 	if(!Server()->ClientPrevIngame(ClientID))
 	{
 		if(g_Config.m_SvWelcome[0] != 0)
-			SendChatTarget(ClientID, g_Config.m_SvWelcome);
-
-		SendChatLocalized(ClientID, "This is a test %d", 1000);
+			SendChatLocalized(ClientID, g_Config.m_SvWelcome);
 
 		IServer::CClientInfo Info;
 		Server()->GetClientInfo(ClientID, &Info);
@@ -1221,7 +1232,7 @@ void CGameContext::OnClientEnter(int ClientID)
 		if(g_Config.m_SvShowOthersDefault > 0)
 		{
 			if(g_Config.m_SvShowOthers)
-				SendChatTarget(ClientID, "You can see other players. To disable this, type /showothers .");
+				SendChatLocalized(ClientID, "You can see other players. To disable this, type /showothers .");
 
 			m_apPlayers[ClientID]->m_ShowOthers = g_Config.m_SvShowOthersDefault;
 		}
@@ -1746,7 +1757,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 						SGameInstance Instance = PlayerGameInstance(ClientID);
 						if(!Instance.m_Init)
 						{
-							SendChatTarget(ClientID, "Room is not ready");
+							SendChatLocalized(ClientID, "Room is not ready");
 							return;
 						}
 
@@ -1766,11 +1777,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 						{
 							if(!pConsole->LineIsValid(pOption->m_aCommand))
 							{
-								SendChatTarget(ClientID, "Invalid option");
-								return;
-							}
-							if((str_find(pOption->m_aCommand, "sv_map ") != 0 || str_find(pOption->m_aCommand, "change_map ") != 0) && RateLimitPlayerMapVote(ClientID))
-							{
+								SendChatLocalized(ClientID, "Invalid option");
 								return;
 							}
 
@@ -1791,7 +1798,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 							else
 								str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientID),
 									pOption->m_aDescription, aReason);
-							m_LastMapVote = time_get();
 
 							if(!str_find(aCmd, ";"))
 							{
@@ -1836,17 +1842,15 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					return;
 				else if(!Authed && time_get() < m_apPlayers[ClientID]->m_LastKickVote + (time_freq() * g_Config.m_SvVoteKickDelay))
 				{
-					str_format(aChatmsg, sizeof(aChatmsg), "There's a %d second wait time between kick votes for each player please wait %d second(s)",
-						g_Config.m_SvVoteKickDelay,
+					SendChatLocalized(ClientID, "There's a %d second wait time between kick votes for each player please wait %d second(s)", g_Config.m_SvVoteKickDelay,
 						(int)(((m_apPlayers[ClientID]->m_LastKickVote + (m_apPlayers[ClientID]->m_LastKickVote * time_freq())) / time_freq()) - (time_get() / time_freq())));
-					SendChatTarget(ClientID, aChatmsg);
 					m_apPlayers[ClientID]->m_LastKickVote = time_get();
 					return;
 				}
 				//else if(!g_Config.m_SvVoteKick)
 				else if((!g_Config.m_SvVoteKick || (g_Config.m_SvVoteKick == 2 && !GetDDRaceTeam(ClientID))) && !Authed) // allow admins to call kick votes even if they are forbidden
 				{
-					SendChatTarget(ClientID, "Server does not allow voting to kick players");
+					SendChatLocalized(ClientID, "Server does not allow voting to kick players");
 					m_apPlayers[ClientID]->m_LastKickVote = time_get();
 					return;
 				}
@@ -1883,8 +1887,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 					if(NumPlayers < g_Config.m_SvVoteKickMin)
 					{
-						str_format(aChatmsg, sizeof(aChatmsg), "Kick voting requires %d players", g_Config.m_SvVoteKickMin);
-						SendChatTarget(ClientID, aChatmsg);
+						SendChatLocalized(ClientID, "Kick voting requires %d players", g_Config.m_SvVoteKickMin);
 						return;
 					}
 				}
@@ -1893,12 +1896,12 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 				if(KickID < 0 || KickID >= MAX_CLIENTS || !m_apPlayers[KickID])
 				{
-					SendChatTarget(ClientID, "Invalid client id to kick");
+					SendChatLocalized(ClientID, "Invalid client id to kick");
 					return;
 				}
 				if(KickID == ClientID)
 				{
-					SendChatTarget(ClientID, "You can't kick yourself");
+					SendChatLocalized(ClientID, "You can't kick yourself");
 					return;
 				}
 				if(!Server()->ReverseTranslate(KickID, ClientID))
@@ -1908,18 +1911,16 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				int KickedAuthed = Server()->GetAuthedState(KickID);
 				if(KickedAuthed > Authed)
 				{
-					SendChatTarget(ClientID, "You can't kick authorized players");
+					SendChatLocalized(ClientID, "You can't kick authorized players");
 					m_apPlayers[ClientID]->m_LastKickVote = time_get();
-					char aBufKick[128];
-					str_format(aBufKick, sizeof(aBufKick), "'%s' called for vote to kick you", Server()->ClientName(ClientID));
-					SendChatTarget(KickID, aBufKick);
+					SendChatLocalized(KickID, "'%s' called for vote to kick you", Server()->ClientName(ClientID));
 					return;
 				}
 
 				// Don't allow kicking if a player has no character
 				if(!GetPlayerChar(ClientID) || !GetPlayerChar(KickID) || GetDDRaceTeam(ClientID) != GetDDRaceTeam(KickID))
 				{
-					SendChatTarget(ClientID, "You can only kick players in your room");
+					SendChatLocalized(ClientID, "You can only kick players in your room");
 					m_apPlayers[ClientID]->m_LastKickVote = time_get();
 					return;
 				}
@@ -1948,7 +1949,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			{
 				if(!g_Config.m_SvVoteSpectate)
 				{
-					SendChatTarget(ClientID, "Server does not allow voting to move players to spectators");
+					SendChatLocalized(ClientID, "Server does not allow voting to move players to spectators");
 					return;
 				}
 
@@ -1956,12 +1957,12 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 				if(SpectateID < 0 || SpectateID >= MAX_CLIENTS || !m_apPlayers[SpectateID] || m_apPlayers[SpectateID]->GetTeam() == TEAM_SPECTATORS)
 				{
-					SendChatTarget(ClientID, "Invalid client id to move");
+					SendChatLocalized(ClientID, "Invalid client id to move");
 					return;
 				}
 				if(SpectateID == ClientID)
 				{
-					SendChatTarget(ClientID, "You can't move yourself");
+					SendChatLocalized(ClientID, "You can't move yourself");
 					return;
 				}
 				if(!Server()->ReverseTranslate(SpectateID, ClientID))
@@ -1971,7 +1972,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 				if(GetDDRaceTeam(ClientID) != GetDDRaceTeam(SpectateID))
 				{
-					SendChatTarget(ClientID, "You can only move players in your room to spectators");
+					SendChatLocalized(ClientID, "You can only move players in your room to spectators");
 					return;
 				}
 
@@ -2072,7 +2073,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			SGameInstance Instance = PlayerGameInstance(ClientID);
 			if(!Instance.m_Init)
 			{
-				SendChatTarget(ClientID, "You can't change your team before the room is ready");
+				SendChatLocalized(ClientID, "You can't change your team before the room is ready");
 				return;
 			}
 
@@ -2080,7 +2081,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if(Instance.m_pController->CanJoinTeam(pMsg->m_Team, ClientID, true) && Instance.m_pController->CanChangeTeam(pPlayer, pMsg->m_Team))
 			{
 				if(pPlayer->IsPaused())
-					SendChatTarget(ClientID, "Use /pause first then you can kill");
+					SendChatLocalized(ClientID, "Use /pause first then you can kill");
 				else
 				{
 					if(pPlayer->GetTeam() == TEAM_SPECTATORS || pMsg->m_Team == TEAM_SPECTATORS)
@@ -2091,7 +2092,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			}
 			else
 			{
-				SendChatTarget(ClientID, "You can't change your team due to balancing");
+				SendChatLocalized(ClientID, "You can't change your team right now");
 			}
 		}
 		else if(MsgID == NETMSGTYPE_CL_ISDDNETLEGACY)
@@ -2155,7 +2156,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if(!pPlayer->SetSpecMode(pMsg->m_SpectatorID == -1 ? CPlayer::ESpecMode::FREEVIEW : CPlayer::ESpecMode::PLAYER, pMsg->m_SpectatorID) && Instance.m_Init)
 			{
 				if(pMsg->m_SpectatorID == -1 && !Server()->IsSixup(ClientID))
-					SendChatTarget(ClientID, "You can't freeview right now");
+					SendChatLocalized(ClientID, "You can't freeview right now");
 				else
 					Instance.m_pController->SendGameMsg(GAMEMSG_SPEC_INVALIDID, ClientID);
 			}
@@ -2861,8 +2862,7 @@ void CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
 		{
 			if(str_comp_nocase(pValue, pOption->m_aDescription) == 0)
 			{
-				str_format(aBuf, sizeof(aBuf), "authorized player forced server option '%s' (%s)", pValue, pReason);
-				pSelf->SendChatTarget(-1, aBuf, CHAT_SIX);
+				pSelf->SendChatLocalized(-1, aBuf, CHAT_SIX, "authorized player forced server option '%s' (%s)", pValue, pReason);
 				pSelf->Console()->ExecuteLine(pOption->m_aCommand, ClientID);
 				break;
 			}
@@ -2908,8 +2908,7 @@ void CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
 			return;
 		}
 
-		str_format(aBuf, sizeof(aBuf), "'%s' was moved to spectator (%s)", pSelf->Server()->ClientName(SpectateID), pReason);
-		pSelf->SendChatTarget(-1, aBuf);
+		pSelf->SendChatLocalized(-1, "'%s' was moved to spectator (%s)", pSelf->Server()->ClientName(SpectateID), pReason);
 		str_format(aBuf, sizeof(aBuf), "set_team %d -1 %d", SpectateID, g_Config.m_SvVoteSpectateRejoindelay);
 		pSelf->Console()->ExecuteLine(aBuf);
 	}
@@ -3019,7 +3018,7 @@ void CGameContext::OnConsoleInit()
 
 #define CONSOLE_COMMAND(name, params, flags, callback, userdata, help) m_pConsole->Register(name, params, flags, callback, userdata, help);
 #include <game/ddracecommands.h>
-#define CHAT_COMMAND(name, params, flags, callback, userdata, help) m_pConsole->Register(name, params, flags, callback, userdata, help);
+#define CHAT_COMMAND(name, params, flags, callback, userdata, help) m_pConsole->Register(name, params, CFGFLAG_CHAT | flags, callback, userdata, help);
 #include <game/ddracechat.h>
 
 	// load localization
@@ -3471,7 +3470,7 @@ int CGameContext::ProcessSpamProtection(int ClientID)
 		return 1;
 	else if(g_Config.m_SvDnsblChat && Server()->DnsblBlack(ClientID))
 	{
-		SendChatTarget(ClientID, "Players are not allowed to chat from VPNs at this time");
+		SendChatLocalized(ClientID, "Players are not allowed to chat from VPNs at this time");
 		return 1;
 	}
 	else
@@ -3494,9 +3493,7 @@ int CGameContext::ProcessSpamProtection(int ClientID)
 
 	if(Muted > 0)
 	{
-		char aBuf[128];
-		str_format(aBuf, sizeof aBuf, "You are not permitted to talk for the next %d seconds.", Muted);
-		SendChatTarget(ClientID, aBuf);
+		SendChatLocalized(ClientID, "You are not permitted to talk for the next %d seconds.", Muted);
 		return 1;
 	}
 
@@ -3615,15 +3612,13 @@ void CGameContext::Whisper(int ClientID, char *pStr)
 
 	if(Error)
 	{
-		str_format(aBuf, sizeof(aBuf), "Invalid whisper");
-		SendChatTarget(ClientID, aBuf);
+		SendChatLocalized(ClientID, "Invalid whisper");
 		return;
 	}
 
 	if(Victim >= MAX_CLIENTS || !CheckClientID2(Victim))
 	{
-		str_format(aBuf, sizeof(aBuf), "No player with name \"%s\" found", pName);
-		SendChatTarget(ClientID, aBuf);
+		SendChatLocalized(ClientID, "No player with name '%s' found", pName);
 		return;
 	}
 
@@ -3725,7 +3720,7 @@ void CGameContext::Converse(int ClientID, char *pStr)
 		return;
 
 	if(pPlayer->m_LastWhisperTo < 0)
-		SendChatTarget(ClientID, "You do not have an ongoing conversation. Whisper to someone to start one");
+		SendChatLocalized(ClientID, "You do not have an ongoing conversation. Whisper to someone to start one");
 	else
 	{
 		WhisperID(ClientID, pPlayer->m_LastWhisperTo, pStr);
@@ -3746,10 +3741,9 @@ void CGameContext::List(int ClientID, const char *pFilter)
 	char aBuf[256];
 	int Bufcnt = 0;
 	if(pFilter[0])
-		str_format(aBuf, sizeof(aBuf), "Listing players with \"%s\" in name:", pFilter);
+		SendChatLocalized(ClientID, "Listing players with '%s' in name:", pFilter);
 	else
-		str_format(aBuf, sizeof(aBuf), "Listing all players:");
-	SendChatTarget(ClientID, aBuf);
+		SendChatLocalized(ClientID, "Listing all players:");
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
 		if(m_apPlayers[i])
@@ -3777,8 +3771,7 @@ void CGameContext::List(int ClientID, const char *pFilter)
 	}
 	if(Bufcnt != 0)
 		SendChatTarget(ClientID, aBuf);
-	str_format(aBuf, sizeof(aBuf), "%d players online", Total);
-	SendChatTarget(ClientID, aBuf);
+	SendChatLocalized(ClientID, "%d players online", Total);
 }
 
 int CGameContext::GetClientVersion(int ClientID) const
@@ -3814,8 +3807,7 @@ void CGameContext::ForceVote(int EnforcerID, bool Success)
 
 	char aBuf[256];
 	const char *pOption = Success ? "yes" : "no";
-	str_format(aBuf, sizeof(aBuf), "authorized player forced vote %s", pOption);
-	SendChatTarget(-1, aBuf);
+	SendChatLocalized(-1, "authorized player forced vote %s", pOption);
 	str_format(aBuf, sizeof(aBuf), "forcing vote %s", pOption);
 	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 }
@@ -3828,7 +3820,7 @@ bool CGameContext::RateLimitPlayerVote(int ClientID)
 
 	if(g_Config.m_SvRconVote && !Server()->GetAuthedState(ClientID))
 	{
-		SendChatTarget(ClientID, "You can only vote after logging in.");
+		SendChatLocalized(ClientID, "You can only vote after logging in.");
 		return true;
 	}
 
@@ -3836,12 +3828,12 @@ bool CGameContext::RateLimitPlayerVote(int ClientID)
 	{
 		if(m_pServer->DnsblPending(ClientID))
 		{
-			SendChatTarget(ClientID, "You are not allowed to vote because we're currently checking for VPNs. Try again in ~30 seconds.");
+			SendChatLocalized(ClientID, "You are not allowed to vote because we're currently checking for VPNs. Try again in ~30 seconds.");
 			return true;
 		}
 		else if(m_pServer->DnsblBlack(ClientID))
 		{
-			SendChatTarget(ClientID, "You are not allowed to vote because you appear to be using a VPN. Try connecting without a VPN or contacting an admin if you think this is a mistake.");
+			SendChatLocalized(ClientID, "You are not allowed to vote because you appear to be using a VPN. Try connecting without a VPN or contacting an admin if you think this is a mistake.");
 			return true;
 		}
 	}
@@ -3852,24 +3844,20 @@ bool CGameContext::RateLimitPlayerVote(int ClientID)
 	pPlayer->m_LastVoteTry = Now;
 	if(m_VoteCloseTime)
 	{
-		SendChatTarget(ClientID, "Wait for current vote to end before calling a new one.");
+		SendChatLocalized(ClientID, "Wait for current vote to end before calling a new one.");
 		return true;
 	}
 
 	if(Now < pPlayer->m_FirstVoteTick)
 	{
-		char aBuf[64];
-		str_format(aBuf, sizeof(aBuf), "You must wait %d seconds before making your first vote.", (int)((pPlayer->m_FirstVoteTick - Now) / TickSpeed) + 1);
-		SendChatTarget(ClientID, aBuf);
+		SendChatLocalized(ClientID, "You must wait %d seconds before making your first vote.", (int)((pPlayer->m_FirstVoteTick - Now) / TickSpeed) + 1);
 		return true;
 	}
 
 	int TimeLeft = pPlayer->m_LastVoteCall + TickSpeed * g_Config.m_SvVoteDelay - Now;
 	if(pPlayer->m_LastVoteCall && TimeLeft > 0)
 	{
-		char aChatmsg[64];
-		str_format(aChatmsg, sizeof(aChatmsg), "You must wait %d seconds before making another vote.", (int)(TimeLeft / TickSpeed) + 1);
-		SendChatTarget(ClientID, aChatmsg);
+		SendChatLocalized(ClientID, "You must wait %d seconds before making another vote.", (int)(TimeLeft / TickSpeed) + 1);
 		return true;
 	}
 
@@ -3881,22 +3869,7 @@ bool CGameContext::RateLimitPlayerVote(int ClientID)
 			VoteMuted = (m_aVoteMutes[i].m_Expire - Server()->Tick()) / Server()->TickSpeed();
 	if(VoteMuted > 0)
 	{
-		char aChatmsg[64];
-		str_format(aChatmsg, sizeof(aChatmsg), "You are not permitted to vote for the next %d seconds.", VoteMuted);
-		SendChatTarget(ClientID, aChatmsg);
-		return true;
-	}
-	return false;
-}
-
-bool CGameContext::RateLimitPlayerMapVote(int ClientID)
-{
-	if(!Server()->GetAuthedState(ClientID) && time_get() < m_LastMapVote + (time_freq() * g_Config.m_SvVoteMapTimeDelay))
-	{
-		char aChatmsg[512] = {0};
-		str_format(aChatmsg, sizeof(aChatmsg), "There's a %d second delay between map-votes, please wait %d seconds.",
-			g_Config.m_SvVoteMapTimeDelay, (int)((m_LastMapVote + g_Config.m_SvVoteMapTimeDelay * time_freq() - time_get()) / time_freq()));
-		SendChatTarget(ClientID, aChatmsg);
+		SendChatLocalized(ClientID, "You are not permitted to vote for the next %d seconds.", VoteMuted);
 		return true;
 	}
 	return false;

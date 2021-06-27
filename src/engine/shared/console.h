@@ -53,11 +53,10 @@ class CConsole : public IConsole
 	CCommand *m_pRecycleList;
 	CHeap m_TempCommands;
 
-	static void Con_Chain(IResult *pResult, void *pUserData);
-	static void Con_Echo(IResult *pResult, void *pUserData);
-	static void Con_Exec(IResult *pResult, void *pUserData);
+	static void ConChain(IResult *pResult, void *pUserData);
+	static void ConEcho(IResult *pResult, void *pUserData);
+	static void ConExec(IResult *pResult, void *pUserData);
 	static void ConToggle(IResult *pResult, void *pUser);
-	static void ConToggleStroke(IResult *pResult, void *pUser);
 	static void ConCommandAccess(IResult *pResult, void *pUser);
 	static void ConCommandStatus(IConsole::IResult *pResult, void *pUser);
 
@@ -223,6 +222,7 @@ public:
 	// DDRace
 
 	static void ConUserCommandStatus(IConsole::IResult *pResult, void *pUser);
+	static void ConChatCmdlist(IConsole::IResult *pResult, void *pUser);
 	void SetFlagMask(int FlagMask) { m_FlagMask = FlagMask; }
 };
 

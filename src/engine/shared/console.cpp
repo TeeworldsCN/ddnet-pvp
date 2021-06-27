@@ -701,12 +701,12 @@ void CConsole::ExecuteFile(const char *pFilename, int ClientID, bool LogFailure,
 	m_pFirstExec = pPrev;
 }
 
-void CConsole::Con_Echo(IResult *pResult, void *pUserData)
+void CConsole::ConEcho(IResult *pResult, void *pUserData)
 {
 	((CConsole *)pUserData)->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", pResult->GetString(0));
 }
 
-void CConsole::Con_Exec(IResult *pResult, void *pUserData)
+void CConsole::ConExec(IResult *pResult, void *pUserData)
 {
 	((CConsole *)pUserData)->ExecuteFile(pResult->GetString(0), -1, true, IStorage::TYPE_ALL);
 }
@@ -800,7 +800,7 @@ void CConsole::ConToggle(IConsole::IResult *pResult, void *pUser)
 		void *pUserData = pCommand->m_pUserData;
 
 		// check for chain
-		if(pCommand->m_pfnCallback == Con_Chain)
+		if(pCommand->m_pfnCallback == ConChain)
 		{
 			CChain *pChainInfo = static_cast<CChain *>(pCommand->m_pUserData);
 			pfnCallback = pChainInfo->m_pfnCallback;
@@ -849,39 +849,6 @@ void CConsole::ConToggle(IConsole::IResult *pResult, void *pUser)
 		pConsole->Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
 }
 
-void CConsole::ConToggleStroke(IConsole::IResult *pResult, void *pUser)
-{
-	CConsole *pConsole = static_cast<CConsole *>(pUser);
-	char aBuf[128] = {0};
-	CCommand *pCommand = pConsole->FindCommand(pResult->GetString(1), pConsole->m_FlagMask);
-	if(pCommand)
-	{
-		FCommandCallback pfnCallback = pCommand->m_pfnCallback;
-
-		// check for chain
-		if(pCommand->m_pfnCallback == Con_Chain)
-		{
-			CChain *pChainInfo = static_cast<CChain *>(pCommand->m_pUserData);
-			pfnCallback = pChainInfo->m_pfnCallback;
-		}
-
-		if(pfnCallback == IntVariableCommand)
-		{
-			int Val = pResult->GetInteger(0) == 0 ? pResult->GetInteger(3) : pResult->GetInteger(2);
-			str_format(aBuf, sizeof(aBuf), "%s %i", pResult->GetString(1), Val);
-			pConsole->ExecuteLine(aBuf);
-			aBuf[0] = 0;
-		}
-		else
-			str_format(aBuf, sizeof(aBuf), "Invalid command: '%s'.", pResult->GetString(1));
-	}
-	else
-		str_format(aBuf, sizeof(aBuf), "No such command: '%s'.", pResult->GetString(1));
-
-	if(aBuf[0] != 0)
-		pConsole->Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
-}
-
 CConsole::CConsole(int FlagMask)
 {
 	m_FlagMask = FlagMask;
@@ -900,15 +867,14 @@ CConsole::CConsole(int FlagMask)
 	m_pStorage = 0;
 
 	// register some basic commands
-	Register("echo", "r[text]", CFGFLAG_SERVER | CFGFLAG_INSTANCE, Con_Echo, this, "Echo the text");
-	Register("exec", "r[file]", CFGFLAG_SERVER | CFGFLAG_CLIENT | CFGFLAG_INSTANCE, Con_Exec, this, "Execute the specified file");
+	Register("echo", "r[text]", CFGFLAG_SERVER | CFGFLAG_INSTANCE, ConEcho, this, "Echo the text");
+	Register("exec", "r[file]", CFGFLAG_SERVER | CFGFLAG_CLIENT | CFGFLAG_INSTANCE, ConExec, this, "Execute the specified file");
 
 	Register("toggle", "s[config-option] i[value 1] i[value 2]", CFGFLAG_SERVER | CFGFLAG_CLIENT | CFGFLAG_INSTANCE, ConToggle, this, "Toggle config value");
-	Register("+toggle", "s[config-option] i[value 1] i[value 2]", CFGFLAG_CLIENT, ConToggleStroke, this, "Toggle config value via keypress");
 
-	Register("access_level", "s[command] ?i[accesslevel]", CFGFLAG_SERVER, ConCommandAccess, this, "Specify command accessibility (admin = 0, moderator = 1, helper = 2, all = 3)");
-	Register("access_status", "i[accesslevel]", CFGFLAG_SERVER, ConCommandStatus, this, "List all commands which are accessible for admin = 0, moderator = 1, helper = 2, all = 3");
-	Register("cmdlist", "", CFGFLAG_SERVER | CFGFLAG_INSTANCE | CFGFLAG_CHAT | CFGFLAG_NO_CONSENT, ConUserCommandStatus, this, "List all commands which are accessible for users");
+	Register("access_level", "s[command] ?i[accesslevel]", CFGFLAG_SERVER | CFGFLAG_INSTANCE, ConCommandAccess, this, "Specify command accessibility (admin = 0, moderator = 1, helper = 2, all = 3)");
+	Register("access_status", "i[accesslevel]", CFGFLAG_SERVER | CFGFLAG_INSTANCE, ConCommandStatus, this, "List all commands which are accessible for admin = 0, moderator = 1, helper = 2, all = 3");
+	Register("access_mine", "", CFGFLAG_SERVER | CFGFLAG_INSTANCE, ConUserCommandStatus, this, "List all commands which are accessible for users");
 
 	// DDRace
 
@@ -921,7 +887,7 @@ CConsole::~CConsole()
 	while(pCommand)
 	{
 		CCommand *pNext = pCommand->m_pNext;
-		if(pCommand->m_pfnCallback == Con_Chain)
+		if(pCommand->m_pfnCallback == ConChain)
 			delete static_cast<CChain *>(pCommand->m_pUserData);
 		// Temp commands are on m_TempCommands heap, so don't delete them
 		if(!pCommand->m_Temp)
@@ -1131,7 +1097,7 @@ void CConsole::DeregisterTempAll()
 	m_pRecycleList = 0;
 }
 
-void CConsole::Con_Chain(IResult *pResult, void *pUserData)
+void CConsole::ConChain(IResult *pResult, void *pUserData)
 {
 	CChain *pInfo = (CChain *)pUserData;
 	pInfo->m_pfnChainCallback(pResult, pInfo->m_pUserData, pInfo->m_pfnCallback, pInfo->m_pCallbackUserData);
@@ -1158,7 +1124,7 @@ void CConsole::Chain(const char *pName, FChainCommandCallback pfnChainFunc, void
 	pChainInfo->m_pCallbackUserData = pCommand->m_pUserData;
 
 	// chain
-	pCommand->m_pfnCallback = Con_Chain;
+	pCommand->m_pfnCallback = ConChain;
 	pCommand->m_pUserData = pChainInfo;
 }
 
@@ -1198,7 +1164,7 @@ void CConsole::ResetServerGameSettings()
 			CCommand *pCommand = FindCommand(#ScriptName, CFGFLAG_SERVER); \
 			void *pUserData = pCommand->m_pUserData; \
 			FCommandCallback pfnCallback = pCommand->m_pfnCallback; \
-			while(pfnCallback == Con_Chain) \
+			while(pfnCallback == ConChain) \
 			{ \
 				CChain *pChainInfo = (CChain *)pUserData; \
 				pUserData = pChainInfo->m_pCallbackUserData; \
@@ -1218,7 +1184,7 @@ void CConsole::ResetServerGameSettings()
 			CCommand *pCommand = FindCommand(#ScriptName, CFGFLAG_SERVER); \
 			void *pUserData = pCommand->m_pUserData; \
 			FCommandCallback pfnCallback = pCommand->m_pfnCallback; \
-			while(pfnCallback == Con_Chain) \
+			while(pfnCallback == ConChain) \
 			{ \
 				CChain *pChainInfo = (CChain *)pUserData; \
 				pUserData = pChainInfo->m_pCallbackUserData; \

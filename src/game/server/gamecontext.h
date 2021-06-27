@@ -218,6 +218,7 @@ public:
 		const char *m_pFormat;
 		const char *m_pContext;
 	};
+	const char *LocalizeFor(int ClientID, const char *pString, const char *pContext = "");
 	void SendChatLocalizedVL(int To, int Flags, ContextualString String, va_list ap);
 	void SendChatLocalized(int To, int Flags, ContextualString String, ...)
 	{
@@ -314,7 +315,6 @@ public:
 	int GetDDRaceTeam(int ClientID);
 	// Describes the time when the first player joined the server.
 	int64 m_NonEmptySince;
-	int64 m_LastMapVote;
 	int GetClientVersion(int ClientID) const;
 	bool PlayerExists(int ClientID) const { return m_apPlayers[ClientID]; }
 	// Returns true if someone is actively moderating.
@@ -323,7 +323,6 @@ public:
 
 	// Checks if player can vote and notify them about the reason
 	bool RateLimitPlayerVote(int ClientID);
-	bool RateLimitPlayerMapVote(int ClientID);
 
 	void UpdatePlayerMaps();
 	void DoActivityCheck();

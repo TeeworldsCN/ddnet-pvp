@@ -73,6 +73,7 @@ def check_file(path):
 		matches = re.findall(r"Localize\s*\(\s*\"([^\"]+)\"(?:\s*,\s*\"([^\"]+)\")?\s*\)", content)
 		matches += re.findall(r"SendChatLocalized\(\s*[^\",]+\s*,\s*(?:[^\",]+\s*,\s*)?\"([^\"]*)\"\s*[^)]*\)()", content)
 		matches += re.findall(r"SendChatLocalized\(\s*[^\",]+\s*,\s*(?:[^\",]+\s*,\s*)?\{\"([^\"]*)\"\s*,\s*\"([^\"]*)\"\}\s*[^)]*\)", content)
+		matches += re.findall(r"LocalizeFor\s*\(\s*[^\",]+\s*,\s*\"([^\"]+)\"(?:\s*,\s*\"([^\"]+)\")?\s*\)", content)
 	return matches
 
 

@@ -290,7 +290,7 @@ static void ConKick(IConsole::IResult *pResult, void *pUserData)
 	{
 		if(pSelf->GameServer()->Teams()->SetForcePlayerTeam(VictimID, 0, CGameTeams::TEAM_REASON_FORCE, nullptr))
 		{
-			pSelf->GameServer()->SendChatTarget(VictimID, "You have been moved to room 0");
+			pSelf->GameServer()->SendChatLocalized(VictimID, "You have been moved to room %d", 0);
 			pSelf->GameServer()->Teams()->SetClientInvited(pSelf->GameWorld()->Team(), VictimID, false);
 		}
 		else
@@ -700,12 +700,12 @@ bool IGameController::OnInternalCharacterTile(CCharacter *pChr, int MapIndex)
 	// solo part
 	if(((m_TileIndex == TILE_SOLO_ENABLE) || (m_TileFIndex == TILE_SOLO_ENABLE)) && !GameServer()->Teams()->m_Core.GetSolo(ClientID))
 	{
-		GameServer()->SendChatTarget(ClientID, "You are now in a solo part");
+		GameServer()->SendChatLocalized(ClientID, "You are now in a solo part");
 		pChr->SetSolo(true);
 	}
 	else if(((m_TileIndex == TILE_SOLO_DISABLE) || (m_TileFIndex == TILE_SOLO_DISABLE)) && GameServer()->Teams()->m_Core.GetSolo(ClientID))
 	{
-		GameServer()->SendChatTarget(ClientID, "You are now out of the solo part");
+		GameServer()->SendChatLocalized(ClientID, "You are now out of the solo part");
 		pChr->SetSolo(false);
 	}
 
@@ -2281,16 +2281,16 @@ void IGameController::SendGameMsg(int GameMsgID, int ClientID, int *i1, int *i2,
 			switch(GameMsgID)
 			{
 			case GAMEMSG_TEAM_SWAP:
-				GameServer()->SendChatTarget(CID, "Teams were swapped");
+				GameServer()->SendChatLocalized(CID, "Teams were swapped");
 				break;
 			case GAMEMSG_SPEC_INVALIDID:
-				GameServer()->SendChatTarget(CID, "You can't spectate this player");
+				GameServer()->SendChatLocalized(CID, "You can't spectate this player");
 				break;
 			case GAMEMSG_TEAM_SHUFFLE:
-				GameServer()->SendChatTarget(CID, "Teams were shuffled");
+				GameServer()->SendChatLocalized(CID, "Teams were shuffled");
 				break;
 			case GAMEMSG_TEAM_BALANCE:
-				GameServer()->SendChatTarget(CID, "Teams have been balanced");
+				GameServer()->SendChatLocalized(CID, "Teams have been balanced");
 				break;
 			case GAMEMSG_CTF_DROP:
 				FakeGameMsgSound(CID, SOUND_CTF_DROP);
@@ -2303,9 +2303,7 @@ void IGameController::SendGameMsg(int GameMsgID, int ClientID, int *i1, int *i2,
 				if(!i1)
 					break;
 
-				if(!aBuf[0])
-					str_format(aBuf, sizeof(aBuf), "All players were moved to the %s", GetTeamName(*i1));
-				GameServer()->SendChatTarget(CID, aBuf);
+				GameServer()->SendChatLocalized(CID, "All players were moved to the %s", GetTeamName(*i1));
 				break;
 			}
 			case GAMEMSG_TEAM_BALANCE_VICTIM:
@@ -2334,17 +2332,16 @@ void IGameController::SendGameMsg(int GameMsgID, int ClientID, int *i1, int *i2,
 
 				if(!aBuf[0])
 				{
+					const char *pFlagName = *i1 ? GameServer()->LocalizeFor(CID, "blue", "FLAG") : GameServer()->LocalizeFor(CID, "red", "FLAG");
 					float CaptureTime = *i3 / (float)Server()->TickSpeed();
 					if(CaptureTime <= 60)
-					{
-						str_format(aBuf, sizeof(aBuf), "The %s flag was captured by '%s' (%d.%s%d seconds)", *i1 ? "blue" : "red", Server()->ClientName(*i2), (int)CaptureTime % 60, ((int)(CaptureTime * 100) % 100) < 10 ? "0" : "", (int)(CaptureTime * 100) % 100);
-					}
+						GameServer()->SendChatLocalized(CID, "The %s flag was captured by '%s' (%d.%s%d seconds)", pFlagName, Server()->ClientName(*i2), (int)CaptureTime % 60, ((int)(CaptureTime * 100) % 100) < 10 ? "0" : "", (int)(CaptureTime * 100) % 100);
 					else
 					{
-						str_format(aBuf, sizeof(aBuf), "The %s flag was captured by '%s'", *i1 ? "blue" : "red", Server()->ClientName(*i2));
+						GameServer()->SendChatLocalized(CID, "The %s flag was captured by '%s'", pFlagName, Server()->ClientName(*i2));
 					}
 				}
-				GameServer()->SendChatTarget(CID, aBuf);
+
 				FakeGameMsgSound(CID, SOUND_CTF_CAPTURE);
 				break;
 			}
@@ -2352,9 +2349,7 @@ void IGameController::SendGameMsg(int GameMsgID, int ClientID, int *i1, int *i2,
 				if(!i1)
 					break;
 
-				if(!aBuf[0])
-					str_format(aBuf, sizeof(aBuf), "'%s' initiated a pause", Server()->ClientName(*i1));
-				GameServer()->SendChatTarget(CID, aBuf);
+				GameServer()->SendChatLocalized(CID, "'%s' initiated a pause", Server()->ClientName(*i1));
 				break;
 			}
 		}

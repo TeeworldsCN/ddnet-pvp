@@ -47,7 +47,7 @@ void CGameContext::ConCredits(IConsole::IResult *pResult, void *pUserData)
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
 		"Special thanks to the TeeworldsCN PvP community for");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
-		"making this happen: Rice, Texas.C.");
+		"making this happen: Rice, Texas.C, sirius1242");
 }
 
 void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)

@@ -7,11 +7,175 @@
 ##### translated strings #####
 
 
+Active moderator mode enabled for you.
+== 
+
+Active moderator mode disabled for you.
+== 
+
 Server language has been set to '%s'.
 == 
 
 Use /lang to change langauge.
 == 
 
-This is a test %d
+Vote passed
+== 
+
+Vote passed enforced by authorized player
+== 
+
+Vote failed enforced by authorized player
+== 
+
+Vote failed
+== 
+
+You can see other players. To disable this, type /showothers .
+== 
+
+Room is not ready
+== 
+
+Invalid option
+== 
+
+There's a %d second wait time between kick votes for each player please wait %d second(s)
+== 
+
+Server does not allow voting to kick players
+== 
+
+Kick voting requires %d players
+== 
+
+Invalid client id to kick
+== 
+
+You can't kick yourself
+== 
+
+You can't kick authorized players
+== 
+
+'%s' called for vote to kick you
+== 
+
+You can only kick players in your room
+== 
+
+Server does not allow voting to move players to spectators
+== 
+
+Invalid client id to move
+== 
+
+You can't move yourself
+== 
+
+You can only move players in your room to spectators
+== 
+
+You can't change your team before the room is ready
+== 
+
+Use /pause first then you can kill
+== 
+
+You can't change your team right now
+== 
+
+You can't freeview right now
+== 
+
+'%s' was moved to spectator (%s)
+== 
+
+Players are not allowed to chat from VPNs at this time
+== 
+
+You are not permitted to talk for the next %d seconds.
+== 
+
+Invalid whisper
+== 
+
+No player with name '%s' found
+== 
+
+You do not have an ongoing conversation. Whisper to someone to start one
+== 
+
+Listing players with '%s' in name:
+== 
+
+Listing all players:
+== 
+
+%d players online
+== 
+
+authorized player forced vote %s
+== 
+
+You can only vote after logging in.
+== 
+
+You are not allowed to vote because we're currently checking for VPNs. Try again in ~30 seconds.
+== 
+
+You are not allowed to vote because you appear to be using a VPN. Try connecting without a VPN or contacting an admin if you think this is a mistake.
+== 
+
+Wait for current vote to end before calling a new one.
+== 
+
+You must wait %d seconds before making your first vote.
+== 
+
+You must wait %d seconds before making another vote.
+== 
+
+You are not permitted to vote for the next %d seconds.
+== 
+
+You have been moved to room %d
+== 
+
+You are now in a solo part
+== 
+
+You are now out of the solo part
+== 
+
+Teams were swapped
+== 
+
+You can't spectate this player
+== 
+
+Teams were shuffled
+== 
+
+Teams have been balanced
+== 
+
+All players were moved to the %s
+== 
+
+The %s flag was captured by '%s' (%d.%s%d seconds)
+== 
+
+The %s flag was captured by '%s'
+== 
+
+'%s' initiated a pause
+== 
+
+[FLAG]
+blue
+== 
+
+[FLAG]
+red
 == 
