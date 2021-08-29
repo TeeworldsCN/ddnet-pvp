@@ -258,6 +258,22 @@ public:
 	void SendMotd(int ClientID);
 	void SendSettings(int ClientID);
 	void SendBroadcast(const char *pText, int ClientID, bool IsImportant = true);
+	void SendBroadcastLocalizedVL(int ClientID, int line, bool IsImportant, ContextualString String, va_list ap); 
+	void SendBroadcastLocalized(int ClientID, int Line, bool IsImportant, ContextualString String, ...)
+	{
+		va_list ap;
+		va_start(ap, String);
+		SendBroadcastLocalizedVL(ClientID, Line, IsImportant, String, ap);
+		va_end(ap);
+	}
+	void SendBroadcastLocalized(int ClientID, int Line, bool IsImportant, const char *pFormat, ...)
+	{
+		va_list ap;
+		va_start(ap, pFormat);
+		SendBroadcastLocalizedVL(ClientID, Line, IsImportant, {pFormat, ""} , ap);
+		va_end(ap);
+	}
+
 	void SendCurrentGameInfo(int ClientID, bool IsJoin);
 
 	void List(int ClientID, const char *filter);

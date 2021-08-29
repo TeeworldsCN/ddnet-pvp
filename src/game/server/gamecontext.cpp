@@ -493,6 +493,87 @@ void CGameContext::SendBroadcast(const char *pText, int ClientID, bool IsImporta
 	m_apPlayers[ClientID]->m_LastBroadcastImportance = IsImportant;
 }
 
+void CGameContext::SendBroadcastLocalizedVL(int ClientID, int Line, bool IsImportant, ContextualString String, va_list ap)
+{
+	// not finished
+	// `Line` not used
+	char *aBuf = new char[512];
+	int CurLang = -1;
+	CLocalizedString *pString = LocalizeServer(String.m_pFormat, String.m_pContext);
+
+	if(!pString)
+	{
+		CurLang = 0;
+		str_vformat(aBuf, sizeof(aBuf), String.m_pFormat, ap);
+	}
+
+	// send to all clients
+	if(ClientID == -1)
+	{
+		dbg_assert(IsImportant, "broadcast messages to all players must be important");
+		for(auto& pPlayer : m_apPlayers)
+		{
+			if(!pPlayer)
+				continue;
+			int Lang = pPlayer->m_Lang;
+			if(Lang < 0 || Lang >= 1024)
+				Lang = 0;
+
+			if(pString && CurLang != Lang)
+			{
+				if(pString->m_Langs[Lang])
+					str_vformat(aBuf, sizeof(aBuf), pString->m_Langs[Lang], ap);
+				else
+					str_vformat(aBuf, sizeof(aBuf), String.m_pFormat, ap);
+			}
+
+			CNetMsg_Sv_Chat Msg;
+			Msg.m_Team = 0;
+			Msg.m_ClientID = -1;
+			Msg.m_pMessage = aBuf;
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, pPlayer->GetCID());
+		}
+
+		for(auto& pPlayer : m_apPlayers)
+		{
+			if(!pPlayer)
+				continue;
+			pPlayer->m_LastBroadcastImportance = true;
+			pPlayer->m_LastBroadcast = Server()->Tick();
+		}
+		delete[] aBuf;
+		return;
+	}
+
+	if(!m_apPlayers[ClientID])
+		return;
+
+	if(!IsImportant && m_apPlayers[ClientID]->m_LastBroadcastImportance && m_apPlayers[ClientID]->m_LastBroadcast > Server()->Tick() - Server()->TickSpeed() * 10)
+		return;
+
+	// send to ClientID
+	int Lang = m_apPlayers[ClientID]->m_Lang;
+	if(Lang < 0 || Lang >= 1024)
+		Lang = 0;
+
+	if(pString && CurLang != Lang)
+	{
+		if(pString->m_Langs[Lang])
+			str_vformat(aBuf, sizeof(aBuf), pString->m_Langs[Lang], ap);
+		else
+			str_vformat(aBuf, sizeof(aBuf), String.m_pFormat, ap);
+	}
+
+	CNetMsg_Sv_Chat Msg;
+	Msg.m_Team = 0;
+	Msg.m_ClientID = -1;
+	Msg.m_pMessage = aBuf;
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
+	m_apPlayers[ClientID]->m_LastBroadcast = Server()->Tick();
+	m_apPlayers[ClientID]->m_LastBroadcastImportance = IsImportant;
+	delete[] aBuf;
+}
+
 void CGameContext::SendCurrentGameInfo(int ClientID, bool IsJoin)
 {
 	CPlayer *pPlayer = m_apPlayers[ClientID];
