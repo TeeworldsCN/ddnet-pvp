@@ -1,7 +1,7 @@
 DDNet PvP
 ===
 
-Info are be add
+Info are added
 
 What is it?这是嘛玩意儿？
 ------------------------
