@@ -4,7 +4,7 @@
 
 bool CBDPlayer::IsZombie(int ClientID)
 {
-    
+    return GameServer()->m_apPlayers[ClientID]->m_IsZombie;
 }
 
 void CBDPlayer::ToHuman(int ClientID)
