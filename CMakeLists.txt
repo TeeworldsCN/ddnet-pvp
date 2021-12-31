@@ -981,6 +981,8 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   gamemodes/lts.h
   gamemodes/tdm.cpp
   gamemodes/tdm.h
+  gamemodes/block-down.cpp
+  gamemodes/block-down.h
   gameworld.cpp
   gameworld.h
   player.cpp
@@ -1006,6 +1008,12 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   weapons/pistol.h
   weapons/shotgun.cpp
   weapons/shotgun.h
+  weapons/freeze-laser.cpp
+  weapons/freeze-laser.h
+  weapons/infection-hammer.cpp
+  weapons/infection-hammer.h
+  ModCore/BlockDown/player.h
+  ModCore/BlockDown/player.cpp
 )
 set(GAME_GENERATED_SERVER
   "src/game/generated/server_data.cpp"

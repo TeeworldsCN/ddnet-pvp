@@ -1,0 +1,27 @@
+# bd room config
+
+# game settings
+map dm1
+scorelimit 20
+timelimit 2
+warmup 10
+teamdamage 0
+powerups 1
+teambalance_time 1
+
+# room dvotes
+add_vote " " "info"
+add_vote "=== ROOM SETTINGS ===" "info"
+add_vote "Restart" "restart"
+
+# add mode switch votes
+exec "room_config/modes.rcfg"
+
+# rulesets
+add_vote "Rule: 2min 10wins" "scorelimit 10;timelimit 2"
+add_vote "Rule: 3min 15wins" "scorelimit 15;timelimit 3"
+add_vote "Rule: 5min 25wins" "scorelimit 25;timelimit 5"
+
+# add map votes
+exec "room_config/maps/all.rcfg"
+

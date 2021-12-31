@@ -82,6 +82,8 @@ public:
 	void Die(int Killer, int Weapon);
 	bool TakeDamage(vec2 Force, int Dmg, int From, int Weapon, int WeaponType, bool IsExplosion);
 
+	void Infection(int ClientID);
+
 	bool Spawn(class CPlayer *pPlayer, vec2 Pos);
 	bool Remove();
 

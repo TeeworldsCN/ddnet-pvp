@@ -424,6 +424,14 @@ void CPlayer::Tick()
 			GameServer()->SendEmoticon(GetCID(), EMOTICON_GHOST);
 		}
 	}
+
+	/*if(GameServer()->m_apPlayers[m_ClientID]->BDState == ZOMBIE)
+	{
+		GameServer()->m_apPlayers[m_ClientID]->m_IsZombie = true;
+	}
+	else 
+		GameServer()->m_apPlayers[m_ClientID]->m_IsZombie = false;
+*/
 }
 
 void CPlayer::PostTick()

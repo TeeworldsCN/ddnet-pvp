@@ -2197,3 +2197,8 @@ void CCharacter::DDRaceInit()
 		}
 	}
 }
+
+void CCharacter::Infection(int ClientID)
+{
+	GameServer()->m_apPlayers[ClientID]->BDState = (int)ZOMBIE;
+}

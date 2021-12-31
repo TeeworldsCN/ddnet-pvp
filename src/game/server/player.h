@@ -3,6 +3,7 @@
 #ifndef GAME_SERVER_PLAYER_H
 #define GAME_SERVER_PLAYER_H
 
+
 #include "alloc.h"
 
 // this include should perhaps be removed
@@ -24,6 +25,12 @@ enum
 	SHOW_DISTANCE_DEFAULT_Y = 800,
 };
 
+enum
+{
+    HUMAN = 1,
+	ZOMBIE = 2,
+};
+
 // player object
 class CPlayer
 {
@@ -32,6 +39,9 @@ class CPlayer
 public:
 	CPlayer(CGameContext *pGameServer, int ClientID, bool AsSpec);
 	~CPlayer();
+
+	bool m_IsZombie;
+	int BDState;
 
 	void Reset();
 	void GameReset();

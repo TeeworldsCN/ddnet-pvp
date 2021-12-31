@@ -10,4 +10,7 @@ add_vote "Change Gamemode: iCTF (Laser Instagib)" "gametype ictf"
 add_vote "Change Gamemode: gDM (Grenade Instagib)" "gametype gdm"
 add_vote "Change Gamemode: gTDM (Grenade Instagib)" "gametype gtdm"
 add_vote "Change Gamemode: gCTF (Grenade Instagib)" "gametype gctf"
+add_vote "Change Gamemode: Catch" "gametype catch"
 add_vote "Change Gamemode: zCatch" "gametype zcatch"
+add_vote "Change Gamemode: Block-Down" "gametype block-down"
+
