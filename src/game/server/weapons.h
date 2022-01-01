@@ -10,6 +10,7 @@ REGISTER_WEAPON(WEAPON_ID_NINJA, CNinja)
 REGISTER_WEAPON(WEAPON_ID_EXPLODINGLASER, CExplodingLaser)
 REGISTER_WEAPON(WEAPON_ID_FREEZELASER, CFreezeLaser)
 REGISTER_WEAPON(WEAPON_ID_INFHAMMER, CInfHammer)
+REGISTER_WEAPON(WEAPON_ID_USELESSGUN, CULPistol)
 
 #else
 
@@ -26,6 +27,7 @@ REGISTER_WEAPON(WEAPON_ID_INFHAMMER, CInfHammer)
 #include "weapons/explodinglaser.h"
 #include "weapons/freeze-laser.h"
 #include "weapons/infection-hammer.h"
+#include "weapons/useless-gun.h"
 
 enum
 {

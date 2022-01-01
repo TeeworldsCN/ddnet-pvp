@@ -1,4 +1,4 @@
-#ifndef GAME_SERVER_MODCORE_BD_PLAYER
+/*#ifndef GAME_SERVER_MODCORE_BD_PLAYER
 #define GAME_SERVER_MODCORE_BD_PLAYER
 
 #include <game/server/teeinfo.h>
@@ -17,3 +17,4 @@ public:
 };
 
 #endif // GAME_SERVER_MODCORE_BD_PLAYER
+*/

@@ -40,7 +40,7 @@ public:
 	CPlayer(CGameContext *pGameServer, int ClientID, bool AsSpec);
 	~CPlayer();
 
-	bool m_IsZombie;
+	bool m_IsZombie = false;
 	int BDState;
 
 	void Reset();

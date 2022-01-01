@@ -5,7 +5,6 @@
 
 void CInfHammer::Fire(vec2 Direction)
 {
-    CBDPlayer *BDPlayer;
 	int ClientID = Character()->GetPlayer()->GetCID();
 	GameWorld()->CreateSound(Pos(), SOUND_HAMMER_FIRE);
 
@@ -47,12 +46,8 @@ void CInfHammer::Fire(vec2 Direction)
 		Temp = ClampVel(pTarget->m_MoveRestrictions, Temp);
 		Temp -= pTarget->Core()->m_Vel;
 
-		//pTarget->TakeDamage((vec2(0.f, -1.0f) + Temp) * Strength, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
-		//	ClientID, WEAPON_HAMMER, GetWeaponID(), false);
-        if(BDPlayer->IsZombie(pTarget->GetPlayer()->GetCID()) == false)
-        {
-            pTarget->Infection(ClientID);
-        }
+		pTarget->TakeDamage((vec2(0.f, -1.0f) + Temp) * Strength, 10,
+			ClientID, WEAPON_HAMMER, GetWeaponID(), false);
 		GameServer()->Antibot()->OnHammerHit(ClientID);
 
 		Hits++;

@@ -8,8 +8,10 @@ bool CFreezeLaser::LaserHit(CLaser *pLaser, vec2 HitPoint, CCharacter *pHit, boo
 	{
 		if(pHit->GetPlayer()->GetCID() == pLaser->GetOwner())
 			return false;
-
-		pHit->Freeze(3.0f);
+		if(pHit->IsFrozen() == false)
+		{
+			pHit->Freeze(3.0f);
+		}
 		return true;
 	}
 

@@ -425,13 +425,12 @@ void CPlayer::Tick()
 		}
 	}
 
-	/*if(GameServer()->m_apPlayers[m_ClientID]->BDState == ZOMBIE)
+	if(GameServer()->m_apPlayers[m_ClientID]->BDState == ZOMBIE)
 	{
 		GameServer()->m_apPlayers[m_ClientID]->m_IsZombie = true;
 	}
 	else 
 		GameServer()->m_apPlayers[m_ClientID]->m_IsZombie = false;
-*/
 }
 
 void CPlayer::PostTick()

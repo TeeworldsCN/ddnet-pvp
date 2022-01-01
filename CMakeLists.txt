@@ -1012,6 +1012,8 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   weapons/freeze-laser.h
   weapons/infection-hammer.cpp
   weapons/infection-hammer.h
+  weapons/useless-gun.cpp
+  weapons/useless-gun.h
   ModCore/BlockDown/player.h
   ModCore/BlockDown/player.cpp
 )
