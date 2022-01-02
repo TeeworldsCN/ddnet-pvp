@@ -37,11 +37,13 @@ class CPlayer
 	MACRO_ALLOC_POOL_ID()
 
 public:
+	class CCharacter *pChr;
 	CPlayer(CGameContext *pGameServer, int ClientID, bool AsSpec);
 	~CPlayer();
 
 	bool m_IsZombie = false;
 	int BDState;
+	bool m_WontDie = false;
 
 	void Reset();
 	void GameReset();
@@ -184,7 +186,6 @@ private:
 	//
 	bool m_Spawning;
 	int m_ClientID;
-	int m_Team;
 
 	bool m_Paused;
 	int64 m_LastPause;
@@ -215,6 +216,8 @@ public:
 		SHOWOTHERS_ON = 1,
 		SHOWOTHERS_DISTRACTING = 2,
 	};
+
+	int m_Team;
 
 	bool m_DND;
 	int64 m_FirstVoteTick;

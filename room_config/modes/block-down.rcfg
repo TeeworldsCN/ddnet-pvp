@@ -1,7 +1,7 @@
 # bd room config
 
 # game settings
-map dm1
+map blockdown1
 scorelimit 20
 timelimit 2
 warmup 10
@@ -23,5 +23,5 @@ add_vote "Rule: 3min 15wins" "scorelimit 15;timelimit 3"
 add_vote "Rule: 5min 25wins" "scorelimit 25;timelimit 5"
 
 # add map votes
-exec "room_config/maps/all.rcfg"
+exec "room_config/maps/blockdown1.rcfg"
 

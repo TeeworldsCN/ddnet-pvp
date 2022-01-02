@@ -52,6 +52,7 @@ public:
 	//character's size
 	static const int ms_PhysSize = 28;
 
+	bool m_Infection = false;
 	CCharacter(CGameWorld *pWorld);
 	~CCharacter();
 

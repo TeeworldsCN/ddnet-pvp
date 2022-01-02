@@ -9,7 +9,13 @@ class CFreezeLaser : public CLaserGun
 
 public:
 	CFreezeLaser(CCharacter *pOwnerChar) :
-		CLaserGun(pOwnerChar) { }
+		CLaserGun(pOwnerChar) 
+		{
+			m_AmmoRegenDelay = 50;
+			m_FireDelay = 1000;
+			m_FullAuto = false;
+			m_Ammo = 10;
+		}
 
 	void Fire(vec2 Direction) override;
 

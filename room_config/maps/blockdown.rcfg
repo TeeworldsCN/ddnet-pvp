@@ -1,0 +1,3 @@
+# room config (map votes)
+
+add_vote "Change Map: blockdown1" "map blockdown1"
