@@ -749,11 +749,11 @@ void IGameController::OnInternalEntity(int Index, vec2 Pos, int Layer, int Flags
 			if(sides[i] >= ENTITY_LASER_SHORT && sides[i] <= ENTITY_LASER_LONG)
 			{
 				new CDoor(
-					GameWorld(), //GameWorld
-					Pos, //Pos
-					pi / 4 * i, //Rotation
-					32 * 3 + 32 * (sides[i] - ENTITY_LASER_SHORT) * 3, //Length
-					Number //Number
+					GameWorld(), // GameWorld
+					Pos, // Pos
+					pi / 4 * i, // Rotation
+					32 * 3 + 32 * (sides[i] - ENTITY_LASER_SHORT) * 3, // Length
+					Number // Number
 				);
 			}
 		}
@@ -1621,7 +1621,7 @@ void IGameController::ShuffleTeams()
 
 	SendGameMsg(GAMEMSG_TEAM_SHUFFLE, -1);
 
-	//creating random permutation
+	// creating random permutation
 	for(int i = PlayerTeam; i > 1; i--)
 	{
 		rnd = rand() % i;
@@ -1629,7 +1629,7 @@ void IGameController::ShuffleTeams()
 		aPlayer[rnd] = aPlayer[i - 1];
 		aPlayer[i - 1] = tmp;
 	}
-	//uneven Number of Players?
+	// uneven Number of Players?
 	rnd = PlayerTeam % 2 ? rand() % 2 : 0;
 
 	for(int i = 0; i < PlayerTeam; i++)

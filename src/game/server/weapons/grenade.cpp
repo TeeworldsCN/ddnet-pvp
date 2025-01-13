@@ -31,13 +31,13 @@ void CGrenade::Fire(vec2 Direction)
 
 	CProjectile *pProj = new CProjectile(
 		GameWorld(),
-		WEAPON_GRENADE, //Type
-		GetWeaponID(), //WeaponID
-		ClientID, //Owner
-		ProjStartPos, //Pos
-		Direction, //Dir
+		WEAPON_GRENADE, // Type
+		GetWeaponID(), // WeaponID
+		ClientID, // Owner
+		ProjStartPos, // Pos
+		Direction, // Dir
 		6.0f, // Radius
-		Lifetime, //Span
+		Lifetime, // Span
 		GrenadeCollide);
 
 	// pack the Projectile and send it to the client Directly

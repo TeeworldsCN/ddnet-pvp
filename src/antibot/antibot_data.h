@@ -28,7 +28,7 @@ struct CAntibotInputData
 };
 
 // Defined by the network protocol, unlikely to change.
-//enum
+// enum
 //{
 //	TEAM_SPECTATORS=-1,
 //	TEAM_RED=0,
@@ -67,12 +67,12 @@ struct CAntibotVersion
 #define ANTIBOT_VERSION \
 	{ \
 		ANTIBOT_ABI_VERSION, \
-			sizeof(CAntibotVersion), \
-			sizeof(CAntibotData), \
-			sizeof(CAntibotCharacterData), \
-			sizeof(CAntibotInputData), \
-			sizeof(CAntibotMapData), \
-			sizeof(CAntibotRoundData), \
+		sizeof(CAntibotVersion), \
+		sizeof(CAntibotData), \
+		sizeof(CAntibotCharacterData), \
+		sizeof(CAntibotInputData), \
+		sizeof(CAntibotMapData), \
+		sizeof(CAntibotRoundData), \
 	}
 
 struct CAntibotData

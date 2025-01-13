@@ -313,7 +313,7 @@ int CRegister::RegisterProcessPacket(CNetChunk *pPacket, SECURITY_TOKEN Response
 		char aBuf[256];
 		str_format(aBuf, sizeof(aBuf), "ERROR: configure your firewall/nat to let through udp on port %d.", m_pNetServer->Address().port);
 		m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, m_pName, aBuf);
-		//RegisterNewState(REGISTERSTATE_ERROR);
+		// RegisterNewState(REGISTERSTATE_ERROR);
 		return 1;
 	}
 	else if(pPacket->m_DataSize == sizeof(SERVERBROWSE_COUNT) + 2 &&

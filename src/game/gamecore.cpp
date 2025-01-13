@@ -241,7 +241,7 @@ void CCharacterCore::Tick(bool UseInput)
 		int teleNr = 0;
 		int Hit = m_pCollision->IntersectLineTeleHook(m_HookPos, NewPos, &NewPos, 0, &teleNr);
 
-		//m_NewHook = false;
+		// m_NewHook = false;
 
 		if(Hit)
 		{
@@ -328,8 +328,8 @@ void CCharacterCore::Tick(bool UseInput)
 			}
 
 			// keep players hooked for a max of 1.5sec
-			//if(Server()->Tick() > hook_tick+(Server()->TickSpeed()*3)/2)
-			//release_hooked();
+			// if(Server()->Tick() > hook_tick+(Server()->TickSpeed()*3)/2)
+			// release_hooked();
 		}
 
 		// don't do this hook rutine when we are hook to a player
@@ -373,8 +373,8 @@ void CCharacterCore::Tick(bool UseInput)
 			if(!pCharCore)
 				continue;
 
-			//player *p = (player*)ent;
-			//if(pCharCore == this) // || !(p->flags&FLAG_ALIVE)
+			// player *p = (player*)ent;
+			// if(pCharCore == this) // || !(p->flags&FLAG_ALIVE)
 
 			if(pCharCore == this || (m_Id != -1 && !m_pTeams->CanCollide(m_Id, i)))
 				continue; // make sure that we don't nudge our self

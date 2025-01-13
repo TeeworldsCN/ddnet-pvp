@@ -127,18 +127,18 @@ int CDemoRecorder::Start(class IStorage *pStorage, class IConsole *pConsole, con
 	Header.m_aMapSize[0] = (MapSize >> 24) & 0xff;
 	Header.m_aMapSize[1] = (MapSize >> 16) & 0xff;
 	Header.m_aMapSize[2] = (MapSize >> 8) & 0xff;
-	Header.m_aMapSize[3] = (MapSize)&0xff;
+	Header.m_aMapSize[3] = (MapSize) & 0xff;
 	Header.m_aMapCrc[0] = (Crc >> 24) & 0xff;
 	Header.m_aMapCrc[1] = (Crc >> 16) & 0xff;
 	Header.m_aMapCrc[2] = (Crc >> 8) & 0xff;
-	Header.m_aMapCrc[3] = (Crc)&0xff;
+	Header.m_aMapCrc[3] = (Crc) & 0xff;
 	str_copy(Header.m_aType, pType, sizeof(Header.m_aType));
 	// Header.m_Length - add this on stop
 	str_timestamp(Header.m_aTimestamp, sizeof(Header.m_aTimestamp));
 	io_write(DemoFile, &Header, sizeof(Header));
 	io_write(DemoFile, &TimelineMarkers, sizeof(TimelineMarkers)); // fill this on stop
 
-	//Write Sha256
+	// Write Sha256
 	io_write(DemoFile, SHA256_EXTENSION.m_aData, sizeof(SHA256_EXTENSION.m_aData));
 	io_write(DemoFile, pSha256, sizeof(SHA256_DIGEST));
 
@@ -222,7 +222,7 @@ void CDemoRecorder::WriteTickMarker(int Tick, int Keyframe)
 		aChunk[1] = (Tick >> 24) & 0xff;
 		aChunk[2] = (Tick >> 16) & 0xff;
 		aChunk[3] = (Tick >> 8) & 0xff;
-		aChunk[4] = (Tick)&0xff;
+		aChunk[4] = (Tick) & 0xff;
 
 		if(Keyframe)
 			aChunk[0] |= CHUNKTICKFLAG_KEYFRAME;
@@ -348,7 +348,7 @@ int CDemoRecorder::Stop()
 	aLength[0] = (DemoLength >> 24) & 0xff;
 	aLength[1] = (DemoLength >> 16) & 0xff;
 	aLength[2] = (DemoLength >> 8) & 0xff;
-	aLength[3] = (DemoLength)&0xff;
+	aLength[3] = (DemoLength) & 0xff;
 	io_write(m_File, aLength, sizeof(aLength));
 
 	// add the timeline markers to the header
@@ -357,7 +357,7 @@ int CDemoRecorder::Stop()
 	aNumMarkers[0] = (m_NumTimelineMarkers >> 24) & 0xff;
 	aNumMarkers[1] = (m_NumTimelineMarkers >> 16) & 0xff;
 	aNumMarkers[2] = (m_NumTimelineMarkers >> 8) & 0xff;
-	aNumMarkers[3] = (m_NumTimelineMarkers)&0xff;
+	aNumMarkers[3] = (m_NumTimelineMarkers) & 0xff;
 	io_write(m_File, aNumMarkers, sizeof(aNumMarkers));
 	for(int i = 0; i < m_NumTimelineMarkers; i++)
 	{
@@ -366,7 +366,7 @@ int CDemoRecorder::Stop()
 		aMarker[0] = (Marker >> 24) & 0xff;
 		aMarker[1] = (Marker >> 16) & 0xff;
 		aMarker[2] = (Marker >> 8) & 0xff;
-		aMarker[3] = (Marker)&0xff;
+		aMarker[3] = (Marker) & 0xff;
 		io_write(m_File, aMarker, sizeof(aMarker));
 	}
 
@@ -482,7 +482,7 @@ void CDemoPlayer::ScanFile()
 	CHeap Heap;
 	CKeyFrameSearch *pFirstKey = 0;
 	CKeyFrameSearch *pCurrentKey = 0;
-	//DEMOREC_CHUNK chunk;
+	// DEMOREC_CHUNK chunk;
 	int ChunkSize, ChunkType, ChunkTick = 0;
 	int i;
 

@@ -116,7 +116,7 @@ class ColorHSLA : public color4_base<ColorHSLA>
 {
 public:
 	using color4_base::color4_base;
-	ColorHSLA(){};
+	ColorHSLA() {};
 
 	constexpr static const float DARKEST_LGT = 0.5f;
 
@@ -154,14 +154,14 @@ class ColorHSVA : public color4_base<ColorHSVA>
 {
 public:
 	using color4_base::color4_base;
-	ColorHSVA(){};
+	ColorHSVA() {};
 };
 
 class ColorRGBA : public color4_base<ColorRGBA>
 {
 public:
 	using color4_base::color4_base;
-	ColorRGBA(){};
+	ColorRGBA() {};
 
 	ColorRGBA Blend(ColorRGBA Other)
 	{

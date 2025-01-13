@@ -40,7 +40,7 @@ void CGun::Fire()
 	for(int i = 0; i < Num; i++)
 	{
 		CCharacter *Target = Ents[i];
-		//now gun doesn't affect on super
+		// now gun doesn't affect on super
 		if(Target->Team() == TEAM_SUPER)
 			continue;
 		if(m_Layer == LAYER_SWITCH && m_Number > 0 && !GameServer()->Collision()->m_pSwitchers[m_Number].m_Status[Target->Team()])

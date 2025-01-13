@@ -167,7 +167,7 @@ class CConsole : public IConsole
 			FCommandCallback m_pfnCommandCallback;
 			void *m_pCommandUserData;
 			CResult m_Result;
-		} * m_pFirst, *m_pLast;
+		} *m_pFirst, *m_pLast;
 
 		void AddEntry()
 		{

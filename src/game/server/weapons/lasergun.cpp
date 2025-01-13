@@ -31,11 +31,11 @@ void CLaserGun::Fire(vec2 Direction)
 
 	new CLaser(
 		GameWorld(),
-		WEAPON_GUN, //Type
-		GetWeaponID(), //WeaponID
-		ClientID, //Owner
-		Pos(), //Pos
-		Direction, //Dir
+		WEAPON_GUN, // Type
+		GetWeaponID(), // WeaponID
+		ClientID, // Owner
+		Pos(), // Pos
+		Direction, // Dir
 		g_pData->m_Weapons.m_Laser.m_Reach, // StartEnergy
 		LaserHit);
 

@@ -31,7 +31,7 @@ void CHammer::Fire(vec2 Direction)
 	{
 		CCharacter *pTarget = apEnts[i];
 
-		//if ((pTarget == this) || GameServer()->Collision()->IntersectLine(ProjStartPos, pTarget->m_Pos, NULL, NULL))
+		// if ((pTarget == this) || GameServer()->Collision()->IntersectLine(ProjStartPos, pTarget->m_Pos, NULL, NULL))
 		if((pTarget == Character() || (pTarget->IsAlive() && pTarget->IsSolo())))
 			continue;
 

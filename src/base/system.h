@@ -1420,7 +1420,7 @@ int str_utf8_dist(const char *a, const char *b);
 		b - Second string for the edit distance.
 		buf - Buffer for the function.
 		buf_len - Length of the buffer, must be at least as long as
-		          twice the length of both strings combined plus two.
+			  twice the length of both strings combined plus two.
 
 	Returns:
 		The edit distance between the both strings.
@@ -1442,7 +1442,7 @@ int str_utf8_dist_buffer(const char *a, const char *b, int *buf, int buf_len);
 		b_len - Length of the second string.
 		buf - Buffer for the function.
 		buf_len - Length of the buffer, must be at least as long as
-		          the length of both strings combined plus two.
+			  the length of both strings combined plus two.
 
 	Returns:
 		The edit distance between the both strings.
@@ -1803,13 +1803,13 @@ int net_socket_read_wait(NETSOCKET sock, int time);
 /*
 	Function: open_link
 		Opens a link in the browser.
-	
+
 	Parameters:
 		link - The link to open in a browser.
-	
+
 	Returns:
 		Returns 1 on success, 0 on failure.
-	
+
 	Remarks:
 		This may not be called with untrusted input or it'll result in arbitrary code execution.
 */
@@ -2110,7 +2110,7 @@ int str_in_list(const char *list, const char *delim, const char *needle);
 /*
 	Function: pid
 		Returns the pid of the current process.
-	
+
 	Returns:
 		pid of the current process
 */

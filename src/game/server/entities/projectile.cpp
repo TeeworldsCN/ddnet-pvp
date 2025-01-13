@@ -328,17 +328,17 @@ bool CProjectile::FillExtraInfo(CNetObj_DDNetProjectile *pProj)
 	const int MaxPos = 0x7fffffff / 100;
 	if(abs((int)m_Pos.y) + 1 >= MaxPos || abs((int)m_Pos.x) + 1 >= MaxPos)
 	{
-		//If the modified data would be too large to fit in an integer, send normal data instead
+		// If the modified data would be too large to fit in an integer, send normal data instead
 		return false;
 	}
-	//Send additional/modified info, by modifiying the fields of the netobj
+	// Send additional/modified info, by modifiying the fields of the netobj
 	float Angle = -atan2f(m_Direction.x, m_Direction.y);
 
 	int Data = 0;
 	Data |= (abs(m_Owner) & 255) << 0;
 	if(m_Owner < 0)
 		Data |= PROJECTILEFLAG_NO_OWNER;
-	//This bit tells the client to use the extra info
+	// This bit tells the client to use the extra info
 	Data |= PROJECTILEFLAG_IS_DDNET;
 	// PROJECTILEFLAG_BOUNCE_HORIZONTAL, PROJECTILEFLAG_BOUNCE_VERTICAL
 	Data |= (m_Bouncing & 3) << 10;

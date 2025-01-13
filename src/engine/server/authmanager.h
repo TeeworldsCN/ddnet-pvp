@@ -50,4 +50,4 @@ public:
 	int NumNonDefaultKeys() const;
 };
 
-#endif //ENGINE_SERVER_AUTHMANAGER_H
+#endif // ENGINE_SERVER_AUTHMANAGER_H

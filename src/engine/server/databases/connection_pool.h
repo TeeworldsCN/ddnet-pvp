@@ -26,7 +26,7 @@ struct ISqlData
 		m_pResult(std::move(pResult))
 	{
 	}
-	virtual ~ISqlData(){};
+	virtual ~ISqlData() {};
 
 	mutable std::shared_ptr<ISqlResult> m_pResult;
 };

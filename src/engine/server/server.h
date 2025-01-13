@@ -216,7 +216,7 @@ public:
 	IEngineMap *m_pMap;
 
 	int64 m_GameStartTime;
-	//int m_CurrentGameTick;
+	// int m_CurrentGameTick;
 
 	enum
 	{
@@ -234,7 +234,7 @@ public:
 	int m_PrintCBIndex;
 
 	int64 m_Lastheartbeat;
-	//static NETADDR4 master_server;
+	// static NETADDR4 master_server;
 
 	enum
 	{
@@ -281,9 +281,9 @@ public:
 	void DemoRecorder_HandleAutoStart();
 	bool DemoRecorder_IsRecording();
 
-	//int Tick()
+	// int Tick()
 	int64 TickStartTime(int Tick);
-	//int TickSpeed()
+	// int TickSpeed()
 
 	int Init();
 

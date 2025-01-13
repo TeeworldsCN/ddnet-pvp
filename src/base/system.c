@@ -1456,7 +1456,7 @@ NETSOCKET net_udp_create(NETADDR bindaddr)
 			{
 				/* set DSCP/TOS */
 				int iptos = 0x10 /* IPTOS_LOWDELAY */;
-				//int iptos = 46; /* High Priority */
+				// int iptos = 46; /* High Priority */
 				if(setsockopt(socket, IPPROTO_IP, IP_TOS, (char *)&iptos, sizeof(iptos)) != 0)
 					dbg_msg("socket", "Setting TOS on ipv4 failed: %d", errno);
 			}
@@ -1504,7 +1504,7 @@ NETSOCKET net_udp_create(NETADDR bindaddr)
 			{
 				/* set DSCP/TOS */
 				int iptos = 0x10 /* IPTOS_LOWDELAY */;
-				//int iptos = 46; /* High Priority */
+				// int iptos = 46; /* High Priority */
 				if(setsockopt(socket, IPPROTO_IP, IP_TOS, (char *)&iptos, sizeof(iptos)) != 0)
 					dbg_msg("socket", "Setting TOS on ipv6 failed: %d", errno);
 			}
@@ -2699,7 +2699,7 @@ int str_utf32_dist_buffer(const int *a, int a_len, const int *b, int b_len, int 
 		b_len = tmp1;
 		b = tmp2;
 	}
-#define B(i, j) buf[((j)&1) * (a_len + 1) + (i)]
+#define B(i, j) buf[((j) & 1) * (a_len + 1) + (i)]
 	for(i = 0; i <= a_len; i++)
 	{
 		B(i, 0) = i;

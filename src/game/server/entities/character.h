@@ -49,7 +49,7 @@ class CCharacter : public CEntity
 	MACRO_ALLOC_POOL_ID()
 
 public:
-	//character's size
+	// character's size
 	static const int ms_PhysSize = 28;
 
 	CCharacter(CGameWorld *pWorld);

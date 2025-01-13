@@ -46,7 +46,7 @@ private:
 	int m_ID;
 
 	// DDRace
-	int m_TuneZone; //TODO: make curvature and property
+	int m_TuneZone; // TODO: make curvature and property
 
 	// Hitdata
 	int64 m_HitMask;

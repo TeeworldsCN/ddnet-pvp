@@ -1236,8 +1236,8 @@ void CGameContext::OnClientConnected(int ClientID, void *pData)
 		//	//((CServer*)Server())->m_aClients[ClientID].Reset();
 		//	((CServer*)Server())->m_aClients[ClientID].m_State = 4;
 	}
-	//players[client_id].init(client_id);
-	//players[client_id].client_id = client_id;
+	// players[client_id].init(client_id);
+	// players[client_id].client_id = client_id;
 
 #ifdef CONF_DEBUG
 	if(g_Config.m_DbgDummies)
@@ -1454,7 +1454,7 @@ void *CGameContext::PreProcessMsg(int *MsgID, CUnpacker *pUnpacker, int ClientID
 			{
 				str_format(s_aRawMsg, sizeof(s_aRawMsg), "force_vote \"%s\" \"%s\" \"%s\"", pMsg7->m_Type, pMsg7->m_Value, pMsg7->m_Reason);
 				Console()->SetAccessLevel(Authed == AUTHED_ADMIN ? IConsole::ACCESS_LEVEL_ADMIN : Authed == AUTHED_MOD ? IConsole::ACCESS_LEVEL_MOD :
-                                                                                                                                         IConsole::ACCESS_LEVEL_HELPER);
+																	 IConsole::ACCESS_LEVEL_HELPER);
 				Console()->ExecuteLine(s_aRawMsg, ClientID, false);
 				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
 				return 0;
@@ -1608,7 +1608,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					int Authed = Server()->GetAuthedState(ClientID);
 					if(Authed)
 						Console()->SetAccessLevel(Authed == AUTHED_ADMIN ? IConsole::ACCESS_LEVEL_ADMIN : Authed == AUTHED_MOD ? IConsole::ACCESS_LEVEL_MOD :
-                                                                                                                                                         IConsole::ACCESS_LEVEL_HELPER);
+																			 IConsole::ACCESS_LEVEL_HELPER);
 					else
 						Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
 					Console()->SetPrintOutputLevel(m_ChatPrintCBIndex, 0);
@@ -1793,7 +1793,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					m_apPlayers[ClientID]->m_LastKickVote = time_get();
 					return;
 				}
-				//else if(!g_Config.m_SvVoteKick)
+				// else if(!g_Config.m_SvVoteKick)
 				else if((!g_Config.m_SvVoteKick || (g_Config.m_SvVoteKick == 2 && !GetDDRaceTeam(ClientID))) && !Authed) // allow admins to call kick votes even if they are forbidden
 				{
 					SendChatTarget(ClientID, "Server does not allow voting to kick players");
@@ -3016,7 +3016,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 			if(Index >= ENTITY_OFFSET)
 			{
 				vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
-				//m_pController->OnEntity(Index-ENTITY_OFFSET, Pos);
+				// m_pController->OnEntity(Index-ENTITY_OFFSET, Pos);
 				int MapIndex = 0;
 				if(pSpeedup)
 				{

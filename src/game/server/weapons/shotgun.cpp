@@ -44,13 +44,13 @@ void CShotgun::Fire(vec2 Direction)
 		float Speed = mix((float)GameServer()->Tuning()->m_ShotgunSpeeddiff, 1.0f, v);
 		CProjectile *pProj = new CProjectile(
 			GameWorld(),
-			WEAPON_SHOTGUN, //Type
-			GetWeaponID(), //WeaponID
-			ClientID, //Owner
-			ProjStartPos, //Pos
-			vec2(cosf(a), sinf(a)) * Speed, //Dir
+			WEAPON_SHOTGUN, // Type
+			GetWeaponID(), // WeaponID
+			ClientID, // Owner
+			ProjStartPos, // Pos
+			vec2(cosf(a), sinf(a)) * Speed, // Dir
 			6.0f, // Radius
-			Lifetime, //Span
+			Lifetime, // Span
 			BulletCollide);
 
 		// pack the Projectile and send it to the client Directly

@@ -567,8 +567,8 @@ int *CSnapshotBuilder::GetItemData(int Key)
 
 int CSnapshotBuilder::Finish(void *pSnapData)
 {
-	//dbg_msg("snap", "---------------------------");
-	// flattern and make the snapshot
+	// dbg_msg("snap", "---------------------------");
+	//  flattern and make the snapshot
 	CSnapshot *pSnap = (CSnapshot *)pSnapData;
 	int OffsetSize = sizeof(int) * m_NumItems;
 	pSnap->m_DataSize = m_DataSize;

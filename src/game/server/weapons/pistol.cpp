@@ -32,13 +32,13 @@ void CPistol::Fire(vec2 Direction)
 
 	CProjectile *pProj = new CProjectile(
 		GameWorld(),
-		WEAPON_GUN, //Type
-		GetWeaponID(), //WeaponID
-		ClientID, //Owner
-		ProjStartPos, //Pos
-		Direction, //Dir
+		WEAPON_GUN, // Type
+		GetWeaponID(), // WeaponID
+		ClientID, // Owner
+		ProjStartPos, // Pos
+		Direction, // Dir
 		6.0f, // Radius
-		Lifetime, //Span
+		Lifetime, // Span
 		BulletCollide);
 
 	// pack the Projectile and send it to the client Directly

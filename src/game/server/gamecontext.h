@@ -293,7 +293,7 @@ public:
 private:
 	bool m_VoteWillPass;
 
-	//DDRace Console Commands
+	// DDRace Console Commands
 
 	static void ConKillPlayer(IConsole::IResult *pResult, void *pUserData);
 

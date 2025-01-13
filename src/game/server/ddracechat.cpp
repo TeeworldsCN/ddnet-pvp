@@ -521,8 +521,8 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 		pSelf->m_ChatResponseTargetID = RespondingID;
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			g_Config.m_SvInvite ?
-                                "This room is locked using /lock. Only members of the room can unlock it using /lock." :
-                                "This room is locked using /lock. Only members of the room can invite you or unlock it using /lock.");
+				"This room is locked using /lock. Only members of the room can unlock it using /lock." :
+				"This room is locked using /lock. Only members of the room can invite you or unlock it using /lock.");
 	}
 	else if(const char *pError = pSelf->Teams()->SetPlayerTeam(pPlayer->GetCID(), Team, nullptr))
 	{
@@ -596,8 +596,8 @@ void CGameContext::ConCreateTeam(IConsole::IResult *pResult, void *pUserData)
 		pSelf->m_ChatResponseTargetID = RespondingID;
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "join",
 			g_Config.m_SvInvite ?
-                                "This room is locked using /lock. Only members of the room can unlock it using /lock." :
-                                "This room is locked using /lock. Only members of the room can invite you or unlock it using /lock.");
+				"This room is locked using /lock. Only members of the room can unlock it using /lock." :
+				"This room is locked using /lock. Only members of the room can invite you or unlock it using /lock.");
 	}
 	else if(pPlayer->m_LastRoomCreation + (int64)pSelf->Server()->TickSpeed() * g_Config.m_SvRoomCreateDelay > pSelf->Server()->Tick())
 	{
@@ -665,8 +665,8 @@ void CGameContext::ConSetEyeEmote(IConsole::IResult *pResult,
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"emote",
 			(pPlayer->m_EyeEmoteEnabled) ?
-                                "You can now use the preset eye emotes." :
-                                "You don't have any eye emotes, remember to bind some. (until you die)");
+				"You can now use the preset eye emotes." :
+				"You don't have any eye emotes, remember to bind some. (until you die)");
 		return;
 	}
 	else if(str_comp_nocase(pResult->GetString(0), "on") == 0)
@@ -679,8 +679,8 @@ void CGameContext::ConSetEyeEmote(IConsole::IResult *pResult,
 		IConsole::OUTPUT_LEVEL_STANDARD,
 		"emote",
 		(pPlayer->m_EyeEmoteEnabled) ?
-                        "You can now use the preset eye emotes." :
-                        "You don't have any eye emotes, remember to bind some. (until you die)");
+			"You can now use the preset eye emotes." :
+			"You don't have any eye emotes, remember to bind some. (until you die)");
 }
 
 void CGameContext::ConEyeEmote(IConsole::IResult *pResult, void *pUserData)
