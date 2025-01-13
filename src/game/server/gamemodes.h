@@ -9,6 +9,7 @@
 
 #include "gamemodes/catch.h"
 #include "gamemodes/instagib.h"
+#include "gamemodes/fng.h"
 
 #endif
 
@@ -23,4 +24,6 @@ REGISTER_GAME_TYPE(itdm, CGameControllerITDM)
 REGISTER_GAME_TYPE(ictf, CGameControllerICTF)
 REGISTER_GAME_TYPE(catch, CGameControllerCatch)
 REGISTER_GAME_TYPE(zcatch, CGameControllerZCatch)
+REGISTER_GAME_TYPE(solofng, CGameControllerSoloFNG)
+REGISTER_GAME_TYPE(fng, CGameControllerFNG)
 #endif

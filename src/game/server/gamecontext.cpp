@@ -2858,7 +2858,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("lobby_gametype", "s[gametype] ?r[settings]", CFGFLAG_SERVER, ConSetDefaultGameType, this, "Set a default gametype for room 0. The default game type won't be avalible for room id >1");
 	Console()->Register("lobby_gametypefile", "s[gametype] r[filename]", CFGFLAG_SERVER, ConSetDefaultGameTypeFile, this, "Set a default gametype for room 0. The default game type won't be avalible for room id >1");
 	Console()->Register("add_gametype", "s[name] ?s[gametype] ?r[settings]", CFGFLAG_SERVER, ConAddGameType, this, "Register an gametype for rooms. First register will be the default for room 0");
-	Console()->Register("add_gametypefile", "s[name] s[gametype] r[filename]", CFGFLAG_SERVER, ConAddGameTypeFile, this, "Register an gametype for rooms. First register will be the default for room 0");
+	Console()->Register("add_gametypefile", "s[name] ?s[gametype] ?r[filename]", CFGFLAG_SERVER, ConAddGameTypeFile, this, "Register an gametype for rooms. First register will be the default for room 0");
 	Console()->Register("mega_add_mapname", "r[name]", CFGFLAG_SERVER, ConAddMapName, this, "Mega map sub map names. Add it in order of map indexes, starting from map 1.");
 	Console()->Register("room_setting", "i[room] ?r[settings]", CFGFLAG_SERVER, ConRoomSetting, this, "Invoke a command in a specified room");
 
