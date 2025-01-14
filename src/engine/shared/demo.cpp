@@ -853,10 +853,6 @@ int CDemoPlayer::Load(class IStorage *pStorage, class IConsole *pConsole, const 
 		return -1;
 	}
 
-	// reset slice markers
-	g_Config.m_ClDemoSliceBegin = -1;
-	g_Config.m_ClDemoSliceEnd = -1;
-
 	// ready for playback
 	return 0;
 }

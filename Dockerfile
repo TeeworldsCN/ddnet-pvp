@@ -16,39 +16,14 @@ RUN apt-get update && apt-get install -y gcc-mingw-w64-x86-64-posix \
         build-essential \
         python3 \
         libcurl4-openssl-dev \
-        libfreetype6-dev \
-        libglew-dev \
-        libogg-dev \
-        libopus-dev \
-        libpng-dev \
-        libwavpack-dev \
-        libopusfile-dev \
-        libsdl2-dev \
         cmake \
-        glslang-tools \
-        libavcodec-extra \
-        libavdevice-dev \
-        libavfilter-dev \
-        libavformat-dev \
-        libavutil-dev \
         libcurl4-openssl-dev \
-        libnotify-dev \
         libsqlite3-dev \
         libssl-dev \
-        libvulkan-dev \
-        libx264-dev \
         spirv-tools \
         curl
 
-RUN curl https://sh.rustup.rs -sSf | \
-    sh -s -- --default-toolchain stable -y
-
-RUN ~/.cargo/bin/rustup toolchain install stable
-RUN ~/.cargo/bin/rustup target add i686-pc-windows-gnu
-RUN ~/.cargo/bin/rustup target add x86_64-pc-windows-gnu
-
 RUN printf '#!/bin/bash\n \
-        export PATH=$PATH:$HOME/.cargo/bin\n \
         set -x\n \
         mkdir /build\n \
         mkdir /build/linux\n \

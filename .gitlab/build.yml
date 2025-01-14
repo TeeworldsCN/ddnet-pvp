@@ -10,13 +10,8 @@ build_cmake:
     - apt-get upgrade -y
     - apt-get install
       pkg-config
-      clang rustc
-      cargo cmake ninja-build
-      libfreetype6-dev libnotify-dev libsdl2-dev libsqlite3-dev libvulkan-dev
-      glslang-tools spirv-tools libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev
-      libx264-dev libpng-dev
-      libcurl4 libcurl3-gnutls libcurl4-openssl-dev libcurlpp-dev
-      libogg-dev libopus-dev libopusfile-dev
+      clang cmake ninja-build
+      libsqlite3-dev libcurl4 libcurl3-gnutls libcurl4-openssl-dev libcurlpp-dev
       valgrind -y
   stage: test
   script:

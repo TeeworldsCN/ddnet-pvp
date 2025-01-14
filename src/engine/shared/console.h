@@ -200,7 +200,6 @@ public:
 	void Print(int Level, const char *pFrom, const char *pStr, ColorRGBA PrintColor = gs_ConsoleDefaultColor) const override;
 	void SetTeeHistorianCommandCallback(FTeeHistorianCommandCallback pfnCallback, void *pUser) override;
 	void SetUnknownCommandCallback(FUnknownCommandCallback pfnCallback, void *pUser) override;
-	void InitChecksum(CChecksumData *pData) const override;
 
 	void SetAccessLevel(int AccessLevel) override { m_AccessLevel = clamp(AccessLevel, (int)(ACCESS_LEVEL_ADMIN), (int)(ACCESS_LEVEL_USER)); }
 

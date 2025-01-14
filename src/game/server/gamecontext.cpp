@@ -1045,7 +1045,7 @@ void CGameContext::OnTick()
 	}
 
 	// copy tuning
-	m_World.m_Core.m_aTuning[0] = m_Tuning;
+	m_World.m_Core.m_aTuning = m_Tuning;
 	m_World.Tick();
 
 	UpdatePlayerMaps();

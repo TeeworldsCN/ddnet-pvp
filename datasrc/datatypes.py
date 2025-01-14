@@ -172,9 +172,9 @@ class Pointer(BaseType):
 
 class TextureHandle(BaseType):
 	def __init__(self):
-		BaseType.__init__(self, "IGraphics::CTextureHandle")
+		BaseType.__init__(self, "int")
 	def EmitDefinition(self, _name):
-		return ["IGraphics::CTextureHandle()"]
+		return ["0"]
 
 # helper functions
 

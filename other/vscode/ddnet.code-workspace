@@ -81,9 +81,6 @@
 		"lldb.launch.expressions": "native",
 		"lldb.launch.initCommands": ["target stop-hook add --one-liner \"command script import ${workspaceFolder}/other/vscode/lldbinit.py\""],
 		"editor.defaultFormatter": "xaver.clang-format",
-		"[rust]": {
-			"editor.defaultFormatter": "rust-lang.rust-analyzer",
-		},
 		"editor.formatOnSave": true,
 		"cmake.additionalKits": [
 			"${workspaceFolder}/other/vscode/ddnet-cmake-tools-kits.json"
@@ -175,27 +172,12 @@
 			"llvm-vs-code-extensions.vscode-clangd",
 			"twxs.cmake",
 			"ms-vscode.cmake-tools",
-			"vadimcn.vscode-lldb",
-			"rust-lang.rust-analyzer"
+			"vadimcn.vscode-lldb"
 		]
 	},
 	"tasks": {
 		"version": "2.0.0",
 		"tasks": [
-			{
-				"type": "cmake",
-				"label": "CMake: build client",
-				"command": "build",
-				"targets": [
-					"DDNet"
-				],
-				"group": {
-					"kind": "build",
-					"isDefault": true
-				},
-				"problemMatcher": [],
-				"detail": "Build client targets"
-			},
 			{
 				"type": "cmake",
 				"label": "CMake: build server",
@@ -218,42 +200,10 @@
 			{
 				"type": "lldb",
 				"request": "launch",
-				"name": "Launch client",
-				"program": "${workspaceFolder}/build/DDNet",
-				"preLaunchTask": "CMake: build client",
-				// use dbg configs like this
-				// "args": [ "dbg_gfx 0" ],
-				// enable this to start the debugger with TSAN
-				// "environment": [ { "name":"TSAN_OPTIONS","value":"ignore_noninstrumented_modules=1" }],
-				"cwd": "${workspaceFolder}/build",
-			},
-			{
-				"type": "lldb",
-				"request": "launch",
 				"name": "Launch server",
 				"program": "${workspaceFolder}/build/DDNet-Server",
 				"preLaunchTask": "CMake: build server",
 				"cwd": "${workspaceFolder}/build"
-			},
-			// useful for cross debugging the windows (wine) client
-			// for these you need the microsoft cpp extension
-			// start the wine executable like this:
-			// winedbg --gdb --no-start --port 55555 DDNet.exe
-			{
-				"type": "cppdbg",
-				"request": "launch",
-				"name": "Attach to wine gdbserver",
-				"program": "${workspaceFolder}/build_win/DDNet.exe",
-				"miDebuggerServerAddress": "localhost:55555",
-				"cwd": "${workspaceFolder}/build_win/",
-				"MIMode": "gdb",
-				"setupCommands": [
-					{
-						"description": "Auto styling for \"gdb\"",
-						"text": "-enable-pretty-printing",
-						"ignoreFailures": true
-					}
-				]
 			}
 		]
 	}

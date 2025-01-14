@@ -394,14 +394,7 @@ void CHttpRequest::WriteToFile(IStorage *pStorage, const char *pDest, int Storag
 {
 	m_WriteToFile = true;
 	str_copy(m_aDest, pDest);
-	if(StorageType == -2)
-	{
-		pStorage->GetBinaryPath(m_aDest, m_aDestAbsolute, sizeof(m_aDestAbsolute));
-	}
-	else
-	{
-		pStorage->GetCompletePath(StorageType, m_aDest, m_aDestAbsolute, sizeof(m_aDestAbsolute));
-	}
+	pStorage->GetCompletePath(StorageType, m_aDest, m_aDestAbsolute, sizeof(m_aDestAbsolute));
 }
 
 void CHttpRequest::Header(const char *pNameColonValue)

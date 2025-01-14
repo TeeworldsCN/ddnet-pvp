@@ -21,9 +21,7 @@ def read_plist(path):
 
 # .. Useful stuff ..............................................................
 
-application_client = defines.get('client', 'DDNet.app')
 application_server = defines.get('server', 'DDNet-Server.app')
-appname_client = os.path.basename(application_client)
 appname_server = os.path.basename(application_server)
 
 def icon_from_app(app_path):
@@ -54,7 +52,7 @@ compression_level = 9
 size = defines.get('size', None)
 
 # Files to include
-files = [ application_client, application_server ]
+files = [ application_server ]
 
 # Symlinks to create
 symlinks = { 'Applications': '/Applications' }
@@ -63,7 +61,7 @@ symlinks = { 'Applications': '/Applications' }
 # hide = [ 'Secret.data' ]
 
 # Files to hide the extension of
-hide_extension = [ appname_client, appname_server ]
+hide_extension = [ appname_server ]
 
 # Volume icon
 #
@@ -73,12 +71,10 @@ hide_extension = [ appname_client, appname_server ]
 # pyobjc-framework-Quartz.
 #
 #icon = '/path/to/icon.icns'
-badge_icon_client = icon_from_app(application_client)
 badge_icon_server = icon_from_app(application_server)
 
 # Where to put the icons
 icon_locations = {
-	appname_client: (128, 288),
 	appname_server: (272, 288),
 	'Applications': (512, 288)
 	}

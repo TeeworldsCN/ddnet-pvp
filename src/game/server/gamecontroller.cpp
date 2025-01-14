@@ -124,7 +124,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int DDTeam)
 				for(int Index = 0; Index < 5 && Result == -1; ++Index)
 				{
 					Result = Index;
-					if(!GameServer()->m_World.m_Core.m_aTuning[0].m_PlayerCollision)
+					if(!GameServer()->m_World.m_Core.m_aTuning.m_PlayerCollision)
 						break;
 					for(int c = 0; c < Num; ++c)
 					{
