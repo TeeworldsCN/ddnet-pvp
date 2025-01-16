@@ -1021,16 +1021,49 @@ void CCharacter::Snap(int SnappingClient, int OtherMode)
 	if(m_Core.m_HasTelegunLaser)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_LASER;
 
-	// we need this to make ninja behave normally
 	CWeapon *pWeapon = CurrentWeapon();
-	if(pWeapon && pWeapon->GetType() == WEAPON_NINJA)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
+	if(pWeapon)
+	{
+		//CHARACTERFLAG_WEAPON_HAMMER = 1<<14,
+		//CHARACTERFLAG_WEAPON_GUN = 1<<15,
+		//CHARACTERFLAG_WEAPON_SHOTGUN = 1<<16,
+		//CHARACTERFLAG_WEAPON_GRENADE = 1<<17,
+		//CHARACTERFLAG_WEAPON_LASER = 1<<18,
+		pDDNetCharacter->m_Flags |= 1 << (14 + pWeapon->GetType()); // :P
+	}
 
+	{
+		bool IsClassicWeapon = true; // Snap them to DDNet if weapons are classic
+		int WeaponsFlag = 0;
+
+		for(int i = 0; i < NUM_WEAPON_SLOTS; i++)
+		{
+			if(!m_apWeaponSlots[i])
+				continue;
+
+			if(m_apWeaponSlots[i]->GetType() == i) // :P
+				WeaponsFlag |= 1 << (14 + i); // :P
+			else
+			{
+				IsClassicWeapon = false;
+				break;
+			}
+		}
+
+		if(IsClassicWeapon)
+			pDDNetCharacter->m_Flags |= WeaponsFlag; // Snap all weapons to DDNet
+	}
+
+	pDDNetCharacter->m_FreezeStart = m_FreezeTick;
 	pDDNetCharacter->m_FreezeEnd = m_DeepFreeze ? -1 : m_FreezeTime == 0 ? 0 :
 									       Server()->Tick() + m_FreezeTime;
 	pDDNetCharacter->m_Jumps = m_Core.m_Jumps;
 	pDDNetCharacter->m_TeleCheckpoint = m_TeleCheckpoint;
 	pDDNetCharacter->m_StrongWeakID = SnappingClient == m_pPlayer->GetCID() ? 1 : 0;
+	pDDNetCharacter->m_NinjaActivationTick = -1;
+	pDDNetCharacter->m_JumpedTotal = m_Core.m_JumpedTotal;
+	pDDNetCharacter->m_TargetX = m_Input.m_TargetX;
+	pDDNetCharacter->m_TargetY = m_Input.m_TargetY;
 }
 
 // DDRace

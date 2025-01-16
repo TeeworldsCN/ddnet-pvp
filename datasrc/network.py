@@ -24,8 +24,10 @@ GameInfoFlags = [
 	# Full, use GameInfoFlags2 for more flags
 ]
 GameInfoFlags2 = [
-	"ALLOW_X_SKINS", "GAMETYPE_CITY", "GAMETYPE_FDDRACE", "ENTITIES_FDDRACE",
+	"ALLOW_X_SKINS", "GAMETYPE_CITY", "GAMETYPE_FDDRACE", "ENTITIES_FDDRACE", "HUD_HEALTH_ARMOR", "HUD_AMMO",
+	"HUD_DDRACE", "NO_WEAK_HOOK", "NO_SKIN_CHANGE_FOR_FROZEN"
 ]
+
 ExPlayerFlags = ["AFK", "PAUSED", "SPEC"]
 ProjectileFlags = ["CLIENTID_BIT{}".format(i) for i in range(8)] + [
 	"NO_OWNER", "IS_DDNET", "BOUNCE_HORIZONTAL", "BOUNCE_VERTICAL",
@@ -63,7 +65,7 @@ enum
 
 enum
 {
-	GAMEINFO_CURVERSION=6,
+	GAMEINFO_CURVERSION=9,
 };
 '''
 
@@ -239,6 +241,15 @@ Objects = [
 		NetIntRange("m_Jumps", 0, 255),
 		NetIntAny("m_TeleCheckpoint"),
 		NetIntRange("m_StrongWeakID", 0, 'MAX_CLIENTS-1'),
+
+		# New data fields for jump display, freeze bar and ninja bar
+		# Default values indicate that these values should not be used
+		NetIntRange("m_JumpedTotal", -1, 255),
+		NetIntRange("m_NinjaActivationTick", -1, "max_int"),
+		NetIntRange("m_FreezeStart", -1, "max_int"),
+		# New data fields for improved target accuracy
+		NetIntAny("m_TargetX"),
+		NetIntAny("m_TargetY"),
 	]),
 
 	NetObjectEx("DDNetPlayer", "player@netobj.ddnet.tw", [
